@@ -1,0 +1,13 @@
+***tesr
+ **format
+   2.1
+ **general
+   3
+   50 50 50
+   5e-6 5e-6 5e-6
+ **cell
+   19
+ **data
+   ascii
+  *file GrainIds_505050.dat
+***end

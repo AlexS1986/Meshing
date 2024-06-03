@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Delete all .tess files
+rm *.tess
+rm *.msh
+rm *.png
+
+# Set the number of grains
+num_grains=100
+
+# Run Neper with specified options
+neper -T -n "$num_grains" -reg 1  #-morpho "gg,sphericity:0.5" #-group "id<=5?1:2"
+
+# Run Neper with the generated tess file
+neper -M  n100-id1.tess -order 1 -rcl 1.0 #-meshpoly "polynb<5" #all #"x<0.5"
+
+
+
+neper -V n"$num_grains"-id1.tess -print img1
+
+neper -V n"$num_grains"-id1.msh -print img2
+
+# Rename any .msh file to polycrystal.msh
+if [ -f *.msh ]; then
+    mv *.msh polycrystal.msh
+fi
+
+
+
+Delete all .msh files except for polycrystal.msh
+for file in *.msh; do
+    if [ "$file" != "polycrystal.msh" ]; then
+        rm "$file"
+    fi
+done
+
+# rm *.tess

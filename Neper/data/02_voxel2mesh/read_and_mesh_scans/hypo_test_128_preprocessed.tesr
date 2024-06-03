@@ -1,0 +1,13 @@
+***tesr
+ **format
+   2.1
+ **general
+   3
+   128 128 128
+   1e-6 1e-6 1e-6
+ **cell
+   11
+ **data
+   ascii
+  *file resources/data_small/output_file.dat
+***end

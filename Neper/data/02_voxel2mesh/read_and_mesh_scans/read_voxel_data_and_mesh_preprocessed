@@ -1,0 +1,23 @@
+#!/bin/bash
+
+#https://github.com/neperfepx/neper/discussions/349
+# neper -T -n 10 -for raw -tesrsize 50:50:50 -o voxel_data -tesrformat ascii
+neper -V hypo_test_128_preprocessed.tesr -print img_of_voxel_data_prep
+
+neper -T -loadtesr hypo_test_128_preprocessed.tesr -o hypo_test_128_preprocessed_neper_default -tesrformat ascii
+
+
+neper -T -loadtesr hypo_test_128_preprocessed.tesr -transform autocrop,resetorigin,renumber,resetcellid -o hypo_test_128_preprocessed-c -tesrformat ascii
+
+neper -T -n from_morpho -morpho "tesr:file(hypo_test_128_preprocessed-c.tesr)" -morphooptiobj "tesr:pts(region=all,res=1)"  #-reg 1 
+
+#neper -T -n from_morpho -morpho "tesr:file(hypo_test_128_preprocessed.tesr)" #-reg 1 
+
+
+# neper -T -loadtesr hypo_test_128.tesr -transform autocrop,resetorigin,renumber,resetcellid -o hypo_test_128-c -tesrformat ascii
+
+# neper -T -n from_morpho -morpho "tesr:file(hypo_test_128-c.tesr)" -reg 1 
+
+neper -M  nfrom_morpho-id1.tess -order 1 -rcl 0.5
+
+# neper -V nfrom_morpho-id1.msh -print img_of_mesh

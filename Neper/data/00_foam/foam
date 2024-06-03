@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Delete all .tess files
+rm *.tess
+rm *.msh
+rm *.png
+
+ neper -T -n 500 -reg 1
+ neper -M n500-id1.tess -dim 2 -rcl 0.6
+ neper -V n500-id1.tess -datacelltrs 0.5 -print img1
+ neper -V n500-id1.tess,n500-id1.msh -showelset2d "domtype!=2" -dataelset2dcol lightblue -dataelt2dedgerad 0.002 -print img2
+
+# rm *.tess

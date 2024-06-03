@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#https://github.com/neperfepx/neper/discussions/349
+neper -T -n 10 -for raw -tesrsize 50:50:50 -o voxel_data -tesrformat ascii
+neper -V voxel_data.tesr -print img_of_voxel_data
+
+neper -T -loadtesr voxel_data.tesr -transform autocrop,resetorigin,renumber,resetcellid -o voxel_data-c
+
+neper -T -n from_morpho -morpho "tesr:file(voxel_data-c.tesr)" -reg 1 
+
+neper -M  nfrom_morpho-id1.tess -order 1 -rcl 1.0
+
+neper -V nfrom_morpho-id1.msh -print img_of_mesh

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+#https://github.com/neperfepx/neper/discussions/349
+neper -V TiS2-load.tesr -print img_of_voxel_data
