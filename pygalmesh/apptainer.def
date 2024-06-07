@@ -1,0 +1,53 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%files
+    pygalmesh-main.zip /root/
+
+%post
+    # Update package lists and install any needed dependencies
+    apt-get update && \
+    apt-get install -y \
+    python3 \
+    python3-pip \
+    unzip \
+    cmake \
+    g++ \
+    pkg-config \
+    libgsl-dev \
+    povray \
+    libgmp-dev \
+    libmpfr-dev \
+    libeigen3-dev \
+    libcgal-dev \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+    # Create a directory for the software and unpack the zip files
+    mkdir -p /root/Progs
+
+    # Unzip the pygalmesh-main.zip file
+    unzip /root/pygalmesh-main.zip -d /root/Progs
+
+    # Set environment variable for Eigen include path
+    export EIGEN_INCLUDE_DIR=/usr/include/eigen3
+
+    # Modify setup.py to include Eigen path
+    sed -i 's|include_dirs=\[os.environ.get("EIGEN_INCLUDE_DIR", "/usr/include/eigen3/")\]|include_dirs=["/usr/include/eigen3"]|g' /root/Progs/pygalmesh-main/setup.py
+
+    # Install pygalmesh
+    pip3 install /root/Progs/pygalmesh-main
+
+    # Install tifffile using pip for Python 3
+    pip3 install tifffile
+
+%environment
+    export EIGEN_INCLUDE_DIR=/usr/include/eigen3
+
+%runscript
+    exec "$@"
+
+
+
+
+
