@@ -433,9 +433,11 @@ Temporary Items
 *.msh
 *.xdmf
 *.h5
+*.dat
 
 #Obsidian
 workspace.json
 Notes/Hypo/.obsidian/
 
 .git/
+*/resources/*
