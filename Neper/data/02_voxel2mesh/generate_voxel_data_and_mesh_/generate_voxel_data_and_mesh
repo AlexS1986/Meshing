@@ -6,6 +6,8 @@ neper -V voxel_data.tesr -print img_of_voxel_data
 
 neper -T -loadtesr voxel_data.tesr -transform autocrop,resetorigin,renumber,resetcellid -o voxel_data-c
 
+# neper -M  n10-id1.tess -order 1 -meshpoly "id!=5" -nset none -faset none
+
 neper -T -n from_morpho -morpho "tesr:file(voxel_data-c.tesr)" -reg 1 
 
 neper -M  nfrom_morpho-id1.tess -order 1 -rcl 1.0

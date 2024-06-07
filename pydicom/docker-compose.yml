@@ -1,0 +1,7 @@
+version: '3'
+services:
+  pydicom:
+    image: pydicom/dicom
+    volumes:
+      - ./data:/data  # Mounts a directory from the host to /data in the container
+    command: tail -f /dev/null  # Keeps the container running indefinitely

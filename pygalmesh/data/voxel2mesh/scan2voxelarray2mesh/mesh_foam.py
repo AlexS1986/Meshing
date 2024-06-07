@@ -3,7 +3,7 @@ import pygalmesh
 import os
 
 # File path
-file_path = '/data/resources/hypo_test_128.dat'
+file_path = '/data/resources/hypo_smoothed_128.dat'
 script_path = os.path.dirname(__file__)
 
 # Read the data from the file
@@ -34,5 +34,3 @@ mesh = pygalmesh.generate_from_array(
 )
 
 mesh.write(os.path.join(script_path,"foam.vtk"))
-
-print("hi")

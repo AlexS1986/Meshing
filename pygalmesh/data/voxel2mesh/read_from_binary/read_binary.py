@@ -41,7 +41,7 @@ min = np.min(vol)
 
 
 
-equal = np.array_equal(vol,vol_from_text)
+# equal = np.array_equal(vol,vol_from_text)
 
 voxel_dim = 1.0e-2 #cannot be too small for mesh generation to work properly
 voxel_size = (voxel_dim, voxel_dim, voxel_dim)
