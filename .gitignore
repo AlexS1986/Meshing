@@ -434,6 +434,7 @@ Temporary Items
 *.xdmf
 *.h5
 *.dat
+*.dcm
 
 #Obsidian
 workspace.json
