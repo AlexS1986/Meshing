@@ -12,7 +12,7 @@ with open(file_path, 'r') as file:
     # Read all lines and split by spaces to get individual elements
     data = file.read().split()
 
-# Convert data to integers
+# Convert data to integersvscode-remote://ssh-remote%2Blcluster14.hrz.tu-darmstadt.de/home/as12vapa/jobs/job_Keff
 data = list(map(int, data))
 
 
