@@ -39,7 +39,10 @@ WORKDIR /root/Progs/pygalmesh-main
 RUN pip3 install .
 
 # Install tifffile using pip for Python 3
-RUN pip3 install tifffile
+RUN pip3 install tifffile scipy h5py
+
+# Set PYTHONPATH to include /home/utils
+ENV PYTHONPATH="/home/utils:${PYTHONPATH}"
 
 # Command to run when the container starts
 CMD ["tail", "-f", "/dev/null"]
