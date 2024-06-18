@@ -6,7 +6,7 @@ import numpy as np
 import meshio
 import os
 
-import utils.alex.mirror_merge_meshes as mmm 
+import utils.alex.process_meshes as mmm 
 
 script_path = os.path.dirname(__file__)
 input_mesh_path = os.path.join(script_path,"foam128_corrected_to_box.xdmf")

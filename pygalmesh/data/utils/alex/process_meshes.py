@@ -1,5 +1,6 @@
 from scipy.spatial import cKDTree
 import numpy as np
+import meshio
 
 def mirror_and_merge(original_mesh, mirror_direction = 0, merging_tolerance = 0.0, mirror_plane_value=0.0):    
     number_points_orignal_mesh = len(original_mesh.points)
@@ -91,3 +92,30 @@ def scale_mesh(original_mesh, scal):
 # Create a new mesh object from vertices and cells
     scaled_mesh = meshio.Mesh(points=points, cells={"tetra": cells})
     return scaled_mesh
+
+def translate_mesh(original_mesh, translate_vector):
+    points = original_mesh.points
+    points = points + translate_vector
+
+    index_of_tetra_cells = next((index for index, cell in enumerate(original_mesh.cells) if cell.type == "tetra"), None)
+    cells = original_mesh.cells[index_of_tetra_cells].data
+
+# Create a new mesh object from vertices and cells
+    translated_mesh = meshio.Mesh(points=points, cells={"tetra": cells})
+    return translated_mesh
+
+
+def correct_mesh_to_box(points, xmin, xmax, ymin, ymax, zmin, zmax, tolerance):
+    # Correct first column (x values)
+    points[:, 0] = np.where(np.abs(points[:, 0] - xmin) <= tolerance, xmin, points[:, 0])
+    points[:, 0] = np.where(np.abs(points[:, 0] - xmax) <= tolerance, xmax, points[:, 0])
+    
+    # Correct second column (y values)
+    points[:, 1] = np.where(np.abs(points[:, 1] - ymin) <= tolerance, ymin, points[:, 1])
+    points[:, 1] = np.where(np.abs(points[:, 1] - ymax) <= tolerance, ymax, points[:, 1])
+    
+    # Correct third column (z values)
+    points[:, 2] = np.where(np.abs(points[:, 2] - zmin) <= tolerance, zmin, points[:, 2])
+    points[:, 2] = np.where(np.abs(points[:, 2] - zmax) <= tolerance, zmax, points[:, 2])
+    
+    return points
