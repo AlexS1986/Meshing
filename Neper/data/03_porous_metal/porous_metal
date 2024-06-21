@@ -8,7 +8,7 @@ NEPER="neper --rcfile none"
 
 # # $NEPER -T -n 1000 -group "id<=500?1:2" -o gene_grou_1
 # # $NEPER -T -n 1000 -group "vol>=0.001?1:2" -o gene_grou_2
-$NEPER -T -n 1000 -domain "cube(2,1,1)" -morpho "diameq:0.8*lognormal(1,0.35)+0.2*lognormal(2,0.6),1-sphericity:lognormal(0.6,0.03)" -group mode -o gene_grou_3  -regularization 1 -statcell diameq,sphericity # separated by mode (most frequent value in statistics)
+$NEPER -T -n 1000 -domain "cube(2,1,1)" -morpho "diameq:0.5*lognormal(1,0.35)+0.5*lognormal(2,0.6),1-sphericity:lognormal(0.6,0.03)" -group mode -o gene_grou_3  -regularization 1 -statcell diameq,sphericity # separated by mode (most frequent value in statistics)
 
 # neper -V gene_grou_3.tess -print img_of_tess
 

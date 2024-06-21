@@ -1,0 +1,13 @@
+#!/bin/bash
+
+NEPER="neper --rcfile none"
+
+$NEPER -T -n 1000 -domain "cube(2,1,1)" -morpho "diameq:0.5*lognormal(1,0.35)+0.5*lognormal(2,0.6),1-sphericity:lognormal(0.9,0.03)" -group mode  -o tesselation  -regularization 1 -statcell diameq,sphericity # separated by mode (most frequent value in statistics)
+
+$NEPER -V tesselation.tess $C -print tesselation
+
+$NEPER -M  tesselation.tess -o mesh -order 1 -rcl 0.5 
+
+neper -V mesh.msh -print mesh
+
+exit 0
