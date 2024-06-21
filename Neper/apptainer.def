@@ -1,6 +1,10 @@
 BootStrap: docker
 From: ubuntu:22.04
 
+%files
+    neper-main.zip /root/
+    gmsh-4.12.2-source.tgz /root/
+
 %post
     # Update package lists and install dependencies
     apt-get update && \
@@ -22,10 +26,6 @@ From: ubuntu:22.04
 
     # Create a directory for the software and unpack the zip files
     mkdir -p /root/Progs
-
-    # Copy neper-main.zip and gmsh-4.12.2-source.tgz to /root/
-    cp /path/to/neper-main.zip /root/
-    cp /path/to/gmsh-4.12.2-source.tgz /root/
 
     # Extract Neper and Gmsh archives
     unzip /root/neper-main.zip -d /root/Progs/
@@ -49,6 +49,7 @@ From: ubuntu:22.04
 %runscript
     # Command to run when the container starts
     exec tail -f /dev/null
+
 
 
 
