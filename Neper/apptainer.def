@@ -1,0 +1,54 @@
+BootStrap: docker
+From: ubuntu:22.04
+
+%post
+    # Update package lists and install dependencies
+    apt-get update && \
+    apt-get install -y \
+        python3 \
+        python3-pip \
+        unzip \
+        cmake \
+        g++ \
+        pkg-config \
+        libgsl-dev \
+        povray \
+        libgmp-dev \
+        libmpfr-dev \
+        libeigen3-dev \
+        libcgal-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+    # Create a directory for the software and unpack the zip files
+    mkdir -p /root/Progs
+
+    # Copy neper-main.zip and gmsh-4.12.2-source.tgz to /root/
+    cp /path/to/neper-main.zip /root/
+    cp /path/to/gmsh-4.12.2-source.tgz /root/
+
+    # Extract Neper and Gmsh archives
+    unzip /root/neper-main.zip -d /root/Progs/
+    tar -xzf /root/gmsh-4.12.2-source.tgz -C /root/Progs/
+
+    # Install Gmsh
+    cd /root/Progs/gmsh-4.12.2-source
+    mkdir -p build && cd build && cmake .. && make && make install
+
+    # Compile Neper
+    cd /root/Progs/neper-main/src
+    mkdir -p build && cd build && cmake .. && make && make install
+
+    # Install tifffile using pip for Python 3
+    pip3 install tifffile
+
+%environment
+    # Set environment variables if needed
+    # export MY_VAR=my_value
+
+%runscript
+    # Command to run when the container starts
+    exec tail -f /dev/null
+
+
+
