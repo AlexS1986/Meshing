@@ -30,13 +30,13 @@ voxel_size_z = voxel_size_x
 # zmin = 0.0
 # zmax = voxel_num_z * voxel_size_z
 
-max_element_size = 2.0e-2
+max_element_size = 3.0e-2
 
 # read pygal output mesh
 original_mesh = meshio.read(input_mesh_path)
 points = original_mesh.points
 
-tolerance = 0.9*max_element_size
+tolerance = 0.8*max_element_size
 
 # Get the minimum values in each column
 min_values_before = np.min(points, axis=0)
@@ -49,10 +49,6 @@ ymin = min_values_before[1]
 ymax = max_values_before[1]
 zmin = min_values_before[2]
 zmax = max_values_before[2]
-
-
-
-
 
 points = mmm.correct_mesh_to_box(points,xmin,xmax,ymin,ymax,zmin,zmax,tolerance=tolerance)
 
