@@ -35,10 +35,26 @@ mmm.print_mesh_status(missing_points, any_missing, incorrect_orientation_cells, 
 # correct_mesh
 mesh = mmm.remove_invalid_cells(mesh,incorrect_orientation_cells,zero_volume_cells)
 
+# remove points that are not referenced by a cell
+# def remove_points_at_indices(mesh, point_indices_to_remove):
+#     points_filtered, offset = mmm.remove_vertices_and_compute_offset_2(mesh.points,missing_points)
+#     points, cells = mmm.get_points_and_cells_from_mesh(mesh)
+#     cells_with_applied_offset = mmm.apply_offset_to_cells(cells,offset,indices_of_removed_points=missing_points)
+#     mesh = meshio.Mesh(points=points_filtered, cells={"tetra": cells_with_applied_offset})
+#     return mesh
+
+# mesh = remove_points_at_indices(mesh, missing_points)
+
+
+# missing_points, any_missing = mmm.check_all_points_referenced(mesh) # missing is not bad
+# incorrect_orientation_cells, any_incorrect_orientation, zero_volume_cells, any_zero_volume = mmm.check_cell_orientation(mesh,tolerance=0.001*max_element_size**3) # zero volume or incorrect orientation breaks the mesh!
+# mmm.print_mesh_status(missing_points, any_missing, incorrect_orientation_cells, any_incorrect_orientation, zero_volume_cells, any_zero_volume)
+
+
 mirror_plane_values =  np.min(mesh.points,axis=0)
 mirror_dir_index = 0
 
-# mirrored_merged_vertices,  mirrored_merged_cells = mmm.mirror_and_merge(
+# mirrored_merged_vertices,  mirrored_merged_cells = mmm.mirror_and_merge_old(
 #     mesh, mirror_direction =  mirror_dir_index, mirror_plane_value=mirror_plane_values[mirror_dir_index], 
 #     merging_tolerance=merging_tolerance)
 
@@ -46,9 +62,14 @@ mirror_dir_index = 0
 # mesh = meshio.Mesh(mirrored_merged_vertices, {"tetra": mirrored_merged_cells})
 
 # 1. mirror in x-direction
-mesh = mmm.mirror_and_merge(
-    mesh, mirror_direction =  mirror_dir_index, mirror_plane_value=mirror_plane_values[mirror_dir_index], 
-    merging_tolerance=merging_tolerance)
+# mesh = mmm.mirror_and_merge_old(
+#     mesh, mirror_direction =  mirror_dir_index, mirror_plane_value=mirror_plane_values[mirror_dir_index], 
+#     merging_tolerance=merging_tolerance)
+
+mesh = mmm.mirror_and_merge_old(mesh,mirror_direction=0,merging_tolerance=merging_tolerance,
+                                mirror_plane_value=mirror_plane_values[mirror_dir_index])
+
+pairs, has_pairs = mmm.check_for_identical_points(mesh,tolerance_for_points_to_be_considered_identical)
 
 # translate to origin
 minimum_coordinates_new_mesh =  np.min(mesh.points,axis=0)
@@ -68,14 +89,14 @@ meshio.write(output_mesh_path_coarse, mesh)
 mirror_plane_values =  np.min(mesh.points,axis=0)
 mirror_dir_index = 2
 
-# mirrored_merged_vertices,  mirrored_merged_cells = mmm.mirror_and_merge(
+# mirrored_merged_vertices,  mirrored_merged_cells = mmm.mirror_and_merge_old(
 #     mesh, mirror_direction =  mirror_dir_index, mirror_plane_value=mirror_plane_values[mirror_dir_index], 
 #     merging_tolerance=merging_tolerance)
 
 # # Create a new mesh object from vertices and cells
 # mesh = meshio.Mesh(mirrored_merged_vertices, {"tetra": mirrored_merged_cells})
 
-mesh = mmm.mirror_and_merge(
+mesh = mmm.mirror_and_merge_old(
     mesh, mirror_direction =  mirror_dir_index, mirror_plane_value=mirror_plane_values[mirror_dir_index], 
     merging_tolerance=merging_tolerance)
 
@@ -90,14 +111,14 @@ mesh = mmm.translate_mesh(mesh,translate_to_origin)
 mirror_plane_values =  np.min(mesh.points,axis=0)
 mirror_dir_index = 0
 
-# mirrored_merged_vertices,  mirrored_merged_cells = mmm.mirror_and_merge(
+# mirrored_merged_vertices,  mirrored_merged_cells = mmm.mirror_and_merge_old(
 #     mesh, mirror_direction =  mirror_dir_index, mirror_plane_value=mirror_plane_values[mirror_dir_index], 
 #     merging_tolerance=merging_tolerance)
 
 # # Create a new mesh object from vertices and cells
 # mesh = meshio.Mesh(mirrored_merged_vertices, {"tetra": mirrored_merged_cells})
 
-mesh = mmm.mirror_and_merge(
+mesh = mmm.mirror_and_merge_old(
     mesh, mirror_direction =  mirror_dir_index, mirror_plane_value=mirror_plane_values[mirror_dir_index], 
     merging_tolerance=merging_tolerance)
 
@@ -113,14 +134,14 @@ mesh_copy = mmm.copy_mesh(mesh)
 mirror_plane_values =  np.min(mesh.points,axis=0)
 mirror_dir_index = 1
 
-# mirrored_merged_vertices,  mirrored_merged_cells = mmm.mirror_and_merge(
+# mirrored_merged_vertices,  mirrored_merged_cells = mmm.mirror_and_merge_old(
 #     mesh, mirror_direction =  mirror_dir_index, mirror_plane_value=mirror_plane_values[mirror_dir_index], 
 #     merging_tolerance=merging_tolerance)
 
 # # Create a new mesh object from vertices and cells
 # mesh = meshio.Mesh(mirrored_merged_vertices, {"tetra": mirrored_merged_cells})
 
-mesh= mmm.mirror_and_merge(
+mesh= mmm.mirror_and_merge_old(
     mesh, mirror_direction =  mirror_dir_index, mirror_plane_value=mirror_plane_values[mirror_dir_index], 
     merging_tolerance=merging_tolerance)
 
@@ -134,7 +155,7 @@ mesh = mmm.translate_mesh(mesh,translate_to_origin)
 # mirror_plane_values =  np.max(mesh_copy.points,axis=0)
 # mirror_dir_index = 1
 
-# # mirrored_merged_vertices,  mirrored_merged_cells = mmm.mirror_and_merge(
+# # mirrored_merged_vertices,  mirrored_merged_cells = mmm.mirror_and_merge_old(
 # #     mesh, mirror_direction =  mirror_dir_index, mirror_plane_value=mirror_plane_values[mirror_dir_index], 
 # #     merging_tolerance=merging_tolerance)
 
@@ -183,7 +204,7 @@ meshio.write(output_mesh_path_medium, mesh)
 mirror_plane_values =  np.min(mesh.points,axis=0)
 mirror_dir_index = 2
 
-mesh = mmm.mirror_and_merge(
+mesh = mmm.mirror_and_merge_old(
     mesh, mirror_direction =  mirror_dir_index, mirror_plane_value=mirror_plane_values[mirror_dir_index], 
     merging_tolerance=merging_tolerance)
 
@@ -197,7 +218,7 @@ mesh = mmm.translate_mesh(mesh,translate_to_origin)
 mirror_plane_values =  np.min(mesh.points,axis=0)
 mirror_dir_index = 1
 
-mesh = mmm.mirror_and_merge(
+mesh = mmm.mirror_and_merge_old(
     mesh, mirror_direction =  mirror_dir_index, mirror_plane_value=mirror_plane_values[mirror_dir_index], 
     merging_tolerance=merging_tolerance)
 
@@ -211,7 +232,7 @@ mesh = mmm.translate_mesh(mesh,translate_to_origin)
 mirror_plane_values =  np.min(mesh.points,axis=0)
 mirror_dir_index = 0
 
-mesh = mmm.mirror_and_merge(
+mesh = mmm.mirror_and_merge_old(
     mesh, mirror_direction =  mirror_dir_index, mirror_plane_value=mirror_plane_values[mirror_dir_index], 
     merging_tolerance=merging_tolerance)
 

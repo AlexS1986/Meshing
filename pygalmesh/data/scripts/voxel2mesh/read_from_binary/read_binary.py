@@ -7,6 +7,7 @@ file_path = '/data/resources/hypo_test_128.raw'
 
 script_path = os.path.dirname(__file__)
 
+# test = np.fromfile(file_path,dtype=np.uint8)
 vol = np.fromfile(file_path, dtype=np.uint8).reshape((128, 128, 128),order='F') # ordering needs to be changed for raw
 # vol = np.array(vol,dtype=np.uint8)
 max = np.max(vol)

@@ -26,7 +26,7 @@ def mirror_and_merge_old(original_mesh, mirror_direction = 0, merging_tolerance 
                                                                           mirror_plane_direction=mirror_direction, 
                                                                           mirror_plane_value=mirror_plane_value)
     
-    mirrored_vertices_filtered, offset = remove_duplicate_points_and_compute_offset(number_points_orignal_mesh, mirrored_vertices, indices_of_duplicate_points)
+    mirrored_vertices_filtered, offset = remove_vertices_and_compute_offset_mirror(number_points_orignal_mesh, mirrored_vertices, indices_of_duplicate_points)
     
     index_of_tetra_cells = next((index for index, cell in enumerate(original_mesh.cells) if cell.type == "tetra"), None)
 
@@ -85,7 +85,7 @@ def merge_mesh(mesh1, mesh2, merge_direction = 0, merging_tolerance = 0.0, merge
                                                                           mirror_plane_value=merge_plane_value)
     
     # should also work for merging non-equal-meshes
-    vertices_to_merge_filtered, offset = remove_duplicate_points_and_compute_offset(number_points_orignal_mesh, mesh2_vertices, indices_of_duplicate_points)
+    vertices_to_merge_filtered, offset = remove_vertices_and_compute_offset_mirror(number_points_orignal_mesh, mesh2_vertices, indices_of_duplicate_points)
     
     index_of_tetra_cells = next((index for index, cell in enumerate(mesh2.cells) if cell.type == "tetra"), None)
 
@@ -99,12 +99,12 @@ def merge_mesh(mesh1, mesh2, merge_direction = 0, merging_tolerance = 0.0, merge
     merged_cells = np.concatenate((mesh1.cells[index_of_tetra_cells].data, cells_to_merge))
     return meshio.Mesh(merged_vertices, {"tetra": merged_cells})
 
-def apply_offset_to_cells(cells, offset,indices_of_duplicate_points):
+def apply_offset_to_cells(cells, offset,indices_of_removed_points):
         adjusted_cells = cells.copy()
         for j in range(len(adjusted_cells)):
             # adjusted_cells[j] = np.flip(adjusted_cells[j]) # reverse the order in each mirrored cell -> so ordering is correct for fem?
             for i, point in enumerate(adjusted_cells[j]):
-                if point in indices_of_duplicate_points:
+                if point in indices_of_removed_points:
                     continue
                 else:
                     adjusted_cells[j][i] = point + int(offset[point])
@@ -122,16 +122,29 @@ def apply_offset_to_cells_and_reverse_point_ordering(cells, offset,indices_of_du
                     adjusted_cells[j][i] = point + int(offset[point])
         return np.array(adjusted_cells)
 
-def remove_duplicate_points_and_compute_offset(number_points_orignal_mesh, mirrored_vertices, indices_of_duplicate_points):
-    mirrored_vertices_filtered = []
-    offset = np.full(number_points_orignal_mesh,number_points_orignal_mesh,dtype=np.uint)
+def remove_vertices_and_compute_offset_mirror(number_of_vertices_orig_mesh, vertices, indices_of_vertices_to_remove):
+    vertices_filtered = []
+    # number_of_vertices = len(vertices)
+    offset = np.full(number_of_vertices_orig_mesh,number_of_vertices_orig_mesh,dtype=np.uint)
     
-    for i, pt in enumerate(mirrored_vertices):
-        if i not in indices_of_duplicate_points:
-            mirrored_vertices_filtered.append(pt)
+    for i, pt in enumerate(vertices):
+        if i not in indices_of_vertices_to_remove:
+            vertices_filtered.append(pt)
         else:
             offset[i+1:] -= 1
-    return mirrored_vertices_filtered,offset
+    return vertices_filtered,offset
+
+def remove_vertices_and_compute_offset_2( vertices, indices_of_vertices_to_remove):
+    vertices_filtered = []
+    number_of_vertices = len(vertices)
+    offset = np.full(number_of_vertices,0,dtype=np.int64)
+    
+    for i, pt in enumerate(vertices):
+        if i not in indices_of_vertices_to_remove:
+            vertices_filtered.append(pt)
+        else:
+            offset[i+1:] -= 1
+    return vertices_filtered,offset
 
 def filter_duplicate_points_at_mirror_plane(original_mesh, tolerance, indices_of_duplicate_points, mirror_plane_direction: int = 0, mirror_plane_value: float = 0.0):
     filtered_indices = [i for i in indices_of_duplicate_points if np.isclose(original_mesh.points[i, mirror_plane_direction], mirror_plane_value, atol=tolerance)]
