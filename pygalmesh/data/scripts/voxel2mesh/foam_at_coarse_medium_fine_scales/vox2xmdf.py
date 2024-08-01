@@ -38,9 +38,9 @@ subarray_size = 128
 # Extract the subarray
 sub_vol = vol[start_x:start_x+subarray_size, start_y:start_y+subarray_size, start_z:start_z+subarray_size]
 
-max_element_size = 3.0*voxel_dim
+max_element_size = 2.0*voxel_dim
 mesh = pygalmesh.generate_from_array(
-    sub_vol, voxel_size, max_cell_circumradius=max_element_size, #max_facet_distance=0.1*voxel_dim
+    sub_vol, voxel_size, max_cell_circumradius=max_element_size, max_facet_distance=0.5*voxel_dim
 )
 
 mesh.write(os.path.join(script_path,"foam"+str(subarray_size)+".xdmf"))

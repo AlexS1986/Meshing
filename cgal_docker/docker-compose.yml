@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  cgal:
+    build: .
+    container_name: cgal_container
+    volumes:
+      - ./shared:/home
+    tty: true
