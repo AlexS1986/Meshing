@@ -3,6 +3,68 @@ import numpy as np
 import meshio
 import copy
 
+
+def rotate_mesh(mesh, axis, angle):
+    """
+    Rotates the points of a mesh object around a specified axis by a given angle.
+    
+    Parameters:
+    mesh (object): Mesh object containing points in mesh.points (Nx3 numpy array).
+    axis (str): The axis to rotate around ('x', 'y', or 'z').
+    angle (float): The angle in radians to rotate the points.
+
+    Returns:
+    object: The mesh object with rotated points.
+    """
+    # Rotate the points of the mesh
+    mesh.points = rotate_points(mesh.points, axis, angle)
+    return mesh
+
+def rotate_points(points, axis, angle):
+    """
+    Rotates an Nx3 numpy array of points around a specified axis by a given angle.
+    
+    Parameters:
+    points (np.ndarray): Nx3 array containing the coordinates of the points.
+    axis (str): The axis to rotate around ('x', 'y', or 'z').
+    angle (float): The angle in radians to rotate the points.
+
+    Returns:
+    np.ndarray: The rotated Nx3 array of points.
+    """
+    # Ensure the axis is valid
+    if axis not in {'x', 'y', 'z'}:
+        raise ValueError("Axis must be one of 'x', 'y', or 'z'")
+    
+    # Define rotation matrices for each axis
+    cos_angle = np.cos(angle)
+    sin_angle = np.sin(angle)
+    
+    if axis == 'x':
+        rotation_matrix = np.array([
+            [1, 0, 0],
+            [0, cos_angle, -sin_angle],
+            [0, sin_angle, cos_angle]
+        ])
+    elif axis == 'y':
+        rotation_matrix = np.array([
+            [cos_angle, 0, sin_angle],
+            [0, 1, 0],
+            [-sin_angle, 0, cos_angle]
+        ])
+    elif axis == 'z':
+        rotation_matrix = np.array([
+            [cos_angle, -sin_angle, 0],
+            [sin_angle, cos_angle, 0],
+            [0, 0, 1]
+        ])
+    
+    # Apply the rotation matrix to each point
+    rotated_points = points @ rotation_matrix.T
+    
+    return rotated_points
+
+
 def mirror_and_merge_old(original_mesh, mirror_direction = 0, merging_tolerance = 0.0, mirror_plane_value=0.0):    
     number_points_orignal_mesh = len(original_mesh.points)
     

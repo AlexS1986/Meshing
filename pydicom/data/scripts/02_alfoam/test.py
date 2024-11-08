@@ -11,8 +11,6 @@ file_path = os.path.join("/data","resources","al-foam","AluSchaum_AlSi10_P1_1024
 
 ds : pydicom.dataset.FileDataset = dcmread(file_path)
 
-
-
 scan_intensity_as_array = np.array(ds.pixel_array) # this is 512 x 1024 x 1024
 min = scan_intensity_as_array.min()
 max = scan_intensity_as_array.max()

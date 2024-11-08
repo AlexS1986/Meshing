@@ -1,0 +1,16 @@
+n=180
+m=90
+ra=0.03
+phi0=0.0
+eta_chi=22.0
+eta_phi=500.0
+p=5.5
+p_control=true
+chi_opt_delay=true
+E0/E1=0.6
+rho=0.3
+phi_min=0.5
+kappa=1.0e-9
+chi_min=0.001
+E=210000.0
+nu=0.3
