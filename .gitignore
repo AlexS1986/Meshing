@@ -443,3 +443,6 @@ Notes/Hypo/.obsidian/
 
 .git/
 */resources/*
+
+*.npy
+*DICOM/
