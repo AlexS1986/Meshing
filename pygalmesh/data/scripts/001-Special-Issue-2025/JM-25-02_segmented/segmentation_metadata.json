@@ -1,0 +1,4 @@
+{
+    "algorithm": "otsu",
+    "gaussian_sigma": 1
+}

@@ -7,7 +7,7 @@ import nanomesh
 import meshio
 
 # File path
-folder_path = '/data/resources/2D_structure_Hannover/'
+folder_path = '/data/resources/2D_structure_Hannover/mbb/'
 voxel_number = 128
 script_path = os.path.dirname(__file__)
 
@@ -38,6 +38,29 @@ def infer_mesh_dimensions_from_nodes(nodes_df):
     num_rows = len(unique_y_coords) - 1  # Number of cells along the y dimension
     num_cols = len(unique_x_coords) - 1  # Number of cells along the x dimension
     return num_rows, num_cols
+
+def get_min_max_coords_from_df(nodes_df):
+    """
+    Returns the minimum and maximum x and y values from the 'Points_0' and 'Points_1' columns in the given DataFrame.
+
+    Parameters:
+        nodes_df (DataFrame): DataFrame containing 'Points_0' and 'Points_1' columns with x and y coordinates.
+
+    Returns:
+        dict: Dictionary with min and max x and y values.
+    """
+    min_x = nodes_df['Points_0'].min()
+    max_x = nodes_df['Points_0'].max()
+    min_y = nodes_df['Points_1'].min()
+    max_y = nodes_df['Points_1'].max()
+
+    return {
+        'min_x': min_x,
+        'max_x': max_x,
+        'min_y': min_y,
+        'max_y': max_y
+    }
+
 
 
 # def arrange_cells_2D(connectivity_df, mesh_dims):
@@ -146,6 +169,11 @@ segmented_density_grid = add_third_dimension_to_segmented_grid(segmented_density
 # Calculate the size of each square element
 element_size = calculate_element_size(nodes_df)
 
+# Assuming `nodes_df` is your DataFrame
+result = get_min_max_coords_from_df(nodes_df)
+print(result)
+
+
 # Output the element size
 print(f"The size of each square element (distance between adjacent nodes) is: {element_size:.4f} units.")
 
@@ -173,7 +201,7 @@ plane_gauss = plane.gaussian(sigma=1)
 
 mesher = nanomesh.Mesher2D(plane_gauss)
 # thresh = plane_gauss.threshold('isodata')
-thresh = 0.95
+thresh = 0.8
 segmented = plane_gauss.digitize(bins=[thresh])
 mesher.generate_contour(max_edge_dist=5,level=thresh)
 mesh = mesher.triangulate(opts='q30a0.5')
@@ -184,8 +212,9 @@ triangle_mesh = mesh.get('triangle')
 pv_mesh = triangle_mesh.to_pyvista_unstructured_grid()
 #trimesh_mesh = triangle_mesh.to_trimesh()
 meshio_mesh = triangle_mesh.to_meshio()
-mesh.write('mesh.xdmf')
-mesh.write('out.msh', file_format='gmsh22', binary=False)
+
+mesh.write(os.path.join(script_path,"mesh.xdmf"))
+mesh.write(os.path.join(script_path,"out.msh"), file_format='gmsh22', binary=False)
 
 #plane_gauss.compare_with_mesh(mesh)
 

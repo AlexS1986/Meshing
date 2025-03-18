@@ -1,0 +1,12 @@
+{
+    "SliceThickness": 0.015129186630249,
+    "PixelSpacing": [
+        0.015129186630249,
+        0.015129186630249
+    ],
+    "ImageDimensions": [
+        2966,
+        2916
+    ],
+    "NumberOfSlices": 1009
+}

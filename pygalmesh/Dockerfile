@@ -1,7 +1,7 @@
 # Use the official Ubuntu 22.04 image as the base image
 FROM ubuntu:22.04
 
-# Update package lists and install any needed dependencies
+# Update package lists and install dependencies
 RUN apt-get update && \
     apt-get install -y \
     python3 \
@@ -16,6 +16,7 @@ RUN apt-get update && \
     libmpfr-dev \
     libeigen3-dev \
     libcgal-dev \
+    tetgen \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -38,14 +39,15 @@ RUN sed -i 's|include_dirs=\[os.environ.get("EIGEN_INCLUDE_DIR", "/usr/include/e
 WORKDIR /root/Progs/pygalmesh-main
 RUN pip3 install .
 
-# Install tifffile using pip for Python 3
-RUN pip3 install tifffile scipy h5py
+# Install required Python packages
+RUN pip3 install tifffile scipy h5py pandas nanomesh
 
 # Set PYTHONPATH to include /home/utils
 ENV PYTHONPATH="/home/utils:${PYTHONPATH}"
 
-# Command to run when the container starts
+# Command to keep the container running
 CMD ["tail", "-f", "/dev/null"]
+
 
 
 
