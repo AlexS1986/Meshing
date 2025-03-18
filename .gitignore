@@ -447,3 +447,4 @@ Notes/Hypo/.obsidian/
 *.npy
 *DICOM/
 *.csv
+*.vtu
