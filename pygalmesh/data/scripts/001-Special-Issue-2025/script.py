@@ -46,7 +46,7 @@ def visualize_slice(slice_data, output_path):
 def main():
     # --- Paths ---
     script_path = os.path.dirname(__file__)
-    specimen_name = "JM-25-02"
+    specimen_name = "JM-25-26"
     input_folder = os.path.join("/data", "resources", "special_issue_hannover", specimen_name)
     output_folder = os.path.join(script_path, specimen_name + "_segmented")
     visualization_folder = os.path.join(script_path, "visualizations")
@@ -56,7 +56,7 @@ def main():
     save_visualizations = False
 
     # Option to preview a specific slice (set to the index of the slice you want to preview)
-    preview_slice_index = 600  # For example, preview slice number 600 (change as needed)
+    preview_slice_index = 878  # For example, preview slice number 600 (change as needed)
 
     # Ensure output folder exists
     os.makedirs(output_folder, exist_ok=True)
