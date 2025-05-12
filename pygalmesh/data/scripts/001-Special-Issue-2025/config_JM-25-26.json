@@ -1,0 +1,48 @@
+{
+  "metadata_output_path": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented/metadata.json",
+  "dicom2npy": {
+    "foldername": "/data/resources/special_issue_hannover/raw_dicom/JM-25-26-245min_750^C",
+    "option": "reduce",
+    "crop": {
+      "x_start": null,
+      "x_end": null,
+      "y_start": null,
+      "y_end": null
+    },
+    "reduce": {
+      "factor": 4
+    },
+    "slice_start": 0,
+    "slice_end": null,
+       "output_folder": "/data/scripts/001-Special-Issue-2025/JM-25-26/npy"
+  },
+  "02_segmented_3D_array": {
+    "input_folder": "/data/scripts/001-Special-Issue-2025/JM-25-26/npy",
+    "output_folder": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented/JM-25-26_segmented_3D",
+    "desired_width": 300,
+    "desired_height": 200,
+    "center_x": null,
+    "center_y": null,
+    "min_z": 90,
+    "max_z": 220
+  },
+  "03_mesh_3D_array": {
+    "specimen_name": "JM-25-26_segmented",
+    "input_folder": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented/JM-25-26_segmented_3D",
+    "smoothing_sigma_factor": 3.0,
+    "segmentation_algorithm": "otsu",
+    "z_slice": 0,
+    "scale_factor": 1.0,
+    "meshing_method": "nanomesh",
+    "mesh_output_path": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented/mesh_output.xdmf",
+    "pygalmesh_parameters": {
+      "max_element_size_factor": 5.0,
+      "max_facet_distance_factor": 0.5
+    },
+    "nanomesh_parameters": {
+      "meshing_options": "-pAq",
+      "output_format": "gmsh22",
+      "output_binary": false
+    }
+  }
+}

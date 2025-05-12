@@ -45,7 +45,7 @@ subvol_seg = subvol_seg.invert_contrast()
 plot_image_of_slice_in_subvol(script_path, subvol_seg,0,filename="subvol_seg_output_plane.png")
 
 mesher = nanomesh.Mesher(subvol_seg)
-mesher.generate_contour(level=0.8)
+mesher.generate_contour()
 mesh = mesher.tetrahedralize(opts='-pAq')
 
 tet_mesh = mesh.get('tetra')

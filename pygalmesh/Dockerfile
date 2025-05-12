@@ -40,7 +40,7 @@ WORKDIR /root/Progs/pygalmesh-main
 RUN pip3 install .
 
 # Install required Python packages
-RUN pip3 install tifffile scipy h5py pandas nanomesh
+RUN pip3 install tifffile scipy h5py pandas nanomesh pydicom
 
 # Set PYTHONPATH to include /home/utils
 ENV PYTHONPATH="/home/utils:${PYTHONPATH}"
