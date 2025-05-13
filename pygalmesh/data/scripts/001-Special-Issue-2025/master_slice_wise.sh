@@ -5,7 +5,7 @@ CONFIG_PATH="/data/scripts/001-Special-Issue-2025/config_JM-25-26_slice_wise.jso
 
 # List of Python scripts to execute
 SCRIPTS=(
-    # "00_dicom_2_npy.py"
+    "00_dicom_2_npy.py"
     "01_segment_slice_wise.py"
     "02_build3D_segmented_array.py"
     "03_mesh_3D_array_pygalmesh.py"
