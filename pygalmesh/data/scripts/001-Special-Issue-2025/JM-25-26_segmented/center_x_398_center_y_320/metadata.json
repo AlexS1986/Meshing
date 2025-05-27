@@ -19,29 +19,29 @@
         "computed_gaussian_sigma": 0.302766761779786
     },
     "02_segmented_3D_array": {
-        "min_x": 0,
-        "max_x": 696,
-        "min_y": 0,
-        "max_y": 741,
-        "min_z": 0,
-        "max_z": 326,
+        "min_x": 348,
+        "max_x": 448,
+        "min_y": 270,
+        "max_y": 370,
+        "min_z": 100,
+        "max_z": 190,
         "output_shape": [
-            696,
-            741,
-            326
+            100,
+            100,
+            90
         ]
     },
     "03_mesh_3D_array": {
         "specimen_name": "JM-25-26_segmented",
         "input_volume_shape": [
-            696,
-            741,
-            326
+            100,
+            100,
+            90
         ],
         "subvolume_bounds": {
             "x_range": [
-                94,
-                240
+                0,
+                100
             ]
         },
         "smoothing_sigma": 5,
@@ -53,9 +53,9 @@
             0.0605533523559572
         ],
         "voxel_dim": 0.0605533523559572,
-        "mesh_output_path": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented/mesh_output.xdmf",
+        "mesh_output_path": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented/center_x_398_center_y_320/mesh_output.xdmf",
         "meshing_method": "pygalmesh",
-        "timestamp": "2025-05-09T17:07:44.869376",
+        "timestamp": "2025-05-22T14:08:16.125406",
         "pygalmesh_parameters": {
             "max_element_size_factor": 5.0,
             "max_facet_distance_factor": 0.3,

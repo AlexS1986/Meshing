@@ -1,14 +1,16 @@
 #!/bin/bash
 
 # Shared config file path
-CONFIG_PATH="/data/scripts/001-Special-Issue-2025/config_JM-25-26_slice_wise.json"
+CONFIG_PATH="/data/scripts/001-Special-Issue-2025/config.json"
 
 # List of Python scripts to execute
 SCRIPTS=(
-    "00_dicom_2_npy.py"
-    "01_segment_slice_wise.py"
-    "02_build3D_segmented_array.py"
-    "03_mesh_3D_array_pygalmesh.py"
+    #  "00_dicom_2_npy.py"
+    #  "01_segment_slice_wise.py"
+    #  "02_build3D_segmented_array.py"
+    #  "02a_rotate_pic_to_align_with_axis.py"
+    "02b_build_subvolume_arrays.py"
+    #  "03_mesh_3D_array_pygalmesh.py"
 )
 
 # Run each script with the shared config

@@ -1,5 +1,5 @@
 {
-  "metadata_output_path": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented/metadata.json",
+  "metadata_output_path": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented/center_x_398_center_y_220/metadata.json",
   "dicom2npy": {
     "foldername": "/data/resources/special_issue_hannover/raw_dicom/JM-25-26-245min_750^C",
     "option": "reduce",
@@ -14,9 +14,8 @@
     },
     "slice_start": 0,
     "slice_end": null,
-       "output_folder": "/data/scripts/001-Special-Issue-2025/JM-25-26/npy"
+    "output_folder": "/data/scripts/001-Special-Issue-2025/JM-25-26/npy"
   },
-
   "01_segment_slice_wise": {
     "specimen_name": "JM-25-26",
     "input_folder": "/data/scripts/001-Special-Issue-2025/JM-25-26/npy",
@@ -27,27 +26,23 @@
   },
   "02_segmented_3D_array": {
     "input_folder": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented",
-    "output_folder": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented/JM-25-26_segmented_3D",
-    "desired_width_x": null,
-    "desired_height_y": null,
-    "center_x": null,
-    "center_y": null,
-    "min_z": null,
-    "max_z": null
+    "output_folder": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented/center_x_398_center_y_220/JM-25-26_segmented_3D",
+    "desired_width_x": 100,
+    "desired_width_y": 100,
+    "center_x": 398,
+    "center_y": 220,
+    "min_z": 100,
+    "max_z": 190
   },
   "03_mesh_3D_array": {
     "specimen_name": "JM-25-26_segmented",
-    "input_folder": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented/JM-25-26_segmented_3D",
-    "x_range": [
-      94,
-      240
-    ],
+    "input_folder": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented/center_x_398_center_y_220/JM-25-26_segmented_3D",
     "smoothing_sigma_factor": 5,
     "segmentation_algorithm": "otsu",
     "z_slice": 0,
     "scale_factor": 1.0,
     "meshing_method": "pygalmesh",
-    "mesh_output_path": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented/mesh_output.xdmf",
+    "mesh_output_path": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented/center_x_398_center_y_220/mesh_output.xdmf",
     "pygalmesh_parameters": {
       "max_element_size_factor": 5.0,
       "max_facet_distance_factor": 0.3

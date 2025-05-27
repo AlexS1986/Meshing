@@ -17,8 +17,12 @@ RUN apt-get update && \
     libeigen3-dev \
     libcgal-dev \
     tetgen \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    libgl1 \
+    libxrender1 \
+    libxext6 \
+    libsm6 \
+    libx11-6 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Create a directory for the software and unpack the zip files
 RUN mkdir -p /root/Progs
@@ -40,13 +44,14 @@ WORKDIR /root/Progs/pygalmesh-main
 RUN pip3 install .
 
 # Install required Python packages
-RUN pip3 install tifffile scipy h5py pandas nanomesh pydicom
+RUN pip3 install tifffile scipy h5py pandas nanomesh pydicom pyvista
 
 # Set PYTHONPATH to include /home/utils
 ENV PYTHONPATH="/home/utils:${PYTHONPATH}"
 
 # Command to keep the container running
 CMD ["tail", "-f", "/dev/null"]
+
 
 
 

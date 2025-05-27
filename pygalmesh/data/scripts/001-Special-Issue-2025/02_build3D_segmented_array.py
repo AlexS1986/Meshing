@@ -47,7 +47,7 @@ def load_subregion_from_slices(input_folder, min_x=None, max_x=None, min_y=None,
 
 def main():
     script_path = os.path.dirname(__file__)
-    default_config_path = os.path.join(script_path, "config_JM-25-26.json")
+    default_config_path = os.path.join(script_path,"JM-25-26_segmented","center_x_298_center_y_320","config.json")
 
     parser = argparse.ArgumentParser(description="Extract a 3D subregion from segmented slices.")
     parser.add_argument(
@@ -65,8 +65,8 @@ def main():
     output_folder = cfg["output_folder"]
     os.makedirs(output_folder, exist_ok=True)
 
-    desired_width = cfg.get("desired_width")
-    desired_height = cfg.get("desired_height")
+    desired_width_x = cfg.get("desired_width_x")
+    desired_width_y = cfg.get("desired_width_y")
     center_x = cfg.get("center_x")
     center_y = cfg.get("center_y")
     min_z = cfg.get("min_z")
@@ -79,16 +79,16 @@ def main():
     center_x = width // 2 if center_x is None else center_x
     center_y = height // 2 if center_y is None else center_y
 
-    if desired_width is not None:
-        min_x = max(0, center_x - desired_width // 2)
-        max_x = min(width, center_x + desired_width // 2)
+    if desired_width_x is not None:
+        min_x = max(0, center_x - desired_width_x // 2)
+        max_x = min(width, center_x + desired_width_x // 2)
     else:
         min_x = 0
         max_x = width
 
-    if desired_height is not None:
-        min_y = max(0, center_y - desired_height // 2)
-        max_y = min(height, center_y + desired_height // 2)
+    if desired_width_y is not None:
+        min_y = max(0, center_y - desired_width_y // 2)
+        max_y = min(height, center_y + desired_width_y // 2)
     else:
         min_y = 0
         max_y = height

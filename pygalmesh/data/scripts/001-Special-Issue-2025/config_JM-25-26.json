@@ -19,8 +19,8 @@
   "02_segmented_3D_array": {
     "input_folder": "/data/scripts/001-Special-Issue-2025/JM-25-26/npy",
     "output_folder": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented/JM-25-26_segmented_3D",
-    "desired_width": 300,
-    "desired_height": 200,
+    "desired_width_x": 300,
+    "desired_width_y": 200,
     "center_x": null,
     "center_y": null,
     "min_z": 90,
@@ -34,7 +34,7 @@
     "z_slice": 0,
     "scale_factor": 1.0,
     "meshing_method": "nanomesh",
-    "mesh_output_path": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented/mesh_output.xdmf",
+    "mesh_output_path": "/data/scripts/001-Special-Issue-2025/JM-25-26_segmented/JM-25-26_segmented_3D/mesh_output.xdmf",
     "pygalmesh_parameters": {
       "max_element_size_factor": 5.0,
       "max_facet_distance_factor": 0.5

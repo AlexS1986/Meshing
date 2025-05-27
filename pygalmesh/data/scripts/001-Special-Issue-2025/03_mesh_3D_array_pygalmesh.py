@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import json
 import argparse
@@ -39,45 +40,47 @@ def plot_image_of_slice_in_subvol(script_path, subvol, z_coordinate_of_slice, fi
 
 def main():
     script_path = os.path.dirname(__file__)
-    default_config_path = os.path.join(script_path, "config_JM-25-26_slice_wise.json")
+    default_config_path = os.path.join(script_path, "config.json")
 
     parser = argparse.ArgumentParser(description="Generate a 3D mesh from segmented volume slices.")
-    parser.add_argument(
-        "--config",
-        type=str,
-        default=default_config_path,
-        help=f"Path to configuration JSON file (default: {default_config_path})"
-    )
+    parser.add_argument("--config", type=str, default=default_config_path, help="Path to configuration JSON file")
+    parser.add_argument("--npy", type=str, help="Path to the input .npy volume file (overrides config)")
+    parser.add_argument("--mesh", type=str, help="Path to save the output mesh file (overrides config)")
     args = parser.parse_args()
-    config_path = args.config
 
+    config_path = args.config
     config, metadata_output_path = load_config(config_path)
 
     specimen_name = config["specimen_name"]
-    input_folder = config["input_folder"]
-    x_range = tuple(config.get("x_range", [0, 0]))  # Will be updated after vol is loaded
+    x_range = tuple(config.get("x_range", [0, 0]))  # updated after load if needed
     smoothing_sigma = config["smoothing_sigma_factor"]
     segmentation_algorithm = config["segmentation_algorithm"]
     z_slice = config["z_slice"]
     scale_factor = config["scale_factor"]
-    mesh_output_path = os.path.join(config["mesh_output_path"])
     meshing_method = config.get("meshing_method", "pygalmesh").lower()
+
+    # Use provided npy file or fallback to config
+    if args.npy:
+        input_path = args.npy
+    else:
+        input_folder = config["input_folder"]
+        input_path = os.path.join(input_folder, "segmented_3D_volume.npy")
+
+    # Use provided mesh path or fallback to config
+    mesh_output_path = args.mesh if args.mesh else os.path.join(config["mesh_output_path"])
 
     original_voxel_size = load_original_voxel_size(metadata_output_path)
 
-    # Load and prepare volume
-    input_path = os.path.join(input_folder, "segmented_3D_volume.npy")
+    print(f"📦 Loading volume from: {input_path}")
     intensity_at_voxels = np.load(input_path)
     vol = nanomesh.Image(intensity_at_voxels)
 
-    # Update x_range if default is used
     if x_range == (0, 0):
         x_range = (0, vol.image.shape[0])
 
-    # Plot original volume
     plot_image_of_slice_in_subvol(script_path, vol, 0, "vol_output_plane.png")
 
-    # Subvolume + Preprocessing
+    # Process and segment
     subvol = vol.select_subvolume(xs=x_range)
     plot_image_of_slice_in_subvol(script_path, subvol, z_slice, "subvol_output_plane.png")
 
@@ -109,7 +112,7 @@ def main():
         max_element_size_factor = params.get("max_element_size_factor", 1.0)
         max_facet_distance_factor = params.get("max_facet_distance_factor", 0.1)
 
-        vol_pygal = np.array(subvol_seg.image, dtype=np.uint8).reshape(subvol_seg.image.shape)
+        vol_pygal = np.array(subvol_seg.image, dtype=np.uint8)
         mesh = pygalmesh.generate_from_array(
             vol_pygal,
             voxel_size,
@@ -145,7 +148,7 @@ def main():
     else:
         raise ValueError(f"Unsupported meshing method: {meshing_method}")
 
-    # Append mesh metadata
+    # Update metadata
     if not os.path.exists(metadata_output_path):
         raise FileNotFoundError(f"❌ Metadata file not found at: {metadata_output_path}")
 
@@ -162,4 +165,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
