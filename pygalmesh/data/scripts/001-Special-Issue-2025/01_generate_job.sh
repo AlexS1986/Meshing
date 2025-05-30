@@ -4,8 +4,8 @@
 specimen_name="JM-25-24"
 
 # Base path to scripts
-#base_path_to_scripts="/data/scripts/001-Special-Issue-2025"
-base_path_to_scripts="."
+base_path_to_scripts="/data/scripts/001-Special-Issue-2025"
+#base_path_to_scripts="."
 
 # Derived values
 FOLDER_NAME="$specimen_name"
