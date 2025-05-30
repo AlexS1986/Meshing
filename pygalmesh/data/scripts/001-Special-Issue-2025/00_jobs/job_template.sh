@@ -24,7 +24,7 @@ MESH_PATH="{MESH_PATH}"
 cd $HPC_SCRATCH
 
 # Run the mesh generation and other scripts with --hole_angle parameter
-srun -n 1 apptainer exec --bind $HOME/meshing/Meshing/pygalmesh/data:/scripts,$working_directory:/data $HOME/meshing/Meshing/pygalmesh/pygalmesh.sif python3 $working_directory/03_mesh_3D_array_pygalmesh.py --config "$CONFIG_PATH" --npy "$NPY_FILE" --mesh "$MESH_OUTPUT"
+srun -n 1 apptainer exec --bind $HOME/meshing/Meshing/pygalmesh/data:/home,$working_directory:/data $HOME/meshing/Meshing/pygalmesh/pygalmesh.sif python3 $working_directory/03_mesh_3D_array_pygalmesh.py --config "$CONFIG_PATH" --npy "$NPY_FILE" --mesh "$MESH_OUTPUT"
 
 EXITCODE=$?
 
