@@ -6,7 +6,7 @@
 SPECIMEN_NAME="JM-25-24"
 
 # Base folder for scripts and data
-BASE_PATH="/data/scripts/001-Special-Issue-2025"
+BASE_PATH="."
 
 # Full output path for the config.json
 CONFIG_PATH="$BASE_PATH/config.json"

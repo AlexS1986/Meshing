@@ -32,8 +32,8 @@
         ]
     },
     "02a_rotate_pic_to_align_with_axis.py": {
-        "timestamp": "2025-05-30T08:55:02.728266",
-        "input_path": "/data/scripts/001-Special-Issue-2025/JM-25-24_segmented/JM-25-24_segmented_3D/segmented_3D_volume.npy",
+        "timestamp": "2025-05-30T09:44:13.563126",
+        "input_path": "./JM-25-24_segmented/JM-25-24_segmented_3D/segmented_3D_volume.npy",
         "angles_deg": [
             -12.9,
             4,
@@ -86,7 +86,7 @@
                 89
             ]
         },
-        "subvolume_output_folder": "/data/scripts/001-Special-Issue-2025/JM-25-24_segmented/JM-25-24_segmented_3D",
+        "subvolume_output_folder": "./JM-25-24_segmented/JM-25-24_segmented_3D",
         "subvolumes": [
             {
                 "x_start": 75,
@@ -170,7 +170,7 @@
         "voxel_dim": 0.0605601348876952,
         "mesh_output_path": "/data/scripts/001-Special-Issue-2025/JM-25-24_segmented/JM-25-24_segmented_3D/subvolume_x306_y274/mesh.xdmf",
         "meshing_method": "pygalmesh",
-        "timestamp": "2025-05-30T09:01:44.870440",
+        "timestamp": "2025-05-30T10:00:20.843187",
         "pygalmesh_parameters": {
             "max_element_size_factor": 5.0,
             "max_facet_distance_factor": 0.3,
