@@ -23,6 +23,7 @@ fi
 
 cp job.sh "${working_directory}/job.sh"
 chmod +x "${working_directory}/job.sh"
+echo "Copied job.sh to ${working_directory}"
 
 ### 6) Copy config.json to working directory
 if [ ! -f config.json ]; then
@@ -31,6 +32,7 @@ if [ ! -f config.json ]; then
 fi
 
 cp config.json "${working_directory}/config.json"
+echo "Copied config.json to ${working_directory}"
 
 ### 7) Copy metadata.json from local segmented folder to remote
 local_metadata_path="${specimen_name}_segmented/metadata.json"
@@ -43,14 +45,23 @@ fi
 
 mkdir -p "$(dirname "${remote_metadata_path}")"
 cp "${local_metadata_path}" "${remote_metadata_path}"
+echo "Copied metadata.json to ${remote_metadata_path}"
 
-### 8) Summary
+### 8) Copy 03_mesh_3D_array_pygalmesh.py to working directory
+mesh_py_src="03_mesh_3D_array_pygalmesh.py"
+if [ ! -f "${mesh_py_src}" ]; then
+  echo "❌ Error: ${mesh_py_src} not found in $(pwd)"
+  exit 1
+fi
+
+cp "${mesh_py_src}" "${working_directory}/"
+echo "Copied ${mesh_py_src} to ${working_directory}"
+
+### 9) Summary
 echo "✅ Created working directory structure at:"
 echo "   ${working_directory}"
-echo "✅ Copied:"
-echo "   - job.sh -> ${working_directory}/job.sh"
-echo "   - config.json -> ${working_directory}/config.json"
-echo "   - metadata.json -> ${remote_metadata_path}"
+echo "✅ Copied all necessary files successfully."
+
 
 
 
