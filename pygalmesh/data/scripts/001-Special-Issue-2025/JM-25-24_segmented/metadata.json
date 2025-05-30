@@ -1,0 +1,107 @@
+{
+  "00_dicom2npy": {
+    "Option": "reduce",
+    "ReductionFactor": 4,
+    "SliceThickness": 0.0605601348876952,
+    "PixelSpacing": [
+      0.0605601348876952,
+      0.0605601348876952
+    ],
+    "ImageDimensions": [
+      2212,
+      2180
+    ],
+    "NumberOfSlices": 977
+  },
+  "01_segment_slice_wise": {
+    "algorithm": "otsu",
+    "gaussian_sigma_factor": 5,
+    "computed_gaussian_sigma": 0.30280067443847597
+  },
+  "02_segmented_3D_array": {
+    "min_x": 0,
+    "max_x": 553,
+    "min_y": 0,
+    "max_y": 545,
+    "min_z": 80,
+    "max_z": 185,
+    "output_shape": [
+      553,
+      545,
+      105
+    ]
+  },
+  "02a_rotate_pic_to_align_with_axis.py": {
+    "timestamp": "2025-05-30T11:29:14.060282",
+    "input_path": "/data/scripts/001-Special-Issue-2025/JM-25-24_segmented/JM-25-24_segmented_3D/segmented_3D_volume.npy",
+    "angles_deg": [
+      -12.9,
+      4,
+      2.5
+    ],
+    "buffer_widths": {
+      "min_x": 75,
+      "max_x": 15,
+      "min_y": 15,
+      "max_y": 15,
+      "min_z": 15,
+      "max_z": 15
+    },
+    "material_value": 1,
+    "pore_value": 0,
+    "final_shape": [
+      553,
+      545,
+      105
+    ],
+    "material_bounds": {
+      "x": [
+        75,
+        537
+      ],
+      "y": [
+        19,
+        529
+      ],
+      "z": [
+        15,
+        89
+      ]
+    }
+  },
+  "02b_build_subvolume_arrays.py": {
+    "subvolume_count": 1,
+    "xy_divisions": 1,
+    "material_bounds": {
+      "x": [
+        75,
+        537
+      ],
+      "y": [
+        19,
+        529
+      ],
+      "z": [
+        15,
+        89
+      ]
+    },
+    "subvolume_output_folder": "/data/scripts/001-Special-Issue-2025/JM-25-24_segmented/JM-25-24_segmented_3D",
+    "subvolumes": [
+      {
+        "x_start": 75,
+        "x_end": 537,
+        "y_start": 19,
+        "y_end": 529,
+        "z_start": 15,
+        "z_end": 89,
+        "shape": [
+          463,
+          511,
+          75
+        ],
+        "path": "subvolume_x75_y19"
+      }
+    ]
+  }
+}
