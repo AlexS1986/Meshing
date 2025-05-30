@@ -32,7 +32,7 @@
         ]
     },
     "02a_rotate_pic_to_align_with_axis.py": {
-        "timestamp": "2025-05-27T13:25:13.917879",
+        "timestamp": "2025-05-30T08:55:02.728266",
         "input_path": "/data/scripts/001-Special-Issue-2025/JM-25-24_segmented/JM-25-24_segmented_3D/segmented_3D_volume.npy",
         "angles_deg": [
             -12.9,
@@ -70,8 +70,8 @@
         }
     },
     "02b_build_subvolume_arrays.py": {
-        "subvolume_count": 1,
-        "block_edge_voxels": 320,
+        "subvolume_count": 4,
+        "xy_divisions": 2,
         "material_bounds": {
             "x": [
                 75,
@@ -90,31 +90,73 @@
         "subvolumes": [
             {
                 "x_start": 75,
-                "x_end": 394,
+                "x_end": 305,
                 "y_start": 19,
-                "y_end": 338,
+                "y_end": 273,
                 "z_start": 15,
                 "z_end": 89,
                 "shape": [
-                    320,
-                    320,
+                    231,
+                    255,
                     75
                 ],
                 "path": "subvolume_x75_y19"
+            },
+            {
+                "x_start": 75,
+                "x_end": 305,
+                "y_start": 274,
+                "y_end": 529,
+                "z_start": 15,
+                "z_end": 89,
+                "shape": [
+                    231,
+                    256,
+                    75
+                ],
+                "path": "subvolume_x75_y274"
+            },
+            {
+                "x_start": 306,
+                "x_end": 537,
+                "y_start": 19,
+                "y_end": 273,
+                "z_start": 15,
+                "z_end": 89,
+                "shape": [
+                    232,
+                    255,
+                    75
+                ],
+                "path": "subvolume_x306_y19"
+            },
+            {
+                "x_start": 306,
+                "x_end": 537,
+                "y_start": 274,
+                "y_end": 529,
+                "z_start": 15,
+                "z_end": 89,
+                "shape": [
+                    232,
+                    256,
+                    75
+                ],
+                "path": "subvolume_x306_y274"
             }
         ]
     },
     "03_mesh_3D_array": {
         "specimen_name": "JM-25-24_segmented",
         "input_volume_shape": [
-            320,
-            320,
+            232,
+            256,
             75
         ],
         "subvolume_bounds": {
             "x_range": [
                 0,
-                320
+                232
             ]
         },
         "smoothing_sigma": 5,
@@ -126,9 +168,9 @@
             0.0605601348876952
         ],
         "voxel_dim": 0.0605601348876952,
-        "mesh_output_path": "/data/scripts/001-Special-Issue-2025/JM-25-24_segmented/JM-25-24_segmented_3D/subvolume_x75_y19/mesh.xdmf",
+        "mesh_output_path": "/data/scripts/001-Special-Issue-2025/JM-25-24_segmented/JM-25-24_segmented_3D/subvolume_x306_y274/mesh.xdmf",
         "meshing_method": "pygalmesh",
-        "timestamp": "2025-05-27T13:25:20.212548",
+        "timestamp": "2025-05-30T09:01:44.870440",
         "pygalmesh_parameters": {
             "max_element_size_factor": 5.0,
             "max_facet_distance_factor": 0.3,

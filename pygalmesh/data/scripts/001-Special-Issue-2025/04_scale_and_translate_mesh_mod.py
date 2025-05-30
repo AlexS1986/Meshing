@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import json
 import meshio
@@ -14,6 +15,19 @@ def load_voxel_size(metadata_path):
     with open(metadata_path, "r") as file:
         metadata = json.load(file)
     return float(metadata["00_dicom2npy"]["SliceThickness"])
+
+
+def load_subvolume_shape(metadata_path):
+    with open(metadata_path, "r") as file:
+        metadata = json.load(file)
+    try:
+        subvolumes = metadata["02b_build_subvolume_arrays.py"]["subvolumes"]
+        if not subvolumes:
+            raise ValueError("❌ No subvolumes found in metadata.")
+        shape = subvolumes[0]["shape"]  # [Nx, Ny, Nz]
+        return shape
+    except (KeyError, IndexError, ValueError) as e:
+        raise RuntimeError("❌ Failed to extract 'shape' from first saved subvolume in metadata.") from e
 
 
 def scale_and_translate_mesh(input_path, output_path,
@@ -64,7 +78,7 @@ def scale_and_translate_mesh(input_path, output_path,
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Scale and translate a mesh based on config and CLI parameters.")
+    parser = argparse.ArgumentParser(description="Scale and translate a mesh based on config and metadata.")
     parser.add_argument("--config", type=str, required=True, help="Path to config.json")
     parser.add_argument("--mesh", type=str, required=True, help="Path to input/output mesh file")
     parser.add_argument("--center_x", type=float, required=True, help="Target center X (in voxel coordinates)")
@@ -79,29 +93,18 @@ def main():
     metadata_path = config.get("metadata_output_path")
     if not metadata_path or not os.path.isfile(metadata_path):
         raise FileNotFoundError(f"❌ Metadata file not found at: {metadata_path}")
+
     dx = load_voxel_size(metadata_path)
 
-    # Use block_edge_voxels from 02b_build_subvolume_arrays
-    try:
-        block_edge_voxels = config["02b_build_subvolume_arrays"]["block_edge_voxels"]
-    except KeyError:
-        raise KeyError("❌ 'block_edge_voxels' not found in '02b_build_subvolume_arrays' section of config.")
+    # Load shape of subvolumes [Nx, Ny, Nz]
+    Nx, Ny, Nz = load_subvolume_shape(metadata_path)
 
-    # Depth from segmented 3D array config
-    try:
-        seg3d_cfg = config["02_segmented_3D_array"]
-        z_range = seg3d_cfg["max_z"] - seg3d_cfg["min_z"]
-    except KeyError:
-        raise KeyError("❌ 'max_z' and 'min_z' not found in '02_segmented_3D_array' section of config.")
-
-    Nx = Ny = block_edge_voxels
-    Nz = z_range
-
+    # Target physical space bounding box
     x_min_t, x_max_t = 0, Nx * dx
     y_min_t, y_max_t = 0, Ny * dx
     z_min_t, z_max_t = 0, Nz * dx
 
-    # Transform mesh
+    # Apply transformation
     scale_and_translate_mesh(
         input_path=args.mesh,
         output_path=args.mesh,  # overwrite in-place

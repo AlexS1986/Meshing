@@ -17,7 +17,8 @@ OUTPUT_BASE="$BASE_PATH/${SPECIMEN_NAME}_segmented"
 # Path to the raw DICOM folder
 DICOM_FOLDER="/data/resources/special_issue_hannover/raw_dicom/${SPECIMEN_NAME}/${SPECIMEN_NAME}-245min_750^C_erodiert"
 
-#DICOM_FOLDER="/data/resources/special_issue_hannover/raw_dicom/JM-25-26-245min_750^C"
+# Optional: different dataset path
+# DICOM_FOLDER="/data/resources/special_issue_hannover/raw_dicom/JM-25-26-245min_750^C"
 
 # 3D subvolume parameters — set to number or leave empty to make it null in JSON
 # DESIRED_WIDTH_X=100
@@ -30,9 +31,11 @@ MAX_Z=185
 # MIN_Z=90
 # MAX_Z=220
 
-# Subvolume block size (optional)
-#BLOCK_EDGE_VOXELS=462
-BLOCK_EDGE_VOXELS=320
+# ❌ Subvolume block size is no longer used — replaced with xy_divisions
+# BLOCK_EDGE_VOXELS=320
+
+# ✅ Instead, define how many equal subdivisions you want in x and y
+XY_DIVISIONS=2
 
 # --------- Derived Paths ---------
 NPY_OUTPUT_FOLDER="$BASE_PATH/${SPECIMEN_NAME}/npy"
@@ -119,13 +122,14 @@ cat <<EOF > "$CONFIG_PATH"
     "angles": [-12.9, 4, 2.5]
   },
   "02b_build_subvolume_arrays": {
-    "block_edge_voxels": $(json_value_or_null "$BLOCK_EDGE_VOXELS"),
+    "xy_divisions": $(json_value_or_null "$XY_DIVISIONS"),
     "subvolume_output_folder": "$SEGMENTED_3D_OUTPUT"
   }
 }
 EOF
 
 echo "✅ Config file successfully written to: $CONFIG_PATH"
+
 
 
 
