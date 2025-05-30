@@ -35,7 +35,7 @@ MAX_Z=185
 # BLOCK_EDGE_VOXELS=320
 
 # ✅ Instead, define how many equal subdivisions you want in x and y
-XY_DIVISIONS=2
+XY_DIVISIONS=1
 
 # --------- Derived Paths ---------
 NPY_OUTPUT_FOLDER="$BASE_PATH/${SPECIMEN_NAME}/npy"

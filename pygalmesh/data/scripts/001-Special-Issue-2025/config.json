@@ -66,7 +66,7 @@
     "angles": [-12.9, 4, 2.5]
   },
   "02b_build_subvolume_arrays": {
-    "xy_divisions": 2,
+    "xy_divisions": 1,
     "subvolume_output_folder": "./JM-25-24_segmented/JM-25-24_segmented_3D"
   }
 }
