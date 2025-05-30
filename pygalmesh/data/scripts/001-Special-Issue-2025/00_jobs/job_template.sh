@@ -35,16 +35,7 @@ LCRACK=$(awk "BEGIN {print $WSTEG + $DHOLE}")
 cd $HPC_SCRATCH
 
 # Run the mesh generation and other scripts with --hole_angle parameter
-srun -n 1 apptainer exec --bind $HOME/dolfinx_alex/shared:/home,$working_directory:/work $HOME/dolfinx_alex/alex-dolfinx.sif python3 $working_directory/mesh_effective_stiffness.py --dhole "$DHOLE" --wsteg "$WSTEG" --e0 "$E0" 
-
-srun -n 1 apptainer exec --bind $HOME/dolfinx_alex/shared:/home,$working_directory:/work $HOME/dolfinx_alex/alex-dolfinx.sif python3 $working_directory/run_effective_stiffness.py --lam_micro_param "$LAM_MICRO_PARAM" --mue_micro_param "$MUE_MICRO_PARAM"
-
-srun -n 1 apptainer exec --bind $HOME/dolfinx_alex/shared:/home,$working_directory:/work $HOME/dolfinx_alex/alex-dolfinx.sif python3 $working_directory/mesh_fracture_adaptive.py --nholes "$NHOLES" --dhole "$DHOLE" --wsteg "$WSTEG" --e0 "$E0" --e1 "$E1" 
-
-srun -n 1 apptainer exec --bind $HOME/dolfinx_alex/shared:/home,$working_directory:/work $HOME/dolfinx_alex/alex-dolfinx.sif python3 $working_directory/get_mesh_info.py --mesh_file "$MESH_FILE"
-
-# Parameters for simulation_script.py (passed as command-line arguments)
-srun -n {PROCESSOR_NUMBER} apptainer exec --bind $HOME/dolfinx_alex/shared:/home,$working_directory:/work $HOME/dolfinx_alex/alex-dolfinx.sif python3 $working_directory/run_simulation.py --mesh_file "$MESH_FILE" --in_crack_length "$LCRACK" --lam_micro_param "$LAM_MICRO_PARAM" --mue_micro_param "$MUE_MICRO_PARAM" --gc_micro_param "$GC_MICRO_PARAM" --eps_param "$EPS_PARAM" --element_order "$ELEMENT_ORDER"
+srun -n 1 apptainer exec --bind $HOME/pygalmesh/shared:/home,$working_directory:/work $HOME/pygalmesh/alex-dolfinx.sif python3 $working_directory/03_mesh_3D_array_pygalmesh.py --config "$CONFIG_PATH" --npy "$NPY_FILE" --mesh "$MESH_OUTPUT"
 
 EXITCODE=$?
 
