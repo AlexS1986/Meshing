@@ -4,15 +4,15 @@
 #SBATCH -t 1440  # "minutes", "minutes:seconds", "hours:minutes:seconds", "days-hours", "days-hours:minutes" and "days-hours:minutes:seconds"
 #SBATCH --mem-per-cpu=6000
 #SBATCH -n 32
-#SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/000-Special-Issue-2025/%x.err.%j
-#SBATCH -o /work/scratch/as12vapa//pygalmesh/data/scripts/000-Special-Issue-2025/%x.out.%j
+#SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/001-Special-Issue-2025/%x.err.%j
+#SBATCH -o /work/scratch/as12vapa//pygalmesh/data/scripts/001-Special-Issue-2025/%x.out.%j
 #SBATCH --mail-type=End
 #SBATCH -C i01
 
 # Set the working directory name
 #working_folder_name="{FOLDER_NAME}"  # Change this to your desired folder name
 # Create the working directory under $HPC_SCRATCH
-working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/000-Special-Issue-2025"
+working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/001-Special-Issue-2025"
 
 # Default values for parameters
 CONFIG_PATH="{CONFIG_PATH}" #

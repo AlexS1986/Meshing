@@ -4,7 +4,7 @@
 specimen_name="JM-25-24"
 
 # Base path to scripts
-base_path_to_scripts="/data/scripts/001-Special-Issue-2025"
+base_path_to_scripts="/data/scripts/001-Special-Issue-2025" # this path is local to container
 #base_path_to_scripts="."
 
 # Derived values
