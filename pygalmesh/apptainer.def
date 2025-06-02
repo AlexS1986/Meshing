@@ -6,7 +6,7 @@ From: ubuntu:22.04
     export PYTHONPATH="/home/utils:${PYTHONPATH}"
 
 %post
-    # Update package list and install all required packages
+    # Update package list and install all required packages, test
     apt-get update && \
     apt-get install -y \
         unzip \
