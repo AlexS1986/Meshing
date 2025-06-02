@@ -4,8 +4,8 @@
 #SBATCH -t 1440           # max time (minutes)
 #SBATCH --mem-per-cpu=6000
 #SBATCH -n 32
-#SBATCH -e $HPC_SCRATCH/pygalmesh/data/scripts/001-Special-Issue-2025/%x.err.%j
-#SBATCH -o $HPC_SCRATCH/pygalmesh/data/scripts/001-Special-Issue-2025/%x.out.%j
+#SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/001-Special-Issue-2025/%x.err.%j
+#SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/001-Special-Issue-2025/%x.out.%j
 #SBATCH --mail-type=END
 #SBATCH -C i01
 
@@ -24,7 +24,7 @@ BIND_PATHS="$HOME/meshing/Meshing/pygalmesh/data:/home,$HPC_SCRATCH/pygalmesh/da
 
 # Config & base folders inside container (inside /data)
 CONFIG_PATH="/data/scripts/001-Special-Issue-2025/config.json"
-BASE_SUBVOLUME_FOLDER="/data/scripts/001-Special-Issue-2025/JM-25-24_segmented/JM-25-24_segmented_3D"
+BASE_SUBVOLUME_FOLDER="$HPC_SCRATCH/pygalmesh/data/scripts/001-Special-Issue-2025/JM-25-24_segmented/JM-25-24_segmented_3D"
 VOLUME_FILENAME="volume.npy"
 
 # Python scripts to run
@@ -87,6 +87,9 @@ find "$BASE_SUBVOLUME_FOLDER" -type f -name "$VOLUME_FILENAME" | while read -r N
 done
 
 echo "🎉 All scripts, meshing, and mesh transformations completed successfully."
+
+
+
 
 
 
