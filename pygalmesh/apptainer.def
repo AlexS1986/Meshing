@@ -14,7 +14,7 @@ From: ubuntu:22.04
         python3-pip \
         cmake \
         g++ \
-        gfortran \              # <-- Added gfortran here
+        gfortran \  # Fortran compiler needed for some scientific packages
         pkg-config \
         libgsl-dev \
         povray \
@@ -27,8 +27,8 @@ From: ubuntu:22.04
         libxrender1 \
         libxext6 \
         libsm6 \
-        libx11-6 \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+        libx11-6 && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
     # Create working directory
     mkdir -p /root/Progs
@@ -50,6 +50,7 @@ From: ubuntu:22.04
 
 %runscript
     tail -f /dev/null
+
 
 
 
