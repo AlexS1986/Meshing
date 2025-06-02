@@ -28,6 +28,7 @@ SIM_BIND="$HOME/dolfinx_alex/shared:/home,$working_directory:/work"
 SOURCE_DIR="$working_directory/00_template"
 TARGET_DIR="$working_directory/meshes"
 MESH_INPUT_DIR="$BASE_SUBVOLUME_FOLDER"
+OUTPUT_MESH_FOLDER="meshes"  # relative to script dir
 SIM_SCRIPT="linearelastic.py"
 
 # Scripts to run in order
@@ -86,14 +87,17 @@ find "$BASE_SUBVOLUME_FOLDER" -type f -name "$VOLUME_FILENAME" | while read -r N
 done
 
 # -------------------------------
-# Postprocessing & Simulation
+# Mesh Conversion to DolfinX
 # -------------------------------
 
 echo "🔁 Converting mesh files in: $MESH_INPUT_DIR using make_mesh_dlfx_compatible.py"
 srun -n 1 apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
-    python3 "$working_directory/make_mesh_dlfx_compatible.py" "$MESH_INPUT_DIR" -f mesh.xdmf
+    python3 "$working_directory/make_mesh_dlfx_compatible.py" "$MESH_INPUT_DIR" -f mesh.xdmf -o "$OUTPUT_MESH_FOLDER"
 
-# Ensure directories exist
+# -------------------------------
+# Simulation & Postprocessing
+# -------------------------------
+
 if [ ! -d "$SOURCE_DIR" ] || [ ! -d "$TARGET_DIR" ]; then
     echo "❌ SOURCE or TARGET directory missing"
     exit 1
@@ -106,7 +110,7 @@ for subfolder in "$TARGET_DIR"/*/; do
 
     echo "🔬 Running $SIM_SCRIPT with 32 CPUs in: $subfolder"
     srun -n 32 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
-        mpirun -n 10 python3 "$subfolder/$SIM_SCRIPT"
+       python3 "$subfolder/$SIM_SCRIPT"
 
     echo "🛠️  Running update_trafo.py"
     srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
@@ -137,6 +141,7 @@ for subfolder in "$TARGET_DIR"/*/; do
 done
 
 echo "🎉 All meshing, simulation, and postprocessing steps completed successfully."
+
 
 
 

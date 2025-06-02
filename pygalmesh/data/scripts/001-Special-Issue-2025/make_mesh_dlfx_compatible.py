@@ -3,15 +3,11 @@ from mpi4py import MPI
 import meshio
 import numpy as np
 import os
-import ufl 
+import ufl
 import copy
 import argparse
 
-# ========== USER CONFIGURATION ==========
-output_subfolder_name = "meshes"
-# ========================================
-
-# MPI communicator
+# --- MPI communicator ---
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
@@ -22,14 +18,18 @@ parser.add_argument(
     "--mesh-filenames", "-f", nargs="+", default=["mesh_output.xdmf"],
     help="Name(s) of the mesh file(s) to process (default: mesh_output.xdmf)"
 )
+parser.add_argument(
+    "--output-folder", "-o", type=str, default="meshes",
+    help="Output folder relative to script directory (default: meshes)"
+)
 args = parser.parse_args()
 
 input_base_folder = args.input_path
 target_mesh_filenames = set(args.mesh_filenames)
 
 # --- Setup output path ---
-script_path = os.path.dirname(__file__)
-output_base_path = os.path.join(script_path, output_subfolder_name)
+script_path = os.path.dirname(os.path.abspath(__file__))
+output_base_path = os.path.join(script_path, args.output_folder)
 os.makedirs(output_base_path, exist_ok=True)
 
 # --- Find target mesh files ---
@@ -75,5 +75,6 @@ for input_file, output_file in mesh_files:
         print(f"Writing converted mesh to: {output_file}")
     with dlfx.io.XDMFFile(comm, output_file, "w") as xdmf:
         xdmf.write_mesh(domain)
+
 
 
