@@ -11,9 +11,10 @@ DEST_DIR="$HPC_SCRATCH/pygalmesh/"
 mkdir -p "$DEST_DIR"
 
 # Sync files: only copy new/updated files, keep existing ones, don't delete anything
-rsync -av --no-delete "$SRC_DIR" "$DEST_DIR"
+rsync -av "$SRC_DIR" "$DEST_DIR"
 
 echo "Folder structure and updated files copied from $SRC_DIR to $DEST_DIR"
+
 
 
 
