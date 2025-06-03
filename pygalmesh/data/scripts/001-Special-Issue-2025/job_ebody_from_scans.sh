@@ -26,9 +26,9 @@ SIM_CONTAINER="$HOME/dolfinx_alex/alex-dolfinx.sif"
 SIM_BIND="$HOME/dolfinx_alex/shared:/home,$working_directory:/work"
 
 SOURCE_DIR="$working_directory/00_template"
-TARGET_DIR="$working_directory/meshes"
+TARGET_DIR="$BASE_SUBVOLUME_FOLDER/meshes"
 MESH_INPUT_DIR="$BASE_SUBVOLUME_FOLDER"
-OUTPUT_MESH_FOLDER="meshes"  # relative to script dir
+OUTPUT_MESH_FOLDER="$BASE_SUBVOLUME_FOLDER/meshes"  # relative to script dir
 SIM_SCRIPT="linearelastic.py"
 
 # Scripts to run in order
