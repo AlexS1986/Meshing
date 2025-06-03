@@ -43,8 +43,8 @@ c     x            0.d0 , 0.d0 , 0.d0 , 0.d0, 0.d0 , 4.63d-1 /
       cmat(3,4) = {C34}
       cmat(3,5) = {C35}
       cmat(3,6) = {C36}
-      cmat(4,1) = cmat(1,4)
-      cmat(4,2) = cmat(2,4)
+      cmat(4,1) = {C41}
+      cmat(4,2) = {C24}
       cmat(4,3) = cmat(3,4)
       cmat(4,4) = {C44}
       cmat(4,5) = {C45}
