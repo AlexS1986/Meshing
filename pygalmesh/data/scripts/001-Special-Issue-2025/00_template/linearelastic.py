@@ -4,11 +4,11 @@ import alex.phasefield
 import alex.util
 import dolfinx as dlfx
 from mpi4py import MPI
-import json
 
-import ufl
+
+import ufl 
 import numpy as np
-import os
+import os 
 import sys
 
 import alex.os
@@ -17,104 +17,165 @@ import alex.postprocessing as pp
 import alex.solution as sol
 import alex.linearelastic as le
 
-# Paths
+import json
+
 script_path = os.path.dirname(__file__)
 script_name_without_extension = os.path.splitext(os.path.basename(__file__))[0]
-logfile_path = alex.os.logfile_full_path(script_path, script_name_without_extension)
-outputfile_graph_path = alex.os.outputfile_graph_full_path(script_path, script_name_without_extension)
-outputfile_xdmf_path = alex.os.outputfile_xdmf_full_path(script_path, script_name_without_extension)
+logfile_path = alex.os.logfile_full_path(script_path,script_name_without_extension)
+outputfile_graph_path = alex.os.outputfile_graph_full_path(script_path,script_name_without_extension)
+outputfile_xdmf_path = alex.os.outputfile_xdmf_full_path(script_path,script_name_without_extension)
 
-# Timer
+# set and start stopwatch
 timer = dlfx.common.Timer()
 timer.start()
 
-# MPI
+# set MPI environment
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 print('MPI-STATUS: Process:', rank, 'of', size, 'processes.')
 sys.stdout.flush()
 
-# Mesh
+# N = 16 
+
+#     # generate domain
+#     #domain = dlfx.mesh.create_unit_square(comm, N, N, cell_type=dlfx.mesh.CellType.quadrilateral)
+# domain = dlfx.mesh.create_unit_cube(comm,N,N,N,cell_type=dlfx.mesh.CellType.hexahedron)
+
 with dlfx.io.XDMFFile(comm, os.path.join(script_path, 'dlfx_mesh.xdmf'), 'r') as mesh_inp:
     domain = mesh_inp.read_mesh()
 
-dt = dlfx.fem.Constant(domain, 0.05)
-Tend = 128.0 * dt.value
 
-# Elastic constants
+dt = dlfx.fem.Constant(domain,1.0)
+t = dlfx.fem.Constant(domain,0.00)
+column = dlfx.fem.Constant(domain,0.0)
+Tend = 6.0 * dt.value
+
+# elastic constants
 lam = dlfx.fem.Constant(domain, 51100.0)
 mu = dlfx.fem.Constant(domain, 26300.0)
 E_mod = alex.linearelastic.get_emod(lam.value, mu.value)
 
-# Function space
-Ve = ufl.VectorElement("Lagrange", domain.ufl_cell(), 1)
+# function space using mesh and degree
+Ve = ufl.VectorElement("Lagrange", domain.ufl_cell(), 1) # displacements
 V = dlfx.fem.FunctionSpace(domain, Ve)
 
-# Solution and BC
-u = dlfx.fem.Function(V)
-urestart = dlfx.fem.Function(V)
+# define boundary condition on top and bottom
+fdim = domain.topology.dim -1
+
+bcs = []
+             
+# define solution, restart, trial and test space
+u =  dlfx.fem.Function(V)
+urestart =  dlfx.fem.Function(V)
 du = ufl.TestFunction(V)
 ddu = ufl.TrialFunction(V)
 
 def before_first_time_step():
     urestart.x.array[:] = np.ones_like(urestart.x.array[:])
-
+    
+    # prepare newton-log-file
     if rank == 0:
         sol.prepare_newton_logfile(logfile_path)
         pp.prepare_graphs_output_file(outputfile_graph_path)
-
+    # prepare xdmf output 
     pp.write_meshoutputfile(domain, outputfile_xdmf_path, comm)
 
-def before_each_time_step(t, dt):
+def before_each_time_step(t,dt):
+    # report solution status
     if rank == 0:
-        sol.print_time_and_dt(t, dt)
-
+        sol.print_time_and_dt(t,dt)
+      
 linearElasticProblem = alex.linearelastic.StaticLinearElasticProblem()
 
 def get_residuum_and_gateaux(delta_t: dlfx.fem.Constant):
-    [Res, dResdw] = linearElasticProblem.prep_newton(u, du, ddu, lam, mu)
+    [Res, dResdw] = linearElasticProblem.prep_newton(u,du,ddu,lam,mu)
     return [Res, dResdw]
 
-x_min_all, x_max_all, y_min_all, y_max_all, z_min_all, z_max_all = bc.get_dimensions(domain, comm)
-atol = (x_max_all - x_min_all) * 0.05
+x_min_all, x_max_all, y_min_all, y_max_all, z_min_all, z_max_all = bc.get_dimensions(domain,comm)
+
+atol=(x_max_all-x_min_all)*0.05 # for selection of boundary
+
+
+u_D = dlfx.fem.Function(V)
+
+
+
+
+boundary = bc.get_boundary_of_box_as_function(domain,comm,atol=atol)
+facets_at_boundary = dlfx.mesh.locate_entities_boundary(domain, fdim, boundary)
+dofs_at_boundary = dlfx.fem.locate_dofs_topological(V, fdim, facets_at_boundary) 
+
+
+eps_mac = dlfx.fem.Constant(domain, np.array([[0.0, 0.0, 0.0],
+                     [0.0, 0.0, 0.0],
+                     [0.0, 0.0, 0.0]]))
+
 
 def get_bcs(t):
-    if column_of_cmat_computed[0] < 6:
-        eps_mac = alex.homogenization.unit_macro_strain_tensor_for_voigt_eps(domain, column_of_cmat_computed[0])
-    else:
-        eps_mac = dlfx.fem.Constant(domain, np.zeros((3, 3)))
-    return bc.get_total_linear_displacement_boundary_condition_at_box(domain, comm, V, eps_mac=eps_mac, atol=atol)
+    Eps_Voigt = np.zeros((6,))
+    Eps_Voigt[int(t)] = 1.0
+    
+    eps_mac.value = np.array([[Eps_Voigt[0], Eps_Voigt[5]/2.0, Eps_Voigt[4]/2.0],
+                                              [Eps_Voigt[5]/2.0, Eps_Voigt[1], Eps_Voigt[3]/2.0],
+                                              [Eps_Voigt[4]/2.0, Eps_Voigt[3]/2.0, Eps_Voigt[2]]])
+        
+    if (t>5):
+         eps_mac.value = np.array([[0.0, 0.0, 0.0],
+                     [0.0, 0.0, 0.0],
+                     [0.0, 0.0, 0.0]])
+    
+    comm.barrier()
+    
+    def compute_linear_displacement():
+        x = ufl.SpatialCoordinate(domain)
+        
+        u_x = eps_mac.value[0,0]*x[0] + eps_mac.value[0,1]*x[1] + eps_mac.value[0,2]*x[2]
+        u_y = eps_mac.value[1,0]*x[0] + eps_mac.value[1,1]*x[1] + eps_mac.value[1,2]*x[2]
+        u_z = eps_mac.value[2,0]*x[0] + eps_mac.value[2,1]*x[1] + eps_mac.value[2,2]*x[2]
+        #u_linear_displacement = ufl.inner(eps_mac,x)
+        return ufl.as_vector([u_x, u_y, u_z])
+    
+    bc_expression = dlfx.fem.Expression(compute_linear_displacement(),V.element.interpolation_points())
+    
+    u_D.interpolate(bc_expression)
+    bc_linear_displacement = dlfx.fem.dirichletbc(u_D,dofs_at_boundary)
+    
+    bcs = [bc_linear_displacement]
+    return bcs
 
-n = ufl.FacetNormal(domain)
+#n = ufl.FacetNormal(domain)
 simulation_result = np.array([0.0])
-vol = (x_max_all - x_min_all) * (y_max_all - y_min_all) * (z_max_all - z_min_all)
+vol = (x_max_all-x_min_all) * (y_max_all - y_min_all) * (z_max_all - z_min_all)
 Chom = np.zeros((6, 6))
 
-column_of_cmat_computed = np.array([0])
 
-def after_timestep_success(t, dt, iters):
+def after_timestep_success(t,dt,iters):
     u.name = "u"
-    pp.write_vector_field(domain, outputfile_xdmf_path, u, t, comm)
-
-    sigma_for_unit_strain = alex.homogenization.compute_averaged_sigma(u, lam, mu, vol)
-
+    pp.write_vector_field(domain,outputfile_xdmf_path,u,t,comm)
+    
+    sigma_for_unit_strain = alex.homogenization.compute_averaged_sigma(u,lam,mu, vol,comm=comm)
+    
+    # write to newton-log-file
+    comm.barrier()
     if rank == 0:
-        if column_of_cmat_computed[0] < 6:
-            Chom[column_of_cmat_computed[0], :] = sigma_for_unit_strain
+        if column.value < 6:
+            Chom[int(column.value)] = sigma_for_unit_strain
         else:
-            t = 2.0 * Tend  # terminate
+            t = 2.0*Tend # exit
             return
-        print(column_of_cmat_computed[0])
-        column_of_cmat_computed[0] += 1
-        sol.write_to_newton_logfile(logfile_path, t, dt, iters)
-
-    urestart.x.array[:] = u.x.array[:]
-
-def after_timestep_restart(t, dt, iters):
+        #print(column.value)
+        column.value = column.value + 1
+        sol.write_to_newton_logfile(logfile_path,t,dt,iters)
+        
+    urestart.x.array[:] = u.x.array[:] 
+               
+def after_timestep_restart(t,dt,iters):
+    raise RuntimeError("Linear computation - NO RESTART NECESSARY")
     u.x.array[:] = urestart.x.array[:]
-
+     
 def after_last_timestep():
+    # stopwatch stop
     timer.stop()
 
     if rank == 0:
@@ -144,7 +205,8 @@ sol.solve_with_newton_adaptive_time_stepping(
     after_timestep_restart_hook=after_timestep_restart,
     after_timestep_success_hook=after_timestep_success,
     comm=comm,
-    print_bool=True
+    print_bool=True,
+    t=t,
+    dt_never_scale_up=True
 )
-
 
