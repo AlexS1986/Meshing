@@ -26,9 +26,8 @@ SIM_CONTAINER="$HOME/dolfinx_alex/alex-dolfinx.sif"
 SIM_BIND="$HOME/dolfinx_alex/shared:/home,$working_directory:/work"
 
 SOURCE_DIR="$working_directory/00_template"
-TARGET_DIR="$BASE_SUBVOLUME_FOLDER/meshes"
+TARGET_DIR="$BASE_SUBVOLUME_FOLDER"
 MESH_INPUT_DIR="$BASE_SUBVOLUME_FOLDER"
-OUTPUT_MESH_FOLDER="$BASE_SUBVOLUME_FOLDER/meshes"  # relative to script dir
 SIM_SCRIPT="linearelastic.py"
 
 # Scripts to run in order
@@ -90,9 +89,20 @@ done
 # Mesh Conversion to DolfinX
 # -------------------------------
 
-echo "🔁 Converting mesh files in: $MESH_INPUT_DIR using make_mesh_dlfx_compatible.py"
-srun -n 1 apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
-    python3 "$working_directory/make_mesh_dlfx_compatible.py" "$MESH_INPUT_DIR" -f mesh.xdmf -o "$OUTPUT_MESH_FOLDER"
+echo "🔁 Converting mesh files in subfolders of: $MESH_INPUT_DIR using make_mesh_dlfx_compatible_cluster.py"
+
+for subfolder in "$MESH_INPUT_DIR"/*/; do
+    [ -d "$subfolder" ] || continue
+
+    if [ -f "$subfolder/mesh.xdmf" ]; then
+        echo "🔄 Converting: $subfolder/mesh.xdmf"
+        srun -n 1 apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
+            python3 "$working_directory/make_mesh_dlfx_compatible_cluster.py" "$subfolder" -f mesh.xdmf
+        echo "✅ Done converting: $subfolder"
+    else
+        echo "⚠️  Skipping $subfolder — mesh.xdmf not found."
+    fi
+done
 
 # -------------------------------
 # Simulation & Postprocessing
@@ -141,6 +151,7 @@ for subfolder in "$TARGET_DIR"/*/; do
 done
 
 echo "🎉 All meshing, simulation, and postprocessing steps completed successfully."
+
 
 
 
