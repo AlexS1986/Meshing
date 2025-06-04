@@ -52,25 +52,31 @@ for SCRIPT in "${SCRIPTS[@]}"; do
 done
 
 # -------------------------------
-# Meshing and Transformation
+# Meshing and Transformation (Modified)
 # -------------------------------
 
 MESH_SCRIPT="$working_directory/03_mesh_3D_array_pygalmesh.py"
 SCALE_SCRIPT="$working_directory/04_scale_and_translate_mesh_mod.py"
 
-echo "🌐 Starting mesh generation"
+echo "🌐 Starting mesh generation and transformation"
 
-find "$BASE_SUBVOLUME_FOLDER" -type f -name "$VOLUME_FILENAME" | while read -r NPY_FILE; do
-    SUBFOLDER=$(dirname "$NPY_FILE")
-    FOLDER_NAME=$(basename "$SUBFOLDER")
+for SUBFOLDER in "$BASE_SUBVOLUME_FOLDER"/subvolume_x*_y*/; do
+    [ -d "$SUBFOLDER" ] || continue
+    NPY_FILE="$SUBFOLDER/$VOLUME_FILENAME"
     MESH_OUTPUT="$SUBFOLDER/mesh.xdmf"
+    FOLDER_NAME=$(basename "$SUBFOLDER")
+
+    if [ ! -f "$NPY_FILE" ]; then
+        echo "⚠️  Skipping $SUBFOLDER — $VOLUME_FILENAME not found."
+        continue
+    fi
 
     if [[ "$FOLDER_NAME" =~ subvolume_x([0-9]+)_y([0-9]+) ]]; then
         CENTER_X="${BASH_REMATCH[1]}"
         CENTER_Y="${BASH_REMATCH[2]}"
     else
         echo "❌ Could not extract center_x and center_y from: $FOLDER_NAME"
-        exit 1
+        continue
     fi
 
     echo "🧩 Meshing $NPY_FILE using $MESH_SCRIPT"
@@ -151,6 +157,7 @@ for subfolder in "$TARGET_DIR"/*/; do
 done
 
 echo "🎉 All meshing, simulation, and postprocessing steps completed successfully."
+
 
 
 
