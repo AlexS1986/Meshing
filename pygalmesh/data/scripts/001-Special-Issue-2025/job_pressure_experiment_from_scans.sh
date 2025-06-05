@@ -29,7 +29,7 @@ SIM_BIND="$HOME/dolfinx_alex/shared:/home"
 SOURCE_DIR="$working_directory/00_template"
 TARGET_DIR="$BASE_SUBVOLUME_FOLDER"
 MESH_INPUT_DIR="$BASE_SUBVOLUME_FOLDER"
-SIM_SCRIPT="linearelastic.py"
+SIM_SCRIPT="linearelastic_pressure_test.py"
 
 FINAL_OUTPUT_DIR="$working_directory/16-parts-JM-25-24"  # Change this to any name you prefer
 
