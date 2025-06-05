@@ -149,7 +149,7 @@ n = ufl.FacetNormal(domain)
 simulation_result = np.array([0.0])
 
 front_surface_tag = 9
-top_surface_tags = pp.tag_part_of_boundary(domain,bc.get_front_boundary_of_box_as_function(domain, comm,atol=atol),front_surface_tag)
+top_surface_tags = pp.tag_part_of_boundary(domain,bc.get_right_boundary_of_box_as_function(domain, comm,atol=atol),front_surface_tag)
 ds_front_tagged = ufl.Measure('ds', domain=domain, subdomain_data=top_surface_tags)
 
 def after_timestep_success(t,dt,iters):
@@ -168,7 +168,7 @@ def after_timestep_success(t,dt,iters):
     simulation_result[0] = vol_above_threshhold/ vol * 100.0 # pp.percentage_of_volume_above(domain,sig_vm,sigvm_threshhold,comm,ufl.dx)
     
     if rank == 0:
-        pp.write_to_graphs_output_file(outputfile_graph_path, t, simulation_result[0],Rz_front)
+        pp.write_to_graphs_output_file(outputfile_graph_path, t, simulation_result[0],Rx_front)
         
     urestart.x.array[:] = u.x.array[:] 
                
@@ -181,7 +181,7 @@ def after_last_timestep():
     timer.stop()
 
     if rank == 0:
-        pp.print_graphs_plot(outputfile_graph_path,script_path,legend_labels=["volume percent above sigvm ="+str(sigvm_threshhold), "R_z [ N ]"])
+        pp.print_graphs_plot(outputfile_graph_path,script_path,legend_labels=["volume percent above sigvm ="+str(sigvm_threshhold), "R_x [ N ]"])
 
         runtime = timer.elapsed()
         sol.print_runtime(runtime)
