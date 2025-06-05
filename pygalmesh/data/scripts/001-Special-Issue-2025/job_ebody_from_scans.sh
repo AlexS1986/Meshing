@@ -23,12 +23,15 @@ BASE_SUBVOLUME_FOLDER="$HPC_SCRATCH/pygalmesh/data/scripts/001-Special-Issue-202
 VOLUME_FILENAME="volume.npy"
 
 SIM_CONTAINER="$HOME/dolfinx_alex/alex-dolfinx.sif"
-SIM_BIND="$HOME/dolfinx_alex/shared:/home,$working_directory:/work"
+#SIM_BIND="$HOME/dolfinx_alex/shared:/home,$working_directory:/work"
+SIM_BIND="$HOME/dolfinx_alex/shared:/home"
 
 SOURCE_DIR="$working_directory/00_template"
 TARGET_DIR="$BASE_SUBVOLUME_FOLDER"
 MESH_INPUT_DIR="$BASE_SUBVOLUME_FOLDER"
 SIM_SCRIPT="linearelastic.py"
+
+FINAL_OUTPUT_DIR="$working_directory/16-parts-JM-25-24"  # Change this to any name you prefer
 
 # Scripts to run in order
 SCRIPTS=(
@@ -122,7 +125,18 @@ fi
 for subfolder in "$TARGET_DIR"/*/; do
     [ -d "$subfolder" ] || continue
     echo "⚙️  Starting simulation pipeline for: $subfolder"
+
+    # 🚮 Delete scratch folder if it exists
+    if [ -d "$working_directory/scratch" ]; then
+        echo "🧹 Removing existing scratch directory: $working_directory/scratch"
+        rm -rf "$working_directory/scratch"
+    fi
+
     cp -v "$SOURCE_DIR"/* "$subfolder"
+
+
+    rm -rf "$working_directory/scratch"
+    sleep 2s
 
     echo "🔬 Running $SIM_SCRIPT with 32 CPUs in: $subfolder"
     srun -n 32 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
@@ -156,7 +170,44 @@ for subfolder in "$TARGET_DIR"/*/; do
     echo ""
 done
 
-echo "🎉 All meshing, simulation, and postprocessing steps completed successfully."
+# -------------------------------
+# Copy results to final output directory
+# -------------------------------
+
+
+
+echo "📦 Copying results to: $FINAL_OUTPUT_DIR"
+mkdir -p "$FINAL_OUTPUT_DIR"
+
+# Copy the BASE_SUBVOLUME_FOLDER
+cp -rv "$BASE_SUBVOLUME_FOLDER" "$FINAL_OUTPUT_DIR/"
+
+# Copy metadata.json from parent of BASE_SUBVOLUME_FOLDER
+PARENT_DIR="$(dirname "$BASE_SUBVOLUME_FOLDER")"
+if [ -f "$PARENT_DIR/metadata.json" ]; then
+    cp -v "$PARENT_DIR/metadata.json" "$FINAL_OUTPUT_DIR/"
+else
+    echo "⚠️  metadata.json not found in $PARENT_DIR"
+fi
+
+# Copy config.json from current script folder
+if [ -f "$working_directory/config.json" ]; then
+    cp -v "$working_directory/config.json" "$FINAL_OUTPUT_DIR/"
+else
+    echo "⚠️  config.json not found in $working_directory"
+fi
+
+echo "🎉 All meshing, simulation, postprocessing, and archiving steps completed successfully."
+
+
+
+
+
+
+
+
+
+
 
 
 
