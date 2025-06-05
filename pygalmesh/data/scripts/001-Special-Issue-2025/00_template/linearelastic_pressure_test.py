@@ -51,11 +51,33 @@ dt_max = dlfx.fem.Constant(domain,0.001)
 t = dlfx.fem.Constant(domain,0.00)
 Tend = 1000.0 * dt.value
 
-# elastic constants
-lam = dlfx.fem.Constant(domain, 51100.0)
-mu = dlfx.fem.Constant(domain, 26300.0)
-sigvm_threshhold = 200.0
-E_mod = alex.linearelastic.get_emod(lam.value, mu.value)
+
+# Konv 82000 MPa
+# AM 73000 MPa
+
+# nu: cast 0.35 
+# am 0.36
+
+# streckgrenze: AM 140
+# Konv 110 
+
+
+# AM.
+# E_mod = 73000.0
+# nu = 0.36
+# sigvm_threshhold = 140.0
+
+# Conv.
+E_mod = 82000.0
+nu = 0.35
+sigvm_threshhold = 110.0
+
+lam = dlfx.fem.Constant(domain, alex.linearelastic.get_lambda(E_mod,nu))
+mu = dlfx.fem.Constant(domain, alex.linearelastic.get_mu(E_mod,nu))
+
+E_mod_test = alex.linearelastic.get_emod(lam.value, mu.value)
+nu_test = alex.linearelastic.get_nu(lam.value, mu.value)
+
 
 # function space using mesh and degree
 Ve = ufl.VectorElement("Lagrange", domain.ufl_cell(), 1) # displacements
@@ -102,22 +124,25 @@ atol=(x_max_all-x_min_all)*0.02 # for selection of boundary
 
 
 
-boundary = bc.get_boundary_of_box_as_function(domain,comm,atol=atol)
-facets_at_boundary = dlfx.mesh.locate_entities_boundary(domain, fdim, boundary)
-dofs_at_boundary = dlfx.fem.locate_dofs_topological(V, fdim, facets_at_boundary) 
-
-
-
 
 def get_bcs(t):
     amplitude = -1.0
-    bc_front = bc.define_dirichlet_bc_from_value(domain,amplitude*t,1,bc.get_front_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
+    bc_front_x = bc.define_dirichlet_bc_from_value(domain,amplitude*t,0,bc.get_right_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
+    bc_front_y = bc.define_dirichlet_bc_from_value(domain,0.0,1,bc.get_right_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
+    bc_front_z = bc.define_dirichlet_bc_from_value(domain,0.0,2,bc.get_right_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
     
-    bc_back_x = bc.define_dirichlet_bc_from_value(domain,0.0,0,bc.get_back_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
-    bc_back_y = bc.define_dirichlet_bc_from_value(domain,0.0,1,bc.get_back_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
-    bc_back_z = bc.define_dirichlet_bc_from_value(domain,0.0,2,bc.get_back_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
+    bc_back_x = bc.define_dirichlet_bc_from_value(domain,0.0,0,bc.get_left_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
+    bc_back_y = bc.define_dirichlet_bc_from_value(domain,0.0,1,bc.get_left_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
+    bc_back_z = bc.define_dirichlet_bc_from_value(domain,0.0,2,bc.get_left_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
     
-    bcs = [bc_front, bc_back_x,bc_back_y,bc_back_z]
+    
+    # bc_front = bc.define_dirichlet_bc_from_value(domain,amplitude*t,1,bc.get_front_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
+    
+    # bc_back_x = bc.define_dirichlet_bc_from_value(domain,0.0,0,bc.get_back_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
+    # bc_back_y = bc.define_dirichlet_bc_from_value(domain,0.0,1,bc.get_back_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
+    # bc_back_z = bc.define_dirichlet_bc_from_value(domain,0.0,2,bc.get_back_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
+    
+    bcs = [bc_front_x,bc_front_y,bc_front_z, bc_back_x,bc_back_y,bc_back_z]
     return bcs
 
 n = ufl.FacetNormal(domain)
@@ -156,7 +181,7 @@ def after_last_timestep():
     timer.stop()
 
     if rank == 0:
-        pp.print_graphs_plot(outputfile_graph_path,script_path,legend_labels=["volume percent above sigvm ="+str(), "R_z [ N ]"])
+        pp.print_graphs_plot(outputfile_graph_path,script_path,legend_labels=["volume percent above sigvm ="+str(sigvm_threshhold), "R_z [ N ]"])
 
         runtime = timer.elapsed()
         sol.print_runtime(runtime)
@@ -180,4 +205,3 @@ sol.solve_with_newton_adaptive_time_stepping(
     dt_never_scale_up=False,
     dt_max=dt_max
 )
-
