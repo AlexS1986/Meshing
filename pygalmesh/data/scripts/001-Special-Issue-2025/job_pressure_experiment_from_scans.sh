@@ -142,6 +142,10 @@ for subfolder in "$TARGET_DIR"/*/; do
     srun -n 32 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
        python3 "$subfolder/$SIM_SCRIPT"
 
+    echo "📈 Run plot_pressure_experiment_results.py"
+    srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
+        python3 plot_pressure_experiment_results.py
+
 done
 
 # -------------------------------
