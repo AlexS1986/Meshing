@@ -47,7 +47,7 @@ RUN pip3 install .
 RUN pip3 install tifffile scipy h5py pandas nanomesh pydicom pyvista
 
 # Set PYTHONPATH to include /home/utils
-ENV PYTHONPATH="/home/utils:${PYTHONPATH}"
+ENV PYTHONPATH="/data/utils:${PYTHONPATH}"
 
 # Command to keep the container running
 CMD ["tail", "-f", "/dev/null"]

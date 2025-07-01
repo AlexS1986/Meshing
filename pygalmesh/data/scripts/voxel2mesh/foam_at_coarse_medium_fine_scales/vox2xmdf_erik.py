@@ -133,19 +133,19 @@ mmm.print_mesh_status(missing_points, any_missing, incorrect_orientation_cells, 
 mesh = mmm.remove_invalid_cells(mesh,incorrect_orientation_cells,zero_volume_cells)
 
 
-mirror_plane_values =  np.min(mesh.points,axis=0)
-mirror_dir_index = 0
+# mirror_plane_values =  np.min(mesh.points,axis=0)
+# mirror_dir_index = 0
 
 # 1. mirror in x-direction
-mesh = mmm.mirror_and_merge_old(mesh,mirror_direction=0,merging_tolerance=merging_tolerance,
-                                mirror_plane_value=mirror_plane_values[mirror_dir_index])
-pairs, has_pairs = mmm.check_for_identical_points(mesh,tolerance_for_points_to_be_considered_identical)
+# mesh = mmm.mirror_and_merge_old(mesh,mirror_direction=0,merging_tolerance=merging_tolerance,
+#                                 mirror_plane_value=mirror_plane_values[mirror_dir_index])
+# pairs, has_pairs = mmm.check_for_identical_points(mesh,tolerance_for_points_to_be_considered_identical)
 
-# translate to origin
-minimum_coordinates_new_mesh =  np.min(mesh.points,axis=0)
-vector_to_origin = np.array([-minimum_coordinates_new_mesh[0],-minimum_coordinates_new_mesh[1],-minimum_coordinates_new_mesh[2]])
-mesh = mmm.translate_mesh(mesh,vector_to_origin)
-meshio.write(output_mesh_path_coarse, mesh)
+# # translate to origin
+# minimum_coordinates_new_mesh =  np.min(mesh.points,axis=0)
+# vector_to_origin = np.array([-minimum_coordinates_new_mesh[0],-minimum_coordinates_new_mesh[1],-minimum_coordinates_new_mesh[2]])
+# mesh = mmm.translate_mesh(mesh,vector_to_origin)
+# meshio.write(output_mesh_path_coarse, mesh)
 
 #################################
 ## 3b) generare MEDIUM mesh    ##
