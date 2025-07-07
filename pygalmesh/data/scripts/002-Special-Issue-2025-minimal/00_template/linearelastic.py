@@ -156,6 +156,11 @@ def after_timestep_success(t,dt,iters):
     
     sigma_for_unit_strain = alex.homogenization.compute_averaged_sigma(u,lam,mu, vol,comm=comm)
     
+    # sigma = le.sigma_as_tensor(u,lam,mu)
+    # eps_strain = ufl.sym(ufl.grad(u))
+    # pp.write_tensor_fields(domain,comm,[sigma, eps_strain],["sigma", "eps"],outputfile_xdmf_path,t)
+ 
+    
     # write to newton-log-file
     comm.barrier()
     if rank == 0:

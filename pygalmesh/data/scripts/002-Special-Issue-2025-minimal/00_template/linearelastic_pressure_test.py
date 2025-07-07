@@ -127,6 +127,8 @@ atol=(x_max_all-x_min_all)*0.02 # for selection of boundary
 
 def get_bcs(t):
     amplitude = -1.0
+    
+    # X direction loading
     bc_front_x = bc.define_dirichlet_bc_from_value(domain,amplitude*t,0,bc.get_right_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
     bc_front_y = bc.define_dirichlet_bc_from_value(domain,0.0,1,bc.get_right_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
     bc_front_z = bc.define_dirichlet_bc_from_value(domain,0.0,2,bc.get_right_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
@@ -134,6 +136,16 @@ def get_bcs(t):
     bc_back_x = bc.define_dirichlet_bc_from_value(domain,0.0,0,bc.get_left_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
     bc_back_y = bc.define_dirichlet_bc_from_value(domain,0.0,1,bc.get_left_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
     bc_back_z = bc.define_dirichlet_bc_from_value(domain,0.0,2,bc.get_left_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
+    
+    
+    # Y direction loading
+    # bc_front_x = bc.define_dirichlet_bc_from_value(domain,0.0,0,bc.get_top_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
+    # bc_front_y = bc.define_dirichlet_bc_from_value(domain,amplitude*t,1,bc.get_top_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
+    # bc_front_z = bc.define_dirichlet_bc_from_value(domain,0.0,2,bc.get_top_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
+    
+    # bc_back_x = bc.define_dirichlet_bc_from_value(domain,0.0,0,bc.get_bottom_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
+    # bc_back_y = bc.define_dirichlet_bc_from_value(domain,0.0,1,bc.get_bottom_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
+    # bc_back_z = bc.define_dirichlet_bc_from_value(domain,0.0,2,bc.get_bottom_boundary_of_box_as_function(domain,comm,atol=atol),V,-1) 
     
     
     # bc_front = bc.define_dirichlet_bc_from_value(domain,amplitude*t,1,bc.get_front_boundary_of_box_as_function(domain,comm,atol=atol),V,-1)
@@ -149,7 +161,13 @@ n = ufl.FacetNormal(domain)
 simulation_result = np.array([0.0])
 
 front_surface_tag = 9
+
+# X direction loading
 top_surface_tags = pp.tag_part_of_boundary(domain,bc.get_right_boundary_of_box_as_function(domain, comm,atol=atol),front_surface_tag)
+
+# Y direction loading
+#top_surface_tags = pp.tag_part_of_boundary(domain,bc.get_top_boundary_of_box_as_function(domain, comm,atol=atol),front_surface_tag)
+
 ds_front_tagged = ufl.Measure('ds', domain=domain, subdomain_data=top_surface_tags)
 
 def after_timestep_success(t,dt,iters):
@@ -157,6 +175,7 @@ def after_timestep_success(t,dt,iters):
     pp.write_vector_field(domain,outputfile_xdmf_path,u,t,comm)
     
     sigma = le.sigma_as_tensor(u,lam,mu)
+    
     Rx_front, Ry_front, Rz_front = pp.reaction_force(sigma,n=n,ds=ds_front_tagged(front_surface_tag),comm=comm)
     
     sig_vm = le.sigvM(le.sigma_as_tensor(u,lam,mu))
@@ -167,8 +186,18 @@ def after_timestep_success(t,dt,iters):
     
     simulation_result[0] = vol_above_threshhold/ vol * 100.0 # pp.percentage_of_volume_above(domain,sig_vm,sigvm_threshhold,comm,ufl.dx)
     
+    eps_strain = ufl.sym(ufl.grad(u))
+    pp.write_tensor_fields(domain,comm,[sigma, eps_strain],["sigma", "eps"],outputfile_xdmf_path,t)
+    pp.write_scalar_fields(domain,comm,scalar_fields_as_functions=[sig_vm],scalar_field_names=["sig_vm"],outputfile_xdmf_path=outputfile_xdmf_path,t=t)
+    
+    
+    
     if rank == 0:
+        # X direction loading
         pp.write_to_graphs_output_file(outputfile_graph_path, t, simulation_result[0],Rx_front)
+        
+        # Y direction loading
+        # pp.write_to_graphs_output_file(outputfile_graph_path, t, simulation_result[0],Rx_front)
         
     urestart.x.array[:] = u.x.array[:] 
                
