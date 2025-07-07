@@ -170,9 +170,11 @@ top_surface_tags = pp.tag_part_of_boundary(domain,bc.get_right_boundary_of_box_a
 
 ds_front_tagged = ufl.Measure('ds', domain=domain, subdomain_data=top_surface_tags)
 
+success_timestep_counter = dlfx.fem.Constant(domain,0.0)
+postprocessing_interval = dlfx.fem.Constant(domain,25.0)
 def after_timestep_success(t,dt,iters):
     u.name = "u"
-    pp.write_vector_field(domain,outputfile_xdmf_path,u,t,comm)
+    
     
     sigma = le.sigma_as_tensor(u,lam,mu)
     
@@ -186,20 +188,28 @@ def after_timestep_success(t,dt,iters):
     
     simulation_result[0] = vol_above_threshhold/ vol * 100.0 # pp.percentage_of_volume_above(domain,sig_vm,sigvm_threshhold,comm,ufl.dx)
     
-    eps_strain = ufl.sym(ufl.grad(u))
-    pp.write_tensor_fields(domain,comm,[sigma, eps_strain],["sigma", "eps"],outputfile_xdmf_path,t)
-    pp.write_scalar_fields(domain,comm,scalar_fields_as_functions=[sig_vm],scalar_field_names=["sig_vm"],outputfile_xdmf_path=outputfile_xdmf_path,t=t)
-    
+
     
     
     if rank == 0:
         # X direction loading
         pp.write_to_graphs_output_file(outputfile_graph_path, t, simulation_result[0],Rx_front)
-        
         # Y direction loading
         # pp.write_to_graphs_output_file(outputfile_graph_path, t, simulation_result[0],Rx_front)
         
+    success_timestep_counter.value = success_timestep_counter.value + 1.0
     urestart.x.array[:] = u.x.array[:] 
+    
+    # break out of loop if no postprocessing required
+    if not int(success_timestep_counter.value) % int(postprocessing_interval.value) == 0: 
+        return
+    eps_strain = ufl.sym(ufl.grad(u))
+    pp.write_tensor_fields(domain,comm,[sigma, eps_strain],["sigma", "eps"],outputfile_xdmf_path,t)
+    pp.write_scalar_fields(domain,comm,scalar_fields_as_functions=[sig_vm],scalar_field_names=["sig_vm"],outputfile_xdmf_path=outputfile_xdmf_path,t=t)
+    pp.write_vector_field(domain,outputfile_xdmf_path,u,t,comm)
+
+        
+
                
 def after_timestep_restart(t,dt,iters):
     raise RuntimeError("Linear computation - NO RESTART NECESSARY")
