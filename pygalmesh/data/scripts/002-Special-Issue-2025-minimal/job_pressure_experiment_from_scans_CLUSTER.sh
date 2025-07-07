@@ -18,12 +18,11 @@ set -e
 working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/002-Special-Issue-2025-minimal"
 CONTAINER_PATH="$HOME/meshing/Meshing/pygalmesh/pygalmesh.sif"
 BIND_PATHS="$HOME/meshing/Meshing/pygalmesh/data:/home,$HPC_SCRATCH/pygalmesh/data:/data"
-CONFIG_PATH="/data/scripts/002-Special-Issue-2025-minimal/config.json"
+CONFIG_PATH="/data/scripts/002-Special-Issue-2025-minimal/config-JM-25-24.json"
 BASE_SUBVOLUME_FOLDER="$HPC_SCRATCH/pygalmesh/data/scripts/002-Special-Issue-2025-minimal/JM-25-24_segmented/JM-25-24_segmented_3D"
 VOLUME_FILENAME="volume.npy"
 
 SIM_CONTAINER="$HOME/dolfinx_alex/alex-dolfinx.sif"
-#SIM_BIND="$HOME/dolfinx_alex/shared:/home,$working_directory:/work"
 SIM_BIND="$HOME/dolfinx_alex/shared:/home"
 
 SOURCE_DIR="$working_directory/00_template"
@@ -31,9 +30,11 @@ TARGET_DIR="$BASE_SUBVOLUME_FOLDER"
 MESH_INPUT_DIR="$BASE_SUBVOLUME_FOLDER"
 SIM_SCRIPT="linearelastic_pressure_test.py"
 
-FINAL_OUTPUT_DIR="$working_directory/16-parts-JM-25-24"  # Change this to any name you prefer
+# -------------------------------
+# Preprocessing, meshing, etc.
+# -------------------------------
+# You can comment out this section if already run once.
 
-# Scripts to run in order
 SCRIPTS=(
     "00_dicom_2_npy.py"
     "01_segment_slice_wise.py"
@@ -42,10 +43,6 @@ SCRIPTS=(
     "02b_build_subvolume_arrays.py"
 )
 
-# -------------------------------
-# Run preprocessing scripts
-# -------------------------------
-
 for SCRIPT in "${SCRIPTS[@]}"; do
     echo "🚀 Running preprocessing: $SCRIPT"
     srun -n 1 apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
@@ -53,10 +50,6 @@ for SCRIPT in "${SCRIPTS[@]}"; do
     echo "✅ Finished: $SCRIPT"
     echo "----------------------------"
 done
-
-# -------------------------------
-# Meshing and Transformation (Modified)
-# -------------------------------
 
 MESH_SCRIPT="$working_directory/03_mesh_3D_array_pygalmesh.py"
 SCALE_SCRIPT="$working_directory/04_scale_and_translate_mesh_mod.py"
@@ -94,10 +87,6 @@ for SUBFOLDER in "$BASE_SUBVOLUME_FOLDER"/subvolume_x*_y*/; do
     echo "----------------------------"
 done
 
-# -------------------------------
-# Mesh Conversion to DolfinX
-# -------------------------------
-
 echo "🔁 Converting mesh files in subfolders of: $MESH_INPUT_DIR using make_mesh_dlfx_compatible_cluster.py"
 
 for subfolder in "$MESH_INPUT_DIR"/*/; do
@@ -114,68 +103,65 @@ for subfolder in "$MESH_INPUT_DIR"/*/; do
 done
 
 # -------------------------------
-# Simulation & Postprocessing
+# Simulation & Postprocessing for all parameter combinations
 # -------------------------------
 
-if [ ! -d "$SOURCE_DIR" ] || [ ! -d "$TARGET_DIR" ]; then
-    echo "❌ SOURCE or TARGET directory missing"
-    exit 1
-fi
+materials=("Conv" "AM")
+directions=("x" "y")
 
-for subfolder in "$TARGET_DIR"/*/; do
-    [ -d "$subfolder" ] || continue
-    echo "⚙️  Starting simulation pipeline for: $subfolder"
+for material in "${materials[@]}"; do
+    for direction in "${directions[@]}"; do
 
-    # 🚮 Delete scratch folder if it exists
-    if [ -d "$working_directory/scratch" ]; then
-        echo "🧹 Removing existing scratch directory: $working_directory/scratch"
-        rm -rf "$working_directory/scratch"
-    fi
+        OUTPUT_TAG="${material}_${direction}"
+        FINAL_OUTPUT_DIR="$working_directory/16-parts-JM-25-24-$OUTPUT_TAG"
+        echo "🚀 Starting simulations for $OUTPUT_TAG"
 
-    cp -v "$SOURCE_DIR"/* "$subfolder"
+        for subfolder in "$TARGET_DIR"/*/; do
+            [ -d "$subfolder" ] || continue
+            echo "⚙️  Running simulation in: $subfolder [$OUTPUT_TAG]"
 
+            if [ -d "$working_directory/scratch" ]; then
+                echo "🧹 Removing scratch directory"
+                rm -rf "$working_directory/scratch"
+            fi
 
-    rm -rf "$working_directory/scratch"
-    sleep 2s
+            cp -v "$SOURCE_DIR"/* "$subfolder"
+            rm -rf "$working_directory/scratch"
+            sleep 2s
 
-    echo "🔬 Running $SIM_SCRIPT with 32 CPUs in: $subfolder"
-    srun -n 32 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
-       python3 "$subfolder/$SIM_SCRIPT"
+            echo "🔬 Running $SIM_SCRIPT with material=$material, direction=$direction"
+            srun -n 32 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
+                python3 "$subfolder/$SIM_SCRIPT" "$material" "$direction"
 
-    echo "📈 Run plot_pressure_experiment_results.py"
-    srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
-        python3 plot_pressure_experiment_results.py
+            echo "📈 Plotting results"
+            srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
+                python3 plot_pressure_experiment_results.py
+        done
 
+        echo "📦 Archiving results for $OUTPUT_TAG"
+        mkdir -p "$FINAL_OUTPUT_DIR"
+        cp -rv "$BASE_SUBVOLUME_FOLDER" "$FINAL_OUTPUT_DIR/"
+        PARENT_DIR="$(dirname "$BASE_SUBVOLUME_FOLDER")"
+        if [ -f "$PARENT_DIR/metadata.json" ]; then
+            cp -v "$PARENT_DIR/metadata.json" "$FINAL_OUTPUT_DIR/"
+        else
+            echo "⚠️  metadata.json not found in $PARENT_DIR"
+        fi
+
+        if [ -f "$CONFIG_PATH" ]; then
+            cp -v "$CONFIG_PATH" "$FINAL_OUTPUT_DIR/config.json"
+        else
+            echo "⚠️  config.json not found at $CONFIG_PATH"
+        fi
+
+        echo "✅ Finished simulations and export for: $OUTPUT_TAG"
+        echo "----------------------------"
+
+    done
 done
 
-# -------------------------------
-# Copy results to final output directory
-# -------------------------------
+echo "🎉 All meshing, simulations, postprocessing, and archiving completed for all parameter sets."
 
-
-
-echo "📦 Copying results to: $FINAL_OUTPUT_DIR"
-mkdir -p "$FINAL_OUTPUT_DIR"
-
-# Copy the BASE_SUBVOLUME_FOLDER
-cp -rv "$BASE_SUBVOLUME_FOLDER" "$FINAL_OUTPUT_DIR/"
-
-# Copy metadata.json from parent of BASE_SUBVOLUME_FOLDER
-PARENT_DIR="$(dirname "$BASE_SUBVOLUME_FOLDER")"
-if [ -f "$PARENT_DIR/metadata.json" ]; then
-    cp -v "$PARENT_DIR/metadata.json" "$FINAL_OUTPUT_DIR/"
-else
-    echo "⚠️  metadata.json not found in $PARENT_DIR"
-fi
-
-# Copy config.json from current script folder
-if [ -f "$working_directory/config.json" ]; then
-    cp -v "$working_directory/config.json" "$FINAL_OUTPUT_DIR/"
-else
-    echo "⚠️  config.json not found in $working_directory"
-fi
-
-echo "🎉 All meshing, simulation, postprocessing, and archiving steps completed successfully."
 
 
 
