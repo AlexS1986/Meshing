@@ -1,0 +1,72 @@
+{
+  "metadata_output_path": "/data/scripts/002-Special-Issue-2025-minimal/JM-25-33_segmented/metadata.json",
+  "dicom2npy": {
+    "foldername": "/data/resources/special_issue_hannover/raw_dicom/JM-25-33/JM-25-33-245min_750^C_erodiert",
+    "option": "reduce",
+    "crop": {
+      "x_start": 1000,
+      "x_end": 1150,
+      "y_start": 1000,
+      "y_end": 1150
+    },
+    "reduce": {
+      "factor": 4
+    },
+    "slice_start": 0,
+    "slice_end": null,
+    "output_folder": "/data/scripts/002-Special-Issue-2025-minimal/JM-25-33/npy"
+  },
+  "01_segment_slice_wise": {
+    "specimen_name": "JM-25-33",
+    "input_folder": "/data/scripts/002-Special-Issue-2025-minimal/JM-25-33/npy",
+    "output_folder": "/data/scripts/002-Special-Issue-2025-minimal/JM-25-33_segmented",
+    "preview_slice_index": 100,
+    "seg_algorithm": "otsu",
+    "gaussian_filter_sigma_factor": 1
+  },
+  "02_segmented_3D_array": {
+    "input_folder": "/data/scripts/002-Special-Issue-2025-minimal/JM-25-33_segmented",
+    "output_folder": "/data/scripts/002-Special-Issue-2025-minimal/JM-25-33_segmented/JM-25-33_segmented_3D",
+    "desired_width_x": null,
+    "desired_height_y": null,
+    "center_x": null,
+    "center_y": null,
+    "min_z": 52,
+    "max_z": 145
+  },
+  "03_mesh_3D_array": {
+    "specimen_name": "JM-25-33_segmented",
+    "input_folder": "/data/scripts/002-Special-Issue-2025-minimal/JM-25-33_segmented/JM-25-33_segmented_3D",
+    "smoothing_sigma_factor": 1,
+    "segmentation_algorithm": "otsu",
+    "z_slice": 0,
+    "scale_factor": 1.0,
+    "meshing_method": "pygalmesh",
+    "mesh_output_path": "/data/scripts/002-Special-Issue-2025-minimal/JM-25-33_segmented/mesh.xdmf",
+    "pygalmesh_parameters": {
+      "max_element_size_factor": 5.0,
+      "max_facet_distance_factor": 0.3
+    },
+    "nanomesh_parameters": {
+      "meshing_options": "-pAqD",
+      "output_format": "gmsh22",
+      "output_binary": false
+    }
+  },
+  "02a_rotate_pic_to_align_with_axis": {
+    "material_value": 1,
+    "pore_value": 0,
+    "buffer_width": 10,
+    "buffer_width_min_x": 10,
+    "buffer_width_max_x": 10,
+    "buffer_width_min_y": 10,
+    "buffer_width_max_y": 10,
+    "buffer_width_min_z": 10,
+    "buffer_width_max_z": 10,
+    "angles": [-5.2, -2.4, 3.5]
+  },
+  "02b_build_subvolume_arrays": {
+    "xy_divisions": 1,
+    "subvolume_output_folder": "/data/scripts/002-Special-Issue-2025-minimal/JM-25-33_segmented/JM-25-33_segmented_3D"
+  }
+}
