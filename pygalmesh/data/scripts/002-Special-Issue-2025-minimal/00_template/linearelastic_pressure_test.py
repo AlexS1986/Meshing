@@ -48,10 +48,10 @@ with dlfx.io.XDMFFile(comm, os.path.join(script_path, 'dlfx_mesh.xdmf'), 'r') as
     domain = mesh_inp.read_mesh()
 
 # ---------- Time Setup ----------
-dt = dlfx.fem.Constant(domain, 0.001)
-dt_max = dlfx.fem.Constant(domain, 0.001)
+dt = dlfx.fem.Constant(domain, 0.02)
+dt_max = dlfx.fem.Constant(domain, dt.value)
 t = dlfx.fem.Constant(domain, 0.00)
-Tend = 1000.0 * dt.value
+Tend = 50.0 * dt.value
 
 # ---------- Material Parameters ----------
 if material_set.lower() == "am":
@@ -161,7 +161,8 @@ def after_timestep_success(t, dt, iters):
     pp.write_vector_field(domain, outputfile_xdmf_path, u, t, comm)
 
 def after_timestep_restart(t, dt, iters):
-    raise RuntimeError("Linear computation - NO RESTART NECESSARY")
+    u.x.array[:] = urestart.x.array[:]
+    # raise RuntimeError("Linear computation - NO RESTART NECESSARY")
 
 def after_last_timestep():
     timer.stop()
