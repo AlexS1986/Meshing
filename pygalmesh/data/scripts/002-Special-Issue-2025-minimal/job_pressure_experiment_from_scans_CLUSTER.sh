@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J ebody
+#SBATCH -J pressure
 #SBATCH -A p0023647
 #SBATCH -t 1440
 #SBATCH --mem-per-cpu=6000
@@ -20,7 +20,7 @@ specimen_name="JM-25-24"
 working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/002-Special-Issue-2025-minimal"
 CONTAINER_PATH="$HOME/meshing/Meshing/pygalmesh/pygalmesh.sif"
 BIND_PATHS="$HOME/meshing/Meshing/pygalmesh/data:/home,$HPC_SCRATCH/pygalmesh/data:/data"
-CONFIG_PATH="/data/scripts/002-Special-Issue-2025-minimal/config.json"
+CONFIG_PATH="/data/scripts/002-Special-Issue-2025-minimal/config-${specimen_name}.json"
 BASE_SUBVOLUME_FOLDER="$HPC_SCRATCH/pygalmesh/data/scripts/002-Special-Issue-2025-minimal/${specimen_name}_segmented/${specimen_name}_segmented_3D"
 VOLUME_FILENAME="volume.npy"
 
