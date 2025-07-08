@@ -4,7 +4,8 @@ import numpy as np
 import os
 
 # Read the data from file
-file_path = 'data.txt'  # Adjust filename if needed
+script_path = os.path.dirname(__file__)
+file_path = os.path.join(script_path,'linearelastic_pressure_test_graphs.txt') # Adjust filename if needed
 df = pd.read_csv(file_path, delim_whitespace=True, header=None)
 
 # Assign column names
