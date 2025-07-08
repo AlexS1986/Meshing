@@ -95,7 +95,7 @@ def get_residuum_and_gateaux(delta_t: dlfx.fem.Constant):
 
 x_min_all, x_max_all, y_min_all, y_max_all, z_min_all, z_max_all = bc.get_dimensions(domain, comm)
 pp.print_bounding_box(rank, x_min_all, x_max_all, y_min_all, y_max_all, z_min_all, z_max_all)
-atol = (x_max_all - x_min_all) * 0.02
+atol = (x_max_all - x_min_all) * 0.05
 
 # ---------- Boundary Conditions ----------
 def get_bcs(t):
