@@ -134,7 +134,7 @@ else:
 ds_front_tagged = ufl.Measure('ds', domain=domain, subdomain_data=top_surface_tags)
 
 success_timestep_counter = dlfx.fem.Constant(domain, 0.0)
-postprocessing_interval = dlfx.fem.Constant(domain, 25.0)
+postprocessing_interval = dlfx.fem.Constant(domain, 10.0)
 
 def after_timestep_success(t, dt, iters):
     u.name = "u"
@@ -147,7 +147,11 @@ def after_timestep_success(t, dt, iters):
     simulation_result[0] = vol_above / vol * 100.0
 
     if rank == 0:
-        pp.write_to_graphs_output_file(outputfile_graph_path, t, simulation_result[0], Rx_front)
+        if loading_direction.lower() == "y":
+            pp.write_to_graphs_output_file(outputfile_graph_path, t, simulation_result[0], Ry_front)
+        else:
+            pp.write_to_graphs_output_file(outputfile_graph_path, t, simulation_result[0], Rx_front)
+
 
     success_timestep_counter.value += 1.0
     urestart.x.array[:] = u.x.array[:]
