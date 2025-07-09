@@ -15,15 +15,16 @@ set -e
 # Setup
 # -------------------------------
 
+specimen_name="JM-25-24"
+
 working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/002-Special-Issue-2025-minimal"
 CONTAINER_PATH="$HOME/meshing/Meshing/pygalmesh/pygalmesh.sif"
 BIND_PATHS="$HOME/meshing/Meshing/pygalmesh/data:/home,$HPC_SCRATCH/pygalmesh/data:/data"
 CONFIG_PATH="/data/scripts/002-Special-Issue-2025-minimal/config.json"
-BASE_SUBVOLUME_FOLDER="$HPC_SCRATCH/pygalmesh/data/scripts/002-Special-Issue-2025-minimal/JM-25-24_segmented/JM-25-24_segmented_3D"
+BASE_SUBVOLUME_FOLDER="$working_directory/${specimen_name}_segmented/${specimen_name}_segmented_3D"
 VOLUME_FILENAME="volume.npy"
 
 SIM_CONTAINER="$HOME/dolfinx_alex/alex-dolfinx.sif"
-#SIM_BIND="$HOME/dolfinx_alex/shared:/home,$working_directory:/work"
 SIM_BIND="$HOME/dolfinx_alex/shared:/home"
 
 SOURCE_DIR="$working_directory/00_template"
@@ -31,7 +32,7 @@ TARGET_DIR="$BASE_SUBVOLUME_FOLDER"
 MESH_INPUT_DIR="$BASE_SUBVOLUME_FOLDER"
 SIM_SCRIPT="linearelastic.py"
 
-FINAL_OUTPUT_DIR="$working_directory/16-parts-JM-25-24"  # Change this to any name you prefer
+FINAL_OUTPUT_DIR="$working_directory/16-parts-${specimen_name}"  # optional use
 
 # Scripts to run in order
 SCRIPTS=(
@@ -114,90 +115,100 @@ for subfolder in "$MESH_INPUT_DIR"/*/; do
 done
 
 # -------------------------------
-# Simulation & Postprocessing
+# Simulation & Postprocessing with Parameter Combinations
 # -------------------------------
+
+MATERIALS=("Conv" "AM")
+DIRECTIONS=("x" "y")
 
 if [ ! -d "$SOURCE_DIR" ] || [ ! -d "$TARGET_DIR" ]; then
     echo "❌ SOURCE or TARGET directory missing"
     exit 1
 fi
 
-for subfolder in "$TARGET_DIR"/*/; do
-    [ -d "$subfolder" ] || continue
-    echo "⚙️  Starting simulation pipeline for: $subfolder"
+for MAT in "${MATERIALS[@]}"; do
+    for DIR in "${DIRECTIONS[@]}"; do
+        OUTPUT_TAG="${MAT}-${DIR}"
+        FINAL_OUTPUT_DIR="$working_directory/00_results/${specimen_name}-${OUTPUT_TAG}"
 
-    # 🚮 Delete scratch folder if it exists
-    if [ -d "$working_directory/scratch" ]; then
-        echo "🧹 Removing existing scratch directory: $working_directory/scratch"
-        rm -rf "$working_directory/scratch"
-    fi
+        echo "🔬 Starting simulation: Material=$MAT Direction=$DIR"
 
-    cp -v "$SOURCE_DIR"/* "$subfolder"
+        for subfolder in "$TARGET_DIR"/*/; do
+            [ -d "$subfolder" ] || continue
+            echo "⚙️  Processing: $subfolder"
 
+            # 🚮 Clean scratch
+            if [ -d "$working_directory/scratch" ]; then
+                echo "🧹 Removing existing scratch directory: $working_directory/scratch"
+                rm -rf "$working_directory/scratch"
+            fi
 
-    rm -rf "$working_directory/scratch"
-    sleep 2s
+            cp -v "$SOURCE_DIR"/* "$subfolder"
+            rm -rf "$working_directory/scratch"
+            sleep 2s
 
-    echo "🔬 Running $SIM_SCRIPT with 32 CPUs in: $subfolder"
-    srun -n 32 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
-       python3 "$subfolder/$SIM_SCRIPT"
+            echo "🔬 Running $SIM_SCRIPT with 32 CPUs and params $MAT $DIR"
+            srun -n 32 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
+                python3 "$subfolder/$SIM_SCRIPT" "$MAT" "$DIR"
 
-    echo "🛠️  Running update_trafo.py"
-    srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
-        python3 update_trafo.py
+            echo "🛠️  Running update_trafo.py"
+            srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
+                python3 update_trafo.py
 
-    echo "🔧 Running make"
-    srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
-        make
+            echo "🔧 Running make"
+            srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
+                make
 
-    echo "🚀 Running compiled binary: trafo.x"
-    srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
-        ./trafo.x
+            echo "🚀 Running compiled binary: trafo.x"
+            srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
+                ./trafo.x
 
-    echo "📤 Exporting to ParaView with DISPLAY"
-    srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
-        bash -c "Xvfb :99 -screen 0 1024x768x24 & sleep 2 && export DISPLAY=:99 && python3 print_e_body_2_paraview.py"
+            echo "📤 Exporting to ParaView with DISPLAY"
+            srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
+                bash -c "Xvfb :99 -screen 0 1024x768x24 & sleep 2 && export DISPLAY=:99 && python3 print_e_body_2_paraview.py"
 
-    echo "📈 Computing scalar e33 using find_e33.py"
-    srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
-        python3 find_e33.py
+            echo "📈 Computing scalar e33 using find_e33.py"
+            srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
+                python3 find_e33.py
 
-    echo "💾 Writing e33 to mesh using write_e33_to_mesh.py"
-    srun -n 1 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
-        python3 write_e33_to_mesh.py
+            echo "💾 Writing e33 to mesh using write_e33_to_mesh.py"
+            srun -n 1 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
+                python3 write_e33_to_mesh.py
 
-    echo "✅ Finished simulation and postprocessing for: $subfolder"
-    echo ""
+            echo "📊 Plotting results"
+            srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
+                python3 plot_pressure_experiment_results.py
+
+            echo "✅ Finished simulation and postprocessing for: $subfolder"
+            echo ""
+        done
+
+        # -------------------------------
+        # Copy results to final output directory
+        # -------------------------------
+        echo "📦 Copying results to: $FINAL_OUTPUT_DIR"
+        mkdir -p "$FINAL_OUTPUT_DIR"
+
+        cp -rv "$BASE_SUBVOLUME_FOLDER" "$FINAL_OUTPUT_DIR/"
+
+        PARENT_DIR="$(dirname "$BASE_SUBVOLUME_FOLDER")"
+        if [ -f "$PARENT_DIR/metadata.json" ]; then
+            cp -v "$PARENT_DIR/metadata.json" "$FINAL_OUTPUT_DIR/"
+        else
+            echo "⚠️  metadata.json not found in $PARENT_DIR"
+        fi
+
+        if [ -f "$CONFIG_PATH" ]; then
+            cp -v "$CONFIG_PATH" "$FINAL_OUTPUT_DIR/"
+        else
+            echo "⚠️  config.json not found at $CONFIG_PATH"
+        fi
+
+        echo "✅ Finished all results for Material=$MAT Direction=$DIR"
+        echo "----------------------------"
+    done
 done
 
-# -------------------------------
-# Copy results to final output directory
-# -------------------------------
-
-
-
-echo "📦 Copying results to: $FINAL_OUTPUT_DIR"
-mkdir -p "$FINAL_OUTPUT_DIR"
-
-# Copy the BASE_SUBVOLUME_FOLDER
-cp -rv "$BASE_SUBVOLUME_FOLDER" "$FINAL_OUTPUT_DIR/"
-
-# Copy metadata.json from parent of BASE_SUBVOLUME_FOLDER
-PARENT_DIR="$(dirname "$BASE_SUBVOLUME_FOLDER")"
-if [ -f "$PARENT_DIR/metadata.json" ]; then
-    cp -v "$PARENT_DIR/metadata.json" "$FINAL_OUTPUT_DIR/"
-else
-    echo "⚠️  metadata.json not found in $PARENT_DIR"
-fi
-
-# Copy config.json from current script folder
-if [ -f "$working_directory/config.json" ]; then
-    cp -v "$working_directory/config.json" "$FINAL_OUTPUT_DIR/"
-else
-    echo "⚠️  config.json not found in $working_directory"
-fi
-
-echo "🎉 All meshing, simulation, postprocessing, and archiving steps completed successfully."
 
 
 
