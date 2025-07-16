@@ -16,6 +16,7 @@ set -e
 # -------------------------------
 
 specimen_name="JM-25-24"
+output_directory_variable="pressure_experiment"  # Customize this to organize results
 
 working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/002-Special-Issue-2025-minimal"
 CONTAINER_PATH="$HOME/meshing/Meshing/pygalmesh/pygalmesh.sif"
@@ -127,7 +128,7 @@ DIRECTIONS=("x" "y")
 for MAT in "${MATERIALS[@]}"; do
     for DIR in "${DIRECTIONS[@]}"; do
         OUTPUT_TAG="${MAT}-${DIR}"
-        FINAL_OUTPUT_DIR="$working_directory/00_results/${specimen_name}-${OUTPUT_TAG}"
+        FINAL_OUTPUT_DIR="$working_directory/00_results/${specimen_name}/${output_directory_variable}/${specimen_name}-${OUTPUT_TAG}"
 
         echo "🔬 Starting simulation: Material=$MAT Direction=$DIR"
         for subfolder in "$TARGET_DIR"/*/; do
@@ -168,7 +169,7 @@ for MAT in "${MATERIALS[@]}"; do
             echo "⚠️  metadata.json not found in $PARENT_DIR"
         fi
 
-        CONFIG_ACTUAL_PATH="$HPC_SCRATCH/pygalmesh/data$CONFIG_PATH"
+        CONFIG_ACTUAL_PATH="$HPC_SCRATCH/pygalmesh$CONFIG_PATH"
         if [ -f "$CONFIG_ACTUAL_PATH" ]; then
             cp -v "$CONFIG_ACTUAL_PATH" "$FINAL_OUTPUT_DIR/"
         else
@@ -181,6 +182,7 @@ for MAT in "${MATERIALS[@]}"; do
 done
 
 echo "🎉 All meshing, simulation, postprocessing, and archiving steps completed successfully."
+
 
 
 

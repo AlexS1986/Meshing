@@ -32,7 +32,8 @@ TARGET_DIR="$BASE_SUBVOLUME_FOLDER"
 MESH_INPUT_DIR="$BASE_SUBVOLUME_FOLDER"
 SIM_SCRIPT="linearelastic.py"
 
-FINAL_OUTPUT_DIR="$working_directory/16-parts-${specimen_name}"  # optional use
+# Optional variable to control subfolder of output
+output_directory_variable="ebody/1-part"
 
 # Scripts to run in order
 SCRIPTS=(
@@ -129,7 +130,7 @@ fi
 for MAT in "${MATERIALS[@]}"; do
     for DIR in "${DIRECTIONS[@]}"; do
         OUTPUT_TAG="${MAT}-${DIR}"
-        FINAL_OUTPUT_DIR="$working_directory/00_results/${specimen_name}-${OUTPUT_TAG}"
+        FINAL_OUTPUT_DIR="$working_directory/00_results/${specimen_name}/${output_directory_variable}/${specimen_name}-${OUTPUT_TAG}"
 
         echo "🔬 Starting simulation: Material=$MAT Direction=$DIR"
 
@@ -175,10 +176,6 @@ for MAT in "${MATERIALS[@]}"; do
             srun -n 1 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
                 python3 write_e33_to_mesh.py
 
-            # echo "📊 Plotting results"
-            # srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
-            #     python3 plot_pressure_experiment_results.py
-
             echo "✅ Finished simulation and postprocessing for: $subfolder"
             echo ""
         done
@@ -198,7 +195,7 @@ for MAT in "${MATERIALS[@]}"; do
             echo "⚠️  metadata.json not found in $PARENT_DIR"
         fi
 
-        CONFIG_ACTUAL_PATH="$HPC_SCRATCH/pygalmesh/data$CONFIG_PATH"
+        CONFIG_ACTUAL_PATH="$HPC_SCRATCH/pygalmesh$CONFIG_PATH"
         if [ -f "$CONFIG_ACTUAL_PATH" ]; then
             cp -v "$CONFIG_ACTUAL_PATH" "$FINAL_OUTPUT_DIR/"
         else
@@ -209,6 +206,7 @@ for MAT in "${MATERIALS[@]}"; do
         echo "----------------------------"
     done
 done
+
 
 
 
