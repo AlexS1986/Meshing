@@ -22,7 +22,7 @@ print(f"MPI-STATUS: Process {rank} of {size}")
 
 # Read mesh
 with dlfx.io.XDMFFile(comm, os.path.join(script_path, 'dlfx_mesh.xdmf'), 'r') as mesh_inp:
-    domain = mesh_inp.read_mesh(name="Grid")
+    domain = mesh_inp.read_mesh()
 
 # Function spaces
 Se = basix.ufl.element("P", domain.basix_cell(), 1, shape=())
@@ -43,6 +43,8 @@ def load_json_data(filename):
 # Load homogenized moduli
 E_data = load_json_data("E_moduli.json")
 G_data = load_json_data("G_moduli.json")
+
+pp.write_meshoutputfile(domain, outputfile_xdmf_path, comm)
 
 # Combine scalar values
 all_scalar_fields = {}
@@ -78,10 +80,11 @@ for name, vec in all_vector_fields.items():
     f = dlfx.fem.Function(V)
     f.name = name
     f.x.array[:] = np.tile(vec, f.x.array.shape[0] // 3)
-    pp.write_field(domain, outputfile_path=outputfile_xdmf_path, field=f, t=0.0, comm=comm)
+    #pp.write_field(domain, outputfile_path=outputfile_xdmf_path, field=f, t=0.0, comm=comm)
+    pp.write_vector_field(domain, outputfile_xdmf_path, f, t=0.0, comm=comm)
 
 # Final mesh write
-pp.write_meshoutputfile(domain, outputfile_xdmf_path, comm)
+
 print(f"All moduli fields written to {outputfile_xdmf_path}")
 
 

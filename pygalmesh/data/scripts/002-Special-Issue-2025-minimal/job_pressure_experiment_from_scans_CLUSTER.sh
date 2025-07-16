@@ -168,10 +168,11 @@ for MAT in "${MATERIALS[@]}"; do
             echo "⚠️  metadata.json not found in $PARENT_DIR"
         fi
 
-        if [ -f "$working_directory/config.json" ]; then
-            cp -v "$working_directory/config.json" "$FINAL_OUTPUT_DIR/"
+        CONFIG_ACTUAL_PATH="$HPC_SCRATCH/pygalmesh/data$CONFIG_PATH"
+        if [ -f "$CONFIG_ACTUAL_PATH" ]; then
+            cp -v "$CONFIG_ACTUAL_PATH" "$FINAL_OUTPUT_DIR/"
         else
-            echo "⚠️  config.json not found in $working_directory"
+            echo "⚠️  config.json not found at $CONFIG_ACTUAL_PATH"
         fi
 
         echo "✅ Finished simulation Material=$MAT Direction=$DIR"

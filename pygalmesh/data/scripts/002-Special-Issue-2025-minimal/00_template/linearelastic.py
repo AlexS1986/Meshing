@@ -21,8 +21,8 @@ import alex.linearelastic as le
 # Argument parser
 parser = argparse.ArgumentParser(description="Linear Elastic Homogenization")
 parser.add_argument(
-    "--material", type=str, choices=["conv", "am"], default="conv",
-    help="Material model: 'conv' (default) or 'am'"
+    "--material", type=str, choices=["conv", "am", "std"], default="conv",
+    help="Material model: 'conv' (default) or 'am' or 'std' "
 )
 args = parser.parse_args()
 
@@ -61,7 +61,7 @@ if material == "am":
     E_mod = 73000.0
     nu = 0.36
 elif material == "std":
-    E_mod = 70000.0  # <-- Replace with correct value if needed
+    E_mod = 70000.0  
     nu = 0.35
 elif material == "conv":
     E_mod = 82000.0
