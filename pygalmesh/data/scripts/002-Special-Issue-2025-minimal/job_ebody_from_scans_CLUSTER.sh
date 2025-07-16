@@ -3,7 +3,7 @@
 #SBATCH -A p0023647
 #SBATCH -t 1440                   # max time in minutes
 #SBATCH --mem-per-cpu=6000
-#SBATCH -n 32
+#SBATCH -n 16   
 #SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/002-Special-Issue-2025-minimal/%x.err.%j
 #SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/002-Special-Issue-2025-minimal/%x.out.%j
 #SBATCH --mail-type=END
@@ -20,7 +20,7 @@ specimen_name="JM-25-24"
 working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/002-Special-Issue-2025-minimal"
 CONTAINER_PATH="$HOME/meshing/Meshing/pygalmesh/pygalmesh.sif"
 BIND_PATHS="$HOME/meshing/Meshing/pygalmesh/data:/home,$HPC_SCRATCH/pygalmesh/data:/data"
-CONFIG_PATH="/data/scripts/002-Special-Issue-2025-minimal/config.json"
+CONFIG_PATH="/data/scripts/002-Special-Issue-2025-minimal/config-${specimen_name}.json"
 BASE_SUBVOLUME_FOLDER="$working_directory/${specimen_name}_segmented/${specimen_name}_segmented_3D"
 VOLUME_FILENAME="volume.npy"
 
@@ -118,8 +118,8 @@ done
 # Simulation & Postprocessing with Parameter Combinations
 # -------------------------------
 
-MATERIALS=("Conv" "AM")
-DIRECTIONS=("x" "y")
+MATERIALS=("conv" "am")
+DIRECTIONS=("x")
 
 if [ ! -d "$SOURCE_DIR" ] || [ ! -d "$TARGET_DIR" ]; then
     echo "❌ SOURCE or TARGET directory missing"
@@ -148,8 +148,8 @@ for MAT in "${MATERIALS[@]}"; do
             sleep 2s
 
             echo "🔬 Running $SIM_SCRIPT with 32 CPUs and params $MAT $DIR"
-            srun -n 32 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
-                python3 "$subfolder/$SIM_SCRIPT" "$MAT" "$DIR"
+            srun -n 16 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
+                python3 "$subfolder/$SIM_SCRIPT" --material "$MAT"
 
             echo "🛠️  Running update_trafo.py"
             srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
@@ -175,9 +175,9 @@ for MAT in "${MATERIALS[@]}"; do
             srun -n 1 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
                 python3 write_e33_to_mesh.py
 
-            echo "📊 Plotting results"
-            srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
-                python3 plot_pressure_experiment_results.py
+            # echo "📊 Plotting results"
+            # srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
+            #     python3 plot_pressure_experiment_results.py
 
             echo "✅ Finished simulation and postprocessing for: $subfolder"
             echo ""

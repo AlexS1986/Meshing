@@ -3,7 +3,7 @@
 #SBATCH -A p0023647
 #SBATCH -t 1440
 #SBATCH --mem-per-cpu=6000
-#SBATCH -n 32
+#SBATCH -n 16
 #SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/002-Special-Issue-2025-minimal/%x.err.%j
 #SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/002-Special-Issue-2025-minimal/%x.out.%j
 #SBATCH --mail-type=END
@@ -145,7 +145,7 @@ for MAT in "${MATERIALS[@]}"; do
             sleep 2s
 
             echo "🔬 Running $SIM_SCRIPT with params $MAT $DIR"
-            srun -n 32 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
+            srun -n 16 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
                 python3 "$subfolder/$SIM_SCRIPT" "$MAT" "$DIR"
 
             echo "📈 Plotting results"

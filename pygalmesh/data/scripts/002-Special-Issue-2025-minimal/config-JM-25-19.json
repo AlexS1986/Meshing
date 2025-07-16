@@ -31,8 +31,8 @@
     "desired_height_y": null,
     "center_x": null,
     "center_y": null,
-    "min_z": 72,
-    "max_z": 155
+    "min_z": 80,
+    "max_z": 150
   },
   "03_mesh_3D_array": {
     "specimen_name": "JM-25-19_segmented",
