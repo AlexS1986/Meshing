@@ -198,10 +198,11 @@ for MAT in "${MATERIALS[@]}"; do
             echo "⚠️  metadata.json not found in $PARENT_DIR"
         fi
 
-        if [ -f "$CONFIG_PATH" ]; then
-            cp -v "$CONFIG_PATH" "$FINAL_OUTPUT_DIR/"
+        CONFIG_ACTUAL_PATH="$HPC_SCRATCH/pygalmesh/data$CONFIG_PATH"
+        if [ -f "$CONFIG_ACTUAL_PATH" ]; then
+            cp -v "$CONFIG_ACTUAL_PATH" "$FINAL_OUTPUT_DIR/"
         else
-            echo "⚠️  config.json not found at $CONFIG_PATH"
+            echo "⚠️  config.json not found at $CONFIG_ACTUAL_PATH"
         fi
 
         echo "✅ Finished all results for Material=$MAT Direction=$DIR"
