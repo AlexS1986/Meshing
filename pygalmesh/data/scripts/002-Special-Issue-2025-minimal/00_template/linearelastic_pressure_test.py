@@ -59,14 +59,19 @@ material = material_set.lower()
 if material == "am":
     E_mod = 73000.0
     nu = 0.36
+    sigvm_threshhold = 140.0
 elif material == "std":
     E_mod = 70000.0  
     nu = 0.35
+    sigvm_threshhold = 140.0
 elif material == "conv":
     E_mod = 82000.0
     nu = 0.35
+    sigvm_threshhold = 110.0
 else:
     raise ValueError(f"Unknown material option '{material_set.lower()}'. Choose from 'am', 'std'")
+
+
 
 lam = dlfx.fem.Constant(domain, alex.linearelastic.get_lambda(E_mod, nu))
 mu = dlfx.fem.Constant(domain, alex.linearelastic.get_mu(E_mod, nu))  
