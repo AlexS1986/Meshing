@@ -1,67 +1,89 @@
-import alex.homogenization
-import alex.linearelastic
-import alex.phasefield
-import alex.util
 import dolfinx as dlfx
 from mpi4py import MPI
 import json
-
-import ufl
 import numpy as np
 import os
-import sys
+import ufl
 
 import alex.os
-import alex.boundaryconditions as bc
 import alex.postprocessing as pp
-import alex.solution as sol
-import alex.linearelastic as le
-
 import basix
 
 # Paths
 script_path = os.path.dirname(__file__)
 script_name_without_extension = os.path.splitext(os.path.basename(__file__))[0]
-logfile_path = alex.os.logfile_full_path(script_path, script_name_without_extension)
-outputfile_graph_path = alex.os.outputfile_graph_full_path(script_path, script_name_without_extension)
 outputfile_xdmf_path = alex.os.outputfile_xdmf_full_path(script_path, script_name_without_extension)
 
-# Timer
-timer = dlfx.common.Timer()
-timer.start()
-
-# MPI
+# MPI setup
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
-print('MPI-STATUS: Process:', rank, 'of', size, 'processes.')
-sys.stdout.flush()
+print(f"MPI-STATUS: Process {rank} of {size}")
 
-# Mesh
+# Read mesh
 with dlfx.io.XDMFFile(comm, os.path.join(script_path, 'dlfx_mesh.xdmf'), 'r') as mesh_inp:
-    domain = mesh_inp.read_mesh()
+    domain = mesh_inp.read_mesh(name="Grid")
 
+# Function spaces
 Se = basix.ufl.element("P", domain.basix_cell(), 1, shape=())
 S = dlfx.fem.FunctionSpace(domain, Se)
-e33 = dlfx.fem.Function(S)
 
-# Read e33_val from E33.json (fall back to -1.0 if unavailable)
-e33_json_path = os.path.join(script_path, 'E33.json')
-e33_val = -1.0
-try:
-    with open(e33_json_path, 'r') as f:
-        data = json.load(f)
-        e33_val = data.get("value", e33_val)
-        print(f"Loaded e33_val from E33.json: {e33_val}")
-except (FileNotFoundError, json.JSONDecodeError) as e:
-    print(f"Warning: Could not read E33.json ({e}), using default e33_val = {e33_val}")
+Ve = ufl.VectorElement("Lagrange", domain.ufl_cell(), 1)
+V = dlfx.fem.FunctionSpace(domain, Ve)
 
-# Assign the value to the function vector
-e33.x.array[:] = np.full_like(e33.x.array[:], e33_val)
+# Load JSON utility
+def load_json_data(filename):
+    try:
+        with open(os.path.join(script_path, filename), 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Warning: Could not load {filename}: {e}")
+        return {}
 
-# Write field to output file
+# Load homogenized moduli
+E_data = load_json_data("E_moduli.json")
+G_data = load_json_data("G_moduli.json")
+
+# Combine scalar values
+all_scalar_fields = {}
+for source in [E_data, G_data]:
+    for key, val in source.items():
+        if isinstance(val, (float, int)):
+            all_scalar_fields[key] = float(val)
+        elif isinstance(val, dict) and "value" in val:
+            all_scalar_fields[key] = float(val["value"])
+
+# Write scalar fields
+for name, value in all_scalar_fields.items():
+    print(f"Writing scalar field: {name} = {value}")
+    f = dlfx.fem.Function(S)
+    f.name = name
+    f.x.array[:] = np.full_like(f.x.array[:], value)
+    pp.write_field(domain, outputfile_path=outputfile_xdmf_path, field=f, t=0.0, comm=comm)
+
+# Combine vector fields for directions
+all_vector_fields = {}
+for prefix, source in [("E", E_data), ("G", G_data)]:
+    for suffix in ["max", "min"]:
+        key = f"{prefix}{suffix}"
+        val = source.get(key)
+        if isinstance(val, dict) and "direction" in val:
+            direction = np.array(val["direction"], dtype=float)
+            if direction.shape == (3,):
+                all_vector_fields[f"{key}_dir"] = direction
+
+# Write vector fields
+for name, vec in all_vector_fields.items():
+    print(f"Writing vector field: {name} = {vec}")
+    f = dlfx.fem.Function(V)
+    f.name = name
+    f.x.array[:] = np.tile(vec, f.x.array.shape[0] // 3)
+    pp.write_field(domain, outputfile_path=outputfile_xdmf_path, field=f, t=0.0, comm=comm)
+
+# Final mesh write
 pp.write_meshoutputfile(domain, outputfile_xdmf_path, comm)
-pp.write_field(domain, outputfile_path=outputfile_xdmf_path, field=e33, t=0.0, comm=comm)
+print(f"All moduli fields written to {outputfile_xdmf_path}")
+
 
 
 

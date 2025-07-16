@@ -121,7 +121,7 @@ if [ ! -d "$SOURCE_DIR" ] || [ ! -d "$TARGET_DIR" ]; then
     exit 1
 fi
 
-MATERIALS=("Conv" "AM")
+MATERIALS=("std" "Conv" "AM")
 DIRECTIONS=("x" "y")
 
 for MAT in "${MATERIALS[@]}"; do

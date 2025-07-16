@@ -54,13 +54,24 @@ t = dlfx.fem.Constant(domain, 0.00)
 column = dlfx.fem.Constant(domain, 0.0)
 Tend = 6.0 * dt.value
 
-# Material constants
-if args.material == "am":
-    lam = dlfx.fem.Constant(domain, 88550.0)
-    mu = dlfx.fem.Constant(domain, 13200.0)
-else:  # conv
-    lam = dlfx.fem.Constant(domain, 51100.0)
-    mu = dlfx.fem.Constant(domain, 26300.0)
+  
+material = args.material.lower()
+
+if material == "am":
+    E_mod = 73000.0
+    nu = 0.36
+elif material == "std":
+    E_mod = 70000.0  # <-- Replace with correct value if needed
+    nu = 0.35
+elif material == "conv":
+    E_mod = 82000.0
+    nu = 0.35
+else:
+    raise ValueError(f"Unknown material option '{args.material}'. Choose from 'am', 'std'")
+
+lam = dlfx.fem.Constant(domain, alex.linearelastic.get_lambda(E_mod, nu))
+mu = dlfx.fem.Constant(domain, alex.linearelastic.get_mu(E_mod, nu))    
+
 
 E_mod = alex.linearelastic.get_emod(lam.value, mu.value)
 

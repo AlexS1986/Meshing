@@ -118,7 +118,7 @@ done
 # Simulation & Postprocessing with Parameter Combinations
 # -------------------------------
 
-MATERIALS=("conv" "am")
+MATERIALS=("std" "conv" "am")
 DIRECTIONS=("x")
 
 if [ ! -d "$SOURCE_DIR" ] || [ ! -d "$TARGET_DIR" ]; then
