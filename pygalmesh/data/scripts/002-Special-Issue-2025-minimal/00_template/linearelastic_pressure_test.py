@@ -51,7 +51,7 @@ with dlfx.io.XDMFFile(comm, os.path.join(script_path, 'dlfx_mesh.xdmf'), 'r') as
 dt = dlfx.fem.Constant(domain, 0.02)
 dt_max = dlfx.fem.Constant(domain, dt.value)
 t = dlfx.fem.Constant(domain, 0.00)
-Tend = 50.0 * dt.value
+Tend = 2.0 * dt.value
 
 # ---------- Material Parameters ----------
 material = material_set.lower()
@@ -104,7 +104,8 @@ def get_residuum_and_gateaux(delta_t: dlfx.fem.Constant):
     return [Res, dResdw]
 
 x_min_all, x_max_all, y_min_all, y_max_all, z_min_all, z_max_all = bc.get_dimensions(domain, comm)
-pp.print_bounding_box(rank, x_min_all, x_max_all, y_min_all, y_max_all, z_min_all, z_max_all)
+if rank == 0:
+    pp.print_bounding_box(rank, x_min_all, x_max_all, y_min_all, y_max_all, z_min_all, z_max_all)
 atol = (x_max_all - x_min_all) * 0.05
 
 # ---------- Boundary Conditions ----------
@@ -144,7 +145,7 @@ else:
 ds_front_tagged = ufl.Measure('ds', domain=domain, subdomain_data=top_surface_tags)
 
 success_timestep_counter = dlfx.fem.Constant(domain, 0.0)
-postprocessing_interval = dlfx.fem.Constant(domain, 10.0)
+postprocessing_interval = dlfx.fem.Constant(domain, 1.0)
 
 def after_timestep_success(t, dt, iters):
     u.name = "u"

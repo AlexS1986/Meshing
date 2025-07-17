@@ -146,14 +146,35 @@ def get_bcs(t):
     return [bc_linear_displacement]
 
 simulation_result = np.array([0.0])
-vol = (x_max_all - x_min_all) * (y_max_all - y_min_all) * (z_max_all - z_min_all)
+#vol = (x_max_all - x_min_all) * (y_max_all - y_min_all) * (z_max_all - z_min_all)
 Chom = np.zeros((6, 6))
+
+
+## create integration measure for homogenization
+tag_value_hom_cells = 1
+marker1 = bc.dont_get_boundary_of_box_as_function(domain,comm,atol=atol)
+marked_cells = dlfx.mesh.locate_entities(domain, dim=3, marker=marker1)
+marked_values = np.full(len(marked_cells), tag_value_hom_cells, dtype=np.int32)
+cell_tags = dlfx.mesh.meshtags(domain, 3, marked_cells, marked_values)
+
+dx_hom_cells = ufl.Measure("dx", domain=domain, subdomain_data=cell_tags)
+x_min_all_hom, x_max_all_hom, y_min_all_hom, y_max_all_hom, z_min_all_hom, z_max_all_hom = bc.get_subdomain_bounding_box(domain, marked_cells, comm)
+vol = (x_max_all_hom-x_min_all_hom) * (y_max_all_hom - y_min_all_hom) * (z_max_all_hom - z_min_all_hom)
+vol_material = alex.homogenization.get_filled_vol(dx_hom_cells(tag_value_hom_cells),comm)
+vol_overall = (x_max_all-x_min_all) * (y_max_all - y_min_all) * (z_max_all - z_min_all)
+
+if rank == 0:
+    print("Volume of Cuboid for Homogenization: " + str(vol))
+    print("Volume of Cuboid total: " + str(vol_overall))
+    print("Volume of Real material in Homogenization Box: " + str(vol_material))
+    
+
 
 def after_timestep_success(t, dt, iters):
     u.name = "u"
     pp.write_vector_field(domain, outputfile_xdmf_path, u, t, comm)
 
-    sigma_for_unit_strain = alex.homogenization.compute_averaged_sigma(u, lam, mu, vol, comm=comm)
+    sigma_for_unit_strain = alex.homogenization.compute_averaged_sigma(u,lam,mu, vol,comm=comm,dx=dx_hom_cells(tag_value_hom_cells))
 
     comm.barrier()
     if rank == 0:

@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J pressure
 #SBATCH -A p0023647
-#SBATCH -t 1440
+#SBATCH -t 120
 #SBATCH --mem-per-cpu=6000
 #SBATCH -n 16
 #SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/002-Special-Issue-2025-minimal/%x.err.%j
@@ -149,9 +149,9 @@ for MAT in "${MATERIALS[@]}"; do
             srun -n 16 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
                 python3 "$subfolder/$SIM_SCRIPT" "$MAT" "$DIR"
 
-            echo "📈 Plotting results"
-            srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
-                python3 plot_pressure_experiment_results.py
+            # echo "📈 Plotting results"
+            # srun -n 1 --chdir="$subfolder" apptainer exec --bind $BIND_PATHS $CONTAINER_PATH \
+            #     python3 plot_pressure_experiment_results.py
         done
 
         # -------------------------------
