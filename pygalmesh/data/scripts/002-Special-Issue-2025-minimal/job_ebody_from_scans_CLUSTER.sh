@@ -2,7 +2,7 @@
 #SBATCH -J ebody
 #SBATCH -A p0023647
 #SBATCH -t 1440                   # max time in minutes
-#SBATCH --mem-per-cpu=6000
+#SBATCH --mem-per-cpu=9000
 #SBATCH -n 16   
 #SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/002-Special-Issue-2025-minimal/%x.err.%j
 #SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/002-Special-Issue-2025-minimal/%x.out.%j

@@ -44,7 +44,7 @@
     "meshing_method": "pygalmesh",
     "mesh_output_path": "/data/scripts/002-Special-Issue-2025-minimal/JM-25-33_segmented/mesh.xdmf",
     "pygalmesh_parameters": {
-      "max_element_size_factor": 5.0,
+      "max_element_size_factor": 2.0,
       "max_facet_distance_factor": 0.3
     },
     "nanomesh_parameters": {

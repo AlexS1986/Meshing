@@ -54,7 +54,6 @@ t = dlfx.fem.Constant(domain, 0.00)
 column = dlfx.fem.Constant(domain, 0.0)
 Tend = 6.0 * dt.value
 
-  
 material = args.material.lower()
 
 if material == "am":
@@ -71,7 +70,6 @@ else:
 
 lam = dlfx.fem.Constant(domain, alex.linearelastic.get_lambda(E_mod, nu))
 mu = dlfx.fem.Constant(domain, alex.linearelastic.get_mu(E_mod, nu))    
-
 
 E_mod = alex.linearelastic.get_emod(lam.value, mu.value)
 
@@ -108,10 +106,14 @@ def get_residuum_and_gateaux(delta_t: dlfx.fem.Constant):
     return [Res, dResdw]
 
 x_min_all, x_max_all, y_min_all, y_max_all, z_min_all, z_max_all = bc.get_dimensions(domain, comm)
-atol = (x_max_all - x_min_all) * 0.05
+
+atol_scal = 0.04
+atol_x = (x_max_all - x_min_all) * atol_scal
+atol_y = (y_max_all - y_min_all) * atol_scal
+atol_z = (z_max_all - z_min_all) * atol_scal
 
 u_D = dlfx.fem.Function(V)
-boundary = bc.get_boundary_of_box_as_function(domain, comm, atol=atol)
+boundary = bc.get_boundary_of_box_as_function(domain, comm, atol_x = atol_x, atol_y=atol_y, atol_z=atol_z)
 facets_at_boundary = dlfx.mesh.locate_entities_boundary(domain, fdim, boundary)
 dofs_at_boundary = dlfx.fem.locate_dofs_topological(V, fdim, facets_at_boundary)
 
@@ -146,35 +148,40 @@ def get_bcs(t):
     return [bc_linear_displacement]
 
 simulation_result = np.array([0.0])
-#vol = (x_max_all - x_min_all) * (y_max_all - y_min_all) * (z_max_all - z_min_all)
 Chom = np.zeros((6, 6))
 
-
-## create integration measure for homogenization
+# Integration measure for homogenization
 tag_value_hom_cells = 1
-marker1 = bc.dont_get_boundary_of_box_as_function(domain,comm,atol=atol)
+marker1 = bc.dont_get_boundary_of_box_as_function(domain, comm, atol_x = atol_x, atol_y=atol_y, atol_z=atol_z)
 marked_cells = dlfx.mesh.locate_entities(domain, dim=3, marker=marker1)
 marked_values = np.full(len(marked_cells), tag_value_hom_cells, dtype=np.int32)
 cell_tags = dlfx.mesh.meshtags(domain, 3, marked_cells, marked_values)
 
 dx_hom_cells = ufl.Measure("dx", domain=domain, subdomain_data=cell_tags)
-x_min_all_hom, x_max_all_hom, y_min_all_hom, y_max_all_hom, z_min_all_hom, z_max_all_hom = bc.get_subdomain_bounding_box(domain, marked_cells, comm)
-vol = (x_max_all_hom-x_min_all_hom) * (y_max_all_hom - y_min_all_hom) * (z_max_all_hom - z_min_all_hom)
+x_min_hom_all, x_max_hom_all, y_min_hom_all, y_max_hom_all, z_min_hom_all, z_max_hom_all = bc.get_tagged_subdomain_bounds(domain, cell_tags, tag_value_hom_cells, comm)
+vol = (x_max_hom_all-x_min_hom_all) * (y_max_hom_all - y_min_hom_all) * (z_max_hom_all - z_min_hom_all)
 vol_material = alex.homogenization.get_filled_vol(dx_hom_cells(tag_value_hom_cells),comm)
 vol_overall = (x_max_all-x_min_all) * (y_max_all - y_min_all) * (z_max_all - z_min_all)
 
 if rank == 0:
+    print("=== Homogenization Box Boundaries ===")
+    print(f"x: [{x_min_hom_all}, {x_max_hom_all}]")
+    print(f"y: [{y_min_hom_all}, {y_max_hom_all}]")
+    print(f"z: [{z_min_hom_all}, {z_max_hom_all}]")
     print("Volume of Cuboid for Homogenization: " + str(vol))
-    print("Volume of Cuboid total: " + str(vol_overall))
-    print("Volume of Real material in Homogenization Box: " + str(vol_material))
+    print("Volume of Real Material in Homogenization Box: " + str(vol_material))
+
+    print("\n=== Total Domain Boundaries ===")
+    print(f"x: [{x_min_all}, {x_max_all}]")
+    print(f"y: [{y_min_all}, {y_max_all}]")
+    print(f"z: [{z_min_all}, {z_max_all}]")
+    print("Volume of Cuboid Total: " + str(vol_overall))
     
-
-
 def after_timestep_success(t, dt, iters):
     u.name = "u"
     pp.write_vector_field(domain, outputfile_xdmf_path, u, t, comm)
 
-    sigma_for_unit_strain = alex.homogenization.compute_averaged_sigma(u,lam,mu, vol,comm=comm,dx=dx_hom_cells(tag_value_hom_cells))
+    sigma_for_unit_strain = alex.homogenization.compute_averaged_sigma(u, lam, mu, vol, comm=comm, dx=dx_hom_cells(tag_value_hom_cells))
 
     comm.barrier()
     if rank == 0:
@@ -198,10 +205,23 @@ def after_last_timestep():
         print(np.array_str(Chom, precision=2))
         print(alex.homogenization.print_results(Chom))
 
+        # Save Chom
         chom_path = os.path.join(script_path, "Chom.json")
         with open(chom_path, "w") as f:
             json.dump(Chom.tolist(), f, indent=4)
         print(f"Saved Chom matrix to: {chom_path}")
+
+        # Save volume information
+        volumes_data = {
+            "vol": vol,
+            "vol_material": vol_material,
+            "vol_overall": vol_overall,
+            "vol_material_over_vol": vol_material / vol if vol > 0 else None
+        }
+        vol_path = os.path.join(script_path, "vol.json")
+        with open(vol_path, "w") as f:
+            json.dump(volumes_data, f, indent=4)
+        print(f"Saved volume info to: {vol_path}")
 
         runtime = timer.elapsed()
         sol.print_runtime(runtime)
@@ -224,4 +244,5 @@ sol.solve_with_newton_adaptive_time_stepping(
     t=t,
     dt_never_scale_up=True
 )
+
 

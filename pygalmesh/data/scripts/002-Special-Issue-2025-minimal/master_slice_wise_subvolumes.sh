@@ -1,13 +1,19 @@
 #!/bin/bash
 
 # -------------------------------
-# User-defined variable
+# User-defined variables
 # -------------------------------
-specimen_name="JM-25-24"  # <--- Change this to your desired specimen name
+
+specimen_name="JM-25-24"         # <-- Set your specimen name here
+
+# Extension settings for pressure experiment
+EXTEND_DIRECTION="x"             # <-- Choose: x or y
+EXTEND_THICKNESS=25              # <-- Thickness in voxel units
 
 # -------------------------------
 # Resolve script directory
 # -------------------------------
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -------------------------------
@@ -23,8 +29,8 @@ VOLUME_FILENAME="volume.npy"
 # -------------------------------
 
 SCRIPTS=(
-    "00_dicom_2_npy.py"
-    "01_segment_slice_wise.py"
+    # "00_dicom_2_npy.py"
+    # "01_segment_slice_wise.py"
     "02_build3D_segmented_array.py"
     "02a_rotate_pic_to_align_with_axis.py"
     "02b_build_subvolume_arrays.py"
@@ -42,6 +48,25 @@ for SCRIPT in "${SCRIPTS[@]}"; do
         exit 1
     fi
     echo "✅ Finished $SCRIPT"
+    echo "----------------------------"
+done
+
+# -------------------------------
+# Extend 3D volume arrays (after 02b)
+# -------------------------------
+
+EXTEND_SCRIPT="$SCRIPT_DIR/02c_extend_image_pressure_experiment.py"
+echo "🧱 Starting image extension using $EXTEND_SCRIPT"
+echo "📐 Direction: $EXTEND_DIRECTION | Thickness: $EXTEND_THICKNESS"
+
+find "$BASE_SUBVOLUME_FOLDER" -type f -name "$VOLUME_FILENAME" | while read -r NPY_FILE; do
+    echo "➕ Extending $NPY_FILE"
+    python3 "$EXTEND_SCRIPT" "$NPY_FILE" "$EXTEND_DIRECTION" --thickness "$EXTEND_THICKNESS"
+    if [ $? -ne 0 ]; then
+        echo "❌ Error while extending $NPY_FILE. Exiting..."
+        exit 1
+    fi
+    echo "✅ Extended: $NPY_FILE"
     echo "----------------------------"
 done
 
@@ -89,7 +114,8 @@ find "$BASE_SUBVOLUME_FOLDER" -type f -name "$VOLUME_FILENAME" | while read -r N
     echo "----------------------------"
 done
 
-echo "🎉 All scripts, meshing, and mesh transformations completed successfully."
+echo "🎉 All scripts, image extensions, meshing, and mesh transformations completed successfully."
+
 
 
 
