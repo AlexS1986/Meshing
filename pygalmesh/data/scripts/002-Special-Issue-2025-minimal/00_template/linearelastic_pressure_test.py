@@ -106,7 +106,7 @@ def get_residuum_and_gateaux(delta_t: dlfx.fem.Constant):
 x_min_all, x_max_all, y_min_all, y_max_all, z_min_all, z_max_all = bc.get_dimensions(domain, comm)
 if rank == 0:
     pp.print_bounding_box(rank, x_min_all, x_max_all, y_min_all, y_max_all, z_min_all, z_max_all)
-atol = (x_max_all - x_min_all) * 0.1
+atol = (x_max_all - x_min_all) * 0.01
 
 # ---------- Boundary Conditions ----------
 def get_bcs(t):
@@ -158,10 +158,10 @@ def after_timestep_success(t, dt, iters):
     simulation_result[0] = vol_above / vol * 100.0
 
     if rank == 0:
-        if loading_direction.lower() == "y":
-            pp.write_to_graphs_output_file(outputfile_graph_path, t, simulation_result[0], Ry_front)
-        else:
-            pp.write_to_graphs_output_file(outputfile_graph_path, t, simulation_result[0], Rx_front)
+        # if loading_direction.lower() == "y":
+        #     pp.write_to_graphs_output_file(outputfile_graph_path, t, simulation_result[0], Ry_front)
+        # else:
+        pp.write_to_graphs_output_file(outputfile_graph_path, t, simulation_result[0], Rx_front, Ry_front)
 
 
     success_timestep_counter.value += 1.0
@@ -184,7 +184,7 @@ def after_last_timestep():
     if rank == 0:
         pp.print_graphs_plot(outputfile_graph_path, script_path, legend_labels=[
             f"volume percent above sigvm = {sigvm_threshhold}",
-            "R_x [ N ]"
+            "R_x [ N ]", "R_y [ N ]"
         ])
         runtime = timer.elapsed()
         sol.print_runtime(runtime)

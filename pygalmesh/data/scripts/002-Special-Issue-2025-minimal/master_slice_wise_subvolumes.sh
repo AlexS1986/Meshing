@@ -4,11 +4,11 @@
 # User-defined variables
 # -------------------------------
 
-specimen_name="JM-25-24"         # <-- Set your specimen name here
+specimen_name="JM-25-33"         # <-- Set your specimen name here
 
 # Extension settings for pressure experiment
 EXTEND_DIRECTION="x"             # <-- Choose: x or y
-EXTEND_THICKNESS=25              # <-- Thickness in voxel units
+EXTEND_THICKNESS=10              # <-- Thickness in voxel units
 
 # -------------------------------
 # Resolve script directory
@@ -29,8 +29,8 @@ VOLUME_FILENAME="volume.npy"
 # -------------------------------
 
 SCRIPTS=(
-    # "00_dicom_2_npy.py"
-    # "01_segment_slice_wise.py"
+    "00_dicom_2_npy.py"
+    "01_segment_slice_wise.py"
     "02_build3D_segmented_array.py"
     "02a_rotate_pic_to_align_with_axis.py"
     "02b_build_subvolume_arrays.py"

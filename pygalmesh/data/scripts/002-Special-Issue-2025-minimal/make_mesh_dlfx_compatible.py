@@ -53,8 +53,8 @@ for input_file, output_file in mesh_files:
         # Adjust point orientation
         points_tmp = meshio_data.points[:, :3]
         points = copy.deepcopy(points_tmp)
-        points[:, 0] = points_tmp[:, 1]
-        points[:, 1] = points_tmp[:, 0]
+        points[:, 0] = points_tmp[:, 0]
+        points[:, 1] = points_tmp[:, 1]
 
         # Filter active tetrahedral cells
         tetra_cells = meshio_data.cells_dict.get("tetra")
