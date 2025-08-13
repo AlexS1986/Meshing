@@ -21,9 +21,9 @@ working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/005-Special-Issue-2025-fr
 
 CONTAINER_PATH="$HOME/meshing/Meshing/pygalmesh/pygalmesh.sif"
 BIND_PATHS="$HOME/meshing/Meshing/pygalmesh/data:/home,$HPC_SCRATCH/pygalmesh/data:/data"
-CONFIG_PATH="/data/scripts/002-Special-Issue-2025-minimal/config-${specimen_name}.json"
+CONFIG_PATH="/data/scripts/005-Special-Issue-2025-fracture/config-${specimen_name}.json"
 
-BASE_SUBVOLUME_FOLDER="$HPC_SCRATCH/pygalmesh/data/scripts/002-Special-Issue-2025-minimal/${specimen_name}_segmented/${specimen_name}_segmented_3D"
+BASE_SUBVOLUME_FOLDER="$HPC_SCRATCH/pygalmesh/data/scripts/005-Special-Issue-2025-fracture/${specimen_name}_segmented/${specimen_name}_segmented_3D"
 VOLUME_FILENAME="volume.npy"
 
 SIM_CONTAINER="$HOME/dolfinx_alex/alex-dolfinx.sif"
