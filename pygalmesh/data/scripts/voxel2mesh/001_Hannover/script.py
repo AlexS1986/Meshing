@@ -7,8 +7,8 @@ import nanomesh
 import meshio
 
 # File path
-folder_path = '/data/resources/2D_structure_Hannover/mbb/'
-voxel_number = 128
+#folder_path = '/data/resources/2D_structure_Hannover/mbb/'
+folder_path = '/data/resources/2D_structure_Hannover/biegebalken_5F/'
 script_path = os.path.dirname(__file__)
 
 # Load node data
@@ -185,7 +185,7 @@ plt.colorbar(label='Density')
 plt.title('Density Distribution')
 
 # Save the plot to a PNG file
-output_image_path = script_path + 'segmented_density_distribution.png'
+output_image_path = os.path.join(script_path, 'segmented_density_distribution.png')
 plt.savefig(output_image_path, dpi=300)
 
 
@@ -201,7 +201,7 @@ plane_gauss = plane.gaussian(sigma=1)
 
 mesher = nanomesh.Mesher2D(plane_gauss)
 # thresh = plane_gauss.threshold('isodata')
-thresh = 0.8
+thresh = 0.5
 segmented = plane_gauss.digitize(bins=[thresh])
 mesher.generate_contour(max_edge_dist=5,level=thresh)
 mesh = mesher.triangulate(opts='q30a0.5')

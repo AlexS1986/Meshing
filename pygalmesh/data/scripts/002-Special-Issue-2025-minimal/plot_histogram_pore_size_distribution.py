@@ -89,7 +89,8 @@ if __name__ == "__main__":
     specimen = "JM-25-19"
     filename = "Pore_Data.txt"
     file_path = os.path.join("/data", "resources", "special_issue_hannover", "raw_dicom", specimen, filename)
-    output_file = os.path.join(".", f"{specimen}_pore_histogram.png")
+    script_path = os.path.dirname(__file__)
+    output_file = os.path.join(script_path, f"{specimen}_pore_histogram.png")
 
     plot_pore_histogram(
         file_path=file_path,
