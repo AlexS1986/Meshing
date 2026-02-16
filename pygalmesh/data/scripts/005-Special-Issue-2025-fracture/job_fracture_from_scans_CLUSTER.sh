@@ -152,7 +152,7 @@ for MAT in "${MATERIALS[@]}"; do
             echo "🔬 Running $SIM_SCRIPT with params $MAT $DIR"
             srun -n 32 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
                 python3 "$subfolder/$SIM_SCRIPT" \
-                    --mesh_file "dlfx_mesh.xdmf" \
+                    --mesh_file "dlfx_mesh" \
                     --lam_param 1.0 \
                     --mue_param 1.0 \
                     --Gc_param 1.0 \

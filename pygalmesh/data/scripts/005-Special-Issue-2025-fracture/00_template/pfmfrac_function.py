@@ -50,8 +50,8 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param,e
     #domain = dlfx.mesh.create_unit_square(comm, N, N, cell_type=dlfx.mesh.CellType.quadrilateral)
     # domain = dlfx.mesh.create_unit_cube(comm,N,N,N,cell_type=dlfx.mesh.CellType.hexahedron)
 
-    with dlfx.io.XDMFFile(comm, os.path.join(alex.os.resources_directory,"finer",mesh_file+".xdmf"), 'r') as mesh_inp: 
-        domain = mesh_inp.read_mesh(name="Grid")
+    with dlfx.io.XDMFFile(comm, os.path.join(script_path,mesh_file+".xdmf"), 'r') as mesh_inp: 
+        domain = mesh_inp.read_mesh()
 
     # dt = 0.0001
     # Tend = 10.0 * dt
@@ -167,7 +167,7 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param,e
     
     xtip = np.array([0.0,0.0,0.0],dtype=dlfx.default_scalar_type)
     xK1 = dlfx.fem.Constant(domain, xtip)
-    v_crack = 2.0*(x_max_all-crack_tip_start_location_x)/Tend
+    v_crack = 2.0*(x_max_all-x_min_all)/Tend
     vcrack_const = dlfx.fem.Constant(domain, np.array([v_crack,0.0,0.0],dtype=dlfx.default_scalar_type))
     crack_start = dlfx.fem.Constant(domain, np.array([crack_tip_start_location_x,crack_tip_start_location_y,0.0],dtype=dlfx.default_scalar_type))
     
@@ -183,7 +183,7 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param,e
         
         v_crack = 2.0*(x_max_all-crack_tip_start_location_x)/Tend
         # xtip = np.array([crack_tip_start_location_x + v_crack * t, crack_tip_start_location_y])
-        xtip[0] = crack_tip_start_location_x + v_crack * t
+        xtip[0] = x_min_all + v_crack * t
         xtip[1] = crack_tip_start_location_y
         # xtip = np.array([ crack_tip_start_location_x + v_crack * t, crack_tip_start_location_y],dtype=dlfx.default_scalar_type)
         xK1 = dlfx.fem.Constant(domain, xtip)
