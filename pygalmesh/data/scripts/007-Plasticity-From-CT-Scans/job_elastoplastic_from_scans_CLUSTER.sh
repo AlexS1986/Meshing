@@ -15,7 +15,7 @@ set -e
 # Setup
 # -------------------------------
 
-specimen_name="JM-25-24"
+specimen_name="JM-25-19"
 output_directory_variable="pressure_experiment"
 working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/007-Plasticity-From-CT-Scans"
 
@@ -32,7 +32,7 @@ SIM_BIND="$HOME/dolfinx_alex/shared:/home"
 SOURCE_DIR="$working_directory/00_template"
 TARGET_DIR="$BASE_SUBVOLUME_FOLDER"
 MESH_INPUT_DIR="$BASE_SUBVOLUME_FOLDER"
-SIM_SCRIPT="script.py"
+SIM_SCRIPT="elastoplastic.py"
 
 EXTEND_SCRIPT="$working_directory/02c_extend_image_pressure_experiment.py"
 EXTEND_THICKNESS=10  # Adjust if needed
@@ -151,13 +151,7 @@ for MAT in "${MATERIALS[@]}"; do
 
             echo "🔬 Running $SIM_SCRIPT with params $MAT $DIR"
             srun -n 32 --chdir="$subfolder" apptainer exec --bind $SIM_BIND $SIM_CONTAINER \
-                python3 "$subfolder/$SIM_SCRIPT" \
-                    --mesh_file "dlfx_mesh" \
-                    --lam_param 1.0 \
-                    --mue_param 1.0 \
-                    --Gc_param 1.0 \
-                    --eps_factor_param 10.0 \
-                    --element_order 1
+                python3 "$subfolder/$SIM_SCRIPT" "$MAT" "$DIR"
         done
 
         FINAL_OUTPUT_DIR="$working_directory/00_results/${specimen_name}/${output_directory_variable}/${specimen_name}-${MAT}-${DIR}"
