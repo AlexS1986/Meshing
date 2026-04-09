@@ -1,0 +1,198 @@
+#!MC 700
+$!VarSet |LFBD| = '/home/mueller/tecplot'
+$!VarSet |LFDSFN1| = '/u/mueller/for/trafo/emodul.plt'
+$!SETSTYLEBASE FACTORY
+$!PAPER 
+  BACKGROUNDCOLOR = WHITE
+  ISTRANSPARENT = YES
+  ORIENTPORTRAIT = YES
+  SHOWPAPER = YES
+  PAPERSIZE = A4
+  PAPERSIZEINFO
+    {
+    A4
+      {
+      WIDTH = 8.2677
+      HEIGHT = 11.693
+      LEFTHARDCLIPOFFSET = 0.125
+      RIGHTHARDCLIPOFFSET = 0.125
+      TOPHARDCLIPOFFSET = 0.125
+      BOTTOMHARDCLIPOFFSET = 0.125
+      }
+    }
+  REGIONINWORKAREA
+    {
+    X1 = -0.05
+    Y1 = -0.05
+    X2 = 8.318
+    Y2 = 11.74
+    }
+$!COLORSPECTRUM 
+  CONTOURCOLORMAP = SMRAINBOW
+  SURFACERGBMIN
+    {
+    R = 0
+    G = 0
+    B = 0
+    }
+  SURFACERGBMAX
+    {
+    R = 255
+    G = 255
+    B = 255
+    }
+$!COLORMAPCONTROL RESETTOFACTORY
+### Frame Number 1 ###
+$!READDATASET  '|LFDSFN1|' 
+  INCLUDETEXT = NO
+  INCLUDEGEOM = NO
+$!FRAMELAYOUT 
+  SHOWBORDER = NO
+  ISTRANSPARENT = YES
+  HEADERCOLOR = RED
+  XYPOS
+    {
+    X = 0.125
+    Y = 2.125
+    }
+  WIDTH = 8.0177
+  HEIGHT = 7.1269
+$!FRAMEMODE  = THREED
+$!ACTIVEFIELDZONES  =  [1]
+$!FIELD  [1]
+  MESH
+    {
+    COLOR = BLACK
+    }
+  CONTOUR
+    {
+    COLOR = RED
+    }
+  VECTOR
+    {
+    COLOR = RED
+    }
+  SCATTER
+    {
+    COLOR = RED
+    }
+  SHADE
+    {
+    COLOR = RED
+    }
+  BOUNDARY
+    {
+    COLOR = RED
+    }
+$!THREEDAXIS 
+  XVAR = 1
+  YVAR = 2
+  ZVAR = 3
+$!VIEW FIT
+$!THREEDAXIS 
+  GRIDAREA
+    {
+    DRAWBORDER = YES
+    FILLCOLOR = YELLOW
+    }
+  AXISMODE = XYZDEPENDENT
+  XYDEPXTOYRATIO = 1
+  DEPXTOYRATIO = 1
+  DEPXTOZRATIO = 1
+  YEDGE = 3
+  ZEDGE = 3
+  XDETAIL
+    {
+    SHOWLABELS = NO
+    RANGEMIN = -219911.266363
+    RANGEMAX = 219951.249866
+    GRSPACING = 50000
+    TITLE
+      {
+      TEXTSHAPE
+        {
+        HEIGHT = 6
+        }
+      }
+    }
+  YDETAIL
+    {
+    SHOWLABELS = NO
+    RANGEMIN = -219931.908738
+    RANGEMAX = 219971.895994
+    GRSPACING = 50000
+    TITLE
+      {
+      TEXTSHAPE
+        {
+        HEIGHT = 6
+        }
+      }
+    }
+  ZDETAIL
+    {
+    SHOWLABELS = NO
+    RANGEMIN = -219931.908738
+    RANGEMAX = 219971.895994
+    GRSPACING = 50000
+    TICKLABEL
+      {
+      TEXTSHAPE
+        {
+        HEIGHT = 6
+        }
+      }
+    TITLE
+      {
+      TEXTSHAPE
+        {
+        HEIGHT = 6
+        }
+      }
+    }
+  FRAMEAXIS
+    {
+    SHOW = NO
+    }
+$!GLOBALTHREED 
+  AXISSCALEFACT
+    {
+    X = 1
+    Y = 1
+    Z = 1
+    }
+  ROTATEORIGIN
+    {
+    X = -219910.266394
+    Y = -219931.589637
+    Z = -219894.297492
+    }
+  THETAANGLE = 215
+  EYEDISTANCE = 0.00127307
+  TRANSFORMMIN
+    {
+    X = -489718.399301
+    Y = -347698.791322
+    }
+  TRANSFORMMAX
+    {
+    X = 366811.347258
+    Y = 413666.918389
+    }
+$!FIELDLAYERS 
+  SHOWMESH = NO
+  SHOWSHADE = YES
+  SHOWBOUNDARY = NO
+$!ATTACHGEOM 
+  XYZPOS
+    {
+    X = -12.280276196
+    Y = -4.43783871617
+    }
+  RAWDATA
+1
+1
+0 0 
+$!REMOVEVAR |LFBD|
+$!REMOVEVAR |LFDSFN1|
+$!SETSTYLEBASE CONFIG

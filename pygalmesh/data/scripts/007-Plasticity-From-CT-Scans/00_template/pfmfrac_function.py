@@ -59,7 +59,7 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param,e
     dt = dlfx.fem.Constant(domain,0.0001)
     # t = dlfx.fem.Constant(domain,0.0)
     t_global = dlfx.fem.Constant(domain,0.0)
-    Tend = 1000.0 * dt.value
+    Tend = 10.0 * dt.value
 
 
     # function space using mesh and degree
