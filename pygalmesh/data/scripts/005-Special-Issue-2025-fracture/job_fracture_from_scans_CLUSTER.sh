@@ -4,6 +4,7 @@
 #SBATCH -t 10080
 #SBATCH --mem-per-cpu=9000
 #SBATCH -n 32
+#SBATCH -N 1
 #SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/005-Special-Issue-2025-fracture/%x.err.%j
 #SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/005-Special-Issue-2025-fracture/%x.out.%j
 #SBATCH --mail-type=END
@@ -15,7 +16,7 @@ set -e
 # Setup
 # -------------------------------
 
-specimen_name="JM-25-24"
+specimen_name="JM-25-19"
 output_directory_variable="pressure_experiment"
 working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/005-Special-Issue-2025-fracture"
 

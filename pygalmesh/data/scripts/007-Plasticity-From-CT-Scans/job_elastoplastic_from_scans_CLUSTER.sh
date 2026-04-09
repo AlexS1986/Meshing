@@ -1,9 +1,10 @@
 #!/bin/bash
-#SBATCH -J fracture
+#SBATCH -J elastoplastic
 #SBATCH -A p0023647
 #SBATCH -t 10080
 #SBATCH --mem-per-cpu=9000
 #SBATCH -n 32
+#SBATCH -N 1
 #SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/007-Plasticity-From-CT-Scans/%x.err.%j
 #SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/007-Plasticity-From-CT-Scans/%x.out.%j
 #SBATCH --mail-type=END
