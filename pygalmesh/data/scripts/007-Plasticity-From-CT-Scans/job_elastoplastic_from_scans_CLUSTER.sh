@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J elastoplastic
 #SBATCH -A p0023647
-#SBATCH -t 10080
+#SBATCH -t 1440
 #SBATCH --mem-per-cpu=9000
 #SBATCH -n 32
 #SBATCH -N 1

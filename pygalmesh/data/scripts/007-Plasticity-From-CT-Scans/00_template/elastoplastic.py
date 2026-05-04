@@ -15,6 +15,10 @@ import alex.solution as sol
 import alex.linearelastic as le
 import basix
 
+# 🔴 ---------- Stop Simulation Exception ----------
+class StopSimulation(Exception):
+    pass
+
 # ---------- Arguments ----------
 material_set = sys.argv[1] if len(sys.argv) > 1 else "default"
 loading_direction = sys.argv[2] if len(sys.argv) > 2 else "x"
@@ -39,15 +43,21 @@ rank = comm.Get_rank()
 #     cell_type=dlfx.mesh.CellType.tetrahedron
 # )
 
-# ---------- Load Mesh ----------
-with dlfx.io.XDMFFile(comm, os.path.join(script_path, 'dlfx_mesh.xdmf'), 'r') as mesh_inp:
-    domain = mesh_inp.read_mesh()
+# # ---------- Load Mesh ----------
+# with dlfx.io.XDMFFile(comm, os.path.join(script_path, 'dlfx_mesh.xdmf'), 'r') as mesh_inp:
+#     domain = mesh_inp.read_mesh()
+    
+with dlfx.io.XDMFFile(comm, os.path.join(script_path,"dlfx_mesh.xdmf"), 'r') as mesh_inp: 
+        domain = mesh_inp.read_mesh()
 
 # ---------- Time ----------
-dt = dlfx.fem.Constant(domain, 0.02)
-dt_max = dlfx.fem.Constant(domain, dt.value)
+dt_global = dlfx.fem.Constant(domain, 0.02)
+dt_max = dlfx.fem.Constant(domain, dt_global.value)
 t = dlfx.fem.Constant(domain, 0.0)
-Tend = 50.0 * dt.value
+Tend = 100.0 * dt_global.value
+
+# 🔴 minimum timestep
+dt_min = 1e-11
 
 # ---------- Material ----------
 material = material_set.lower()
@@ -70,7 +80,7 @@ elif material == "conv":
 elif material == "default":
     E_mod, nu = 2.5, 0.25
     sig_y_value = 1.0
-    hard_value = 0.22
+    hard_value = 0.01
 
 else:
     print(f"[WARNING] Unknown material '{material_set}', using DEFAULT test values.")
@@ -85,8 +95,9 @@ mu  = dlfx.fem.Constant(domain, le.get_mu(E_mod, nu))
 sig_y = dlfx.fem.Constant(domain, sig_y_value)
 hard  = dlfx.fem.Constant(domain, hard_value)
 
+deg_quad = 1
 # ---------- Function Space ----------
-Ve = ufl.VectorElement("Lagrange", domain.ufl_cell(), 1)
+Ve = ufl.VectorElement("Lagrange", domain.ufl_cell(), deg_quad)
 V = dlfx.fem.FunctionSpace(domain, Ve)
 
 u = dlfx.fem.Function(V)
@@ -97,7 +108,7 @@ du = ufl.TestFunction(V)
 ddu = ufl.TrialFunction(V)
 
 # ---------- Internal Variables ----------
-deg_quad = 1
+
 
 (
     alpha_n, alpha_tmp,
@@ -133,7 +144,8 @@ plasticityProblem = alex.plasticity.Plasticity_3D(
 
 # ---------- Boundary tagging for reaction force ----------
 x_min, x_max, y_min, y_max, z_min, z_max = bc.get_dimensions(domain, comm)
-atol = (x_max - x_min) * 0.025
+#atol = (x_max - x_min) * 0.025
+atol = (x_max - x_min) * 0.08
 
 n = ufl.FacetNormal(domain)
 front_surface_tag = 9
@@ -173,6 +185,12 @@ def before_first_time_step():
     pp.write_meshoutputfile(domain, outputfile_xdmf_path, comm)
 
 def before_each_time_step(t, dt):
+    # 🔴 stop if timestep too small
+    if dt_global.value < dt_min:
+        if rank == 0:
+            print(f"[STOP] dt too small: {dt_global.value:.3e} < {dt_min}")
+        raise StopSimulation
+
     if rank == 0:
         sol.print_time_and_dt(t, dt)
 
@@ -217,7 +235,6 @@ def get_bcs(t):
 # ---------- Postprocessing ----------
 def after_timestep_success(t, dt, iters):
 
-    # 🔴 Plastic update
     alex.plasticity.update_e_p_n_and_alpha_arrays_3D(
         u,
         e_p_11_tmp, e_p_22_tmp, e_p_33_tmp,
@@ -229,11 +246,9 @@ def after_timestep_success(t, dt, iters):
         sig_y, hard, mu
     )
 
-    # ---------- Stress (UFL) ----------
     sigma = plasticityProblem.sigma(u,lam,mu)
     sig_vm = le.sigvM(sigma)
 
-    # ---------- Interpolate sigma ----------
     sigma_expr = dlfx.fem.Expression(
         sigma,
         TEN.element.interpolation_points()
@@ -241,7 +256,6 @@ def after_timestep_success(t, dt, iters):
     sigma_interpolated.interpolate(sigma_expr)
     sigma_interpolated.name = "sigma"
 
-    # ---------- Interpolate von Mises ----------
     vm_expr = dlfx.fem.Expression(
         sig_vm,
         S0.element.interpolation_points()
@@ -249,7 +263,6 @@ def after_timestep_success(t, dt, iters):
     sigma_vm_interpolated.interpolate(vm_expr)
     sigma_vm_interpolated.name = "sig_vm"
 
-    # ---------- Reaction force ----------
     Rx, Ry, Rz = pp.reaction_force(
         sigma_interpolated,
         n=n,
@@ -259,45 +272,16 @@ def after_timestep_success(t, dt, iters):
 
     if rank == 0:
         sol.write_to_newton_logfile(logfile_path, t, dt, iters)
+        pp.write_to_graphs_output_file(outputfile_graph_path, t, Rx, Ry, Rz)
 
-        pp.write_to_graphs_output_file(
-            outputfile_graph_path,
-            t,
-            Rx, Ry, Rz
-        )
+    pp.write_tensor_fields(domain, comm, [sigma_interpolated], ["sigma"], outputfile_xdmf_path, t)
+    pp.write_scalar_fields(domain, comm, [sigma_vm_interpolated], ["sig_vm"], outputfile_xdmf_path, t)
 
-    # ---------- Write to XDMF ----------
-    pp.write_tensor_fields(
-        domain, comm,
-        [sigma_interpolated],
-        ["sigma"],
-        outputfile_xdmf_path,
-        t
-    )
+    pp.write_field(domain, outputfile_xdmf_path, alpha_n, t, comm, S=S0)
 
-    pp.write_scalar_fields(
-        domain, comm,
-        [sigma_vm_interpolated],
-        ["sig_vm"],
-        outputfile_xdmf_path,
-        t
-    )
-
-    # 🔴 alpha_n (internal variable)
-    pp.write_field(
-        domain,
-        outputfile_xdmf_path,
-        alpha_n,
-        t,
-        comm,
-        S=S0
-    )
-
-    # displacement
     u.name = "u"
     pp.write_vector_field(domain, outputfile_xdmf_path, u, t, comm)
 
-    # ---------- Update ----------
     um1.x.array[:] = u.x.array[:]
     urestart.x.array[:] = u.x.array[:]
 
@@ -313,20 +297,24 @@ def after_last_timestep():
         )
 
 # ---------- Solver ----------
-sol.solve_with_newton_adaptive_time_stepping(
-    domain,
-    u,
-    Tend,
-    dt,
-    before_first_timestep_hook=before_first_time_step,
-    after_last_timestep_hook=after_last_timestep,
-    before_each_timestep_hook=before_each_time_step,
-    get_residuum_and_gateaux=get_residuum_and_gateaux,
-    get_bcs=get_bcs,
-    after_timestep_restart_hook=after_timestep_restart,
-    after_timestep_success_hook=after_timestep_success,
-    comm=comm,
-    print_bool=True,
-    t=t,
-    dt_max=dt_max
-)
+try:
+    sol.solve_with_newton_adaptive_time_stepping(
+        domain,
+        u,
+        Tend,
+        dt_global,
+        before_first_timestep_hook=before_first_time_step,
+        after_last_timestep_hook=after_last_timestep,
+        before_each_timestep_hook=before_each_time_step,
+        get_residuum_and_gateaux=get_residuum_and_gateaux,
+        get_bcs=get_bcs,
+        after_timestep_restart_hook=after_timestep_restart,
+        after_timestep_success_hook=after_timestep_success,
+        comm=comm,
+        print_bool=True,
+        t=t,
+        dt_max=dt_max
+    )
+except StopSimulation:
+    if rank == 0:
+        print("[INFO] Simulation stopped because dt became too small.")

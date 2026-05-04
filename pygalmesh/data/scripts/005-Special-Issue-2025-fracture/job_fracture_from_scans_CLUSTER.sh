@@ -157,7 +157,7 @@ for MAT in "${MATERIALS[@]}"; do
                     --lam_param 1.0 \
                     --mue_param 1.0 \
                     --Gc_param 1.0 \
-                    --eps_factor_param 10.0 \
+                    --eps_factor_param 20.0 \
                     --element_order 1
         done
 
