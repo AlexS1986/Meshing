@@ -436,6 +436,22 @@ Temporary Items
 *.dat
 *.dcm
 *.geo
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.nii
+*.nii.gz
+*.tif
+*.tiff
+*.stl
+*.med
+*.pvd
+*.pvtu
+*.bp
+*.bp/
+DICOMDIR
 
 #Obsidian
 workspace.json
@@ -449,4 +465,27 @@ Notes/Hypo/.obsidian/
 *.csv
 *.vtu
 *.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.pgf
 *.zip
+pygalmesh/data/scripts/**/*.pdf
+pygalmesh/data/resources/**/*.pdf
+
+# Large raw/generated pygalmesh resources
+pygalmesh/data/resources/B02_Mevert_AlSi10MgSchaum_JM-26-74_Binning_Variation/
+pygalmesh/data/resources/2D_structure_Hannover/260504_dcb_beta_phi_a_rho_var_min_max/
+
+# Generated outputs from binning study, keep scripts/configs trackable
+pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin*/
+pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/00_results/
+pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/scratch/
+pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/visualizations/
+pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/preview_slice_*.png
+
+# Local Python / environment clutter
+.venv/
+venv/
+.ipynb_checkpoints/

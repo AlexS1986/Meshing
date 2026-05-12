@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# Project paths inside the container/HPC bind layout.
+BASE_PATH="/data/scripts/009-Binning-Variation-CT-Stiffness"
+RESOURCE_BASE="/data/resources/B02_Mevert_AlSi10MgSchaum_JM-26-74_Binning_Variation"
+
+# This project compares binnings of the same specimen instead of different specimens.
+SPECIMEN_NAME="JM-25-74"
+BINNING_IDS=(1 2 4)
+REDUCE_FACTORS=("null" 2 4 8)
+DEFAULT_BINNING_ID=1
+ACTIVE_BINNING_ID=1
+DICOM_FOLDER_PREFIX="JM-25-74_6min15_750^C_erodiert_nach Trockenschrank"
+
+# DICOM conversion. Use REDUCE_FACTOR=null for no script-side reduction.
+REDUCE_FACTOR="null"
+CROP_X_START=
+CROP_X_END=
+CROP_Y_START=
+CROP_Y_END=
+SLICE_START=0
+SLICE_END=
+
+# Region reference. Bin2 without script-side reduction is the hand-selected
+# reference region; all other binnings/reductions are scaled to the same
+# physical region.
+REFERENCE_BINNING_ID=2
+REFERENCE_REDUCE_FACTOR=1
+REFERENCE_MIN_Z=220
+REFERENCE_MAX_Z=570
+REFERENCE_BUFFER_WIDTH_MIN_X=160
+REFERENCE_BUFFER_WIDTH_MAX_X=160
+REFERENCE_BUFFER_WIDTH_MIN_Y=160
+REFERENCE_BUFFER_WIDTH_MAX_Y=160
+REFERENCE_BUFFER_WIDTH_MIN_Z=25
+REFERENCE_BUFFER_WIDTH_MAX_Z=25
+
+# Segmentation and subvolume parameters.
+PREVIEW_SLICE_INDEX=100
+SEGMENTATION_ALGORITHM="otsu"
+GAUSSIAN_FILTER_SIGMA_FACTOR=1
+DESIRED_WIDTH_X=
+DESIRED_HEIGHT_Y=
+CENTER_X=
+CENTER_Y=
+XY_DIVISIONS=1
+
+# Rotation/buffer parameters.
+MATERIAL_VALUE=1
+PORE_VALUE=0
+BUFFER_WIDTH=15
+ROTATE_ANGLE_X=-3.05
+ROTATE_ANGLE_Y=-2.9
+ROTATE_ANGLE_Z=-5.0
+
+# Meshing parameters.
+SMOOTHING_SIGMA_FACTOR=1
+MESH_SCALE_FACTOR=1.0
+MESHING_METHOD="pygalmesh"
+MAX_ELEMENT_SIZE_FACTOR=5.0
+MAX_FACET_DISTANCE_FACTOR=0.3
