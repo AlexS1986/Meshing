@@ -60,11 +60,16 @@ binning_label="$(echo "$CONFIG_INFO" | sed -n '1p')"
 run_name="$(echo "$CONFIG_INFO" | sed -n '2p')"
 base_subvolume_container_path="$(echo "$CONFIG_INFO" | sed -n '3p')"
 base_subvolume_folder="${base_subvolume_container_path/#\/data/$HPC_SCRATCH/pygalmesh/data}"
-case_scratch="$working_directory/scratch/${run_name}_${SLURM_JOB_ID:-manual}"
+case_scratch_container="/data/scripts/009-Binning-Variation-CT-Stiffness/scratch/${run_name}_${SLURM_JOB_ID:-manual}"
+case_scratch="$HPC_SCRATCH/pygalmesh$case_scratch_container"
+export TMPDIR="$case_scratch_container/tmp"
 
 echo "Processing $binning_label"
 echo "Using config: $CONFIG_PATH"
 echo "Case scratch: $case_scratch"
+echo "Container TMPDIR: $TMPDIR"
+rm -rf "$case_scratch"
+mkdir -p "$case_scratch/tmp"
 
 for script in "${PREPROCESS_SCRIPTS[@]}"; do
   srun -n 1 apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" \
@@ -108,8 +113,6 @@ for mat in "${MATERIALS[@]}"; do
     for subfolder in "$base_subvolume_folder"/*/; do
       [ -d "$subfolder" ] || continue
 
-      rm -rf "$case_scratch"
-      mkdir -p "$case_scratch"
       cp -v "$SOURCE_DIR"/* "$subfolder"
 
       srun -n 16 --chdir="$subfolder" apptainer exec --bind "$SIM_BIND" "$SIM_CONTAINER" \

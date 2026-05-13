@@ -8,6 +8,7 @@ import nanomesh
 from datetime import datetime
 from skimage.transform import rescale
 import pygalmesh
+import traceback
 
 
 def load_config(config_path):
@@ -113,12 +114,35 @@ def main():
         max_facet_distance_factor = params.get("max_facet_distance_factor", 0.1)
 
         vol_pygal = np.array(subvol_seg.image, dtype=np.uint8)
-        mesh = pygalmesh.generate_from_array(
-            vol_pygal,
-            voxel_size,
-            max_cell_circumradius=max_element_size_factor * voxel_dim,
-            max_facet_distance=max_facet_distance_factor * voxel_dim
+        unique_values, unique_counts = np.unique(vol_pygal, return_counts=True)
+        mesh_metadata["segmented_volume_value_counts"] = {
+            str(int(value)): int(count)
+            for value, count in zip(unique_values, unique_counts)
+        }
+        print(f"📊 Segmented volume shape: {vol_pygal.shape}")
+        print(f"📊 Segmented value counts: {mesh_metadata['segmented_volume_value_counts']}")
+        print(
+            "📐 Pygalmesh parameters: "
+            f"max_cell_circumradius={max_element_size_factor * voxel_dim}, "
+            f"max_facet_distance={max_facet_distance_factor * voxel_dim}"
         )
+
+        try:
+            mesh = pygalmesh.generate_from_array(
+                vol_pygal,
+                voxel_size,
+                max_cell_circumradius=max_element_size_factor * voxel_dim,
+                max_facet_distance=max_facet_distance_factor * voxel_dim
+            )
+        except ValueError as exc:
+            print("❌ pygalmesh failed while reading the generated temporary mesh.")
+            print("   This often means the generated mesh file was truncated, commonly")
+            print("   because the mesh became too large for the available scratch space,")
+            print("   memory, or wall time. Try a larger reduce factor, coarser")
+            print("   pygalmesh parameters, or smaller/partitioned subvolumes.")
+            print("   Original exception:")
+            traceback.print_exc()
+            raise
         mesh.write(mesh_output_path)
 
         mesh_metadata["pygalmesh_parameters"] = {
@@ -165,5 +189,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
