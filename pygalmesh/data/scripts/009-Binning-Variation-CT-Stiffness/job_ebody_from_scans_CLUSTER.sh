@@ -60,19 +60,20 @@ binning_label="$(echo "$CONFIG_INFO" | sed -n '1p')"
 run_name="$(echo "$CONFIG_INFO" | sed -n '2p')"
 base_subvolume_container_path="$(echo "$CONFIG_INFO" | sed -n '3p')"
 base_subvolume_folder="${base_subvolume_container_path/#\/data/$HPC_SCRATCH/pygalmesh/data}"
-case_scratch_container="/data/scripts/009-Binning-Variation-CT-Stiffness/scratch/${run_name}_${SLURM_JOB_ID:-manual}"
-case_scratch="$HPC_SCRATCH/pygalmesh$case_scratch_container"
-export TMPDIR="$case_scratch_container/tmp"
+case_scratch="$working_directory/scratch/${run_name}_${SLURM_JOB_ID:-manual}"
+export TMPDIR="$case_scratch/tmp"
+BIND_PATHS_RUNTIME="$BIND_PATHS,$case_scratch:$case_scratch"
+SIM_BIND_RUNTIME="$SIM_BIND,$case_scratch:$case_scratch"
 
 echo "Processing $binning_label"
 echo "Using config: $CONFIG_PATH"
 echo "Case scratch: $case_scratch"
-echo "Container TMPDIR: $TMPDIR"
+echo "TMPDIR: $TMPDIR"
 rm -rf "$case_scratch"
 mkdir -p "$case_scratch/tmp"
 
 for script in "${PREPROCESS_SCRIPTS[@]}"; do
-  srun -n 1 apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" \
+  srun -n 1 apptainer exec --bind "$BIND_PATHS_RUNTIME" "$CONTAINER_PATH" \
     python3 "$working_directory/$script" --config "$CONFIG_PATH"
 done
 
@@ -90,17 +91,17 @@ for subfolder in "$base_subvolume_folder"/subvolume_x*_y*/; do
     continue
   fi
 
-  srun -n 1 apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" \
+  srun -n 1 apptainer exec --bind "$BIND_PATHS_RUNTIME" "$CONTAINER_PATH" \
     python3 "$working_directory/03_mesh_3D_array_pygalmesh.py" --config "$CONFIG_PATH" --npy "$npy_file" --mesh "$mesh_output"
 
-  srun -n 1 apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" \
+  srun -n 1 apptainer exec --bind "$BIND_PATHS_RUNTIME" "$CONTAINER_PATH" \
     python3 "$working_directory/04_scale_and_translate_mesh_mod.py" --config "$CONFIG_PATH" --mesh "$mesh_output" --center_x "$center_x" --center_y "$center_y"
 done
 
 for subfolder in "$base_subvolume_folder"/*/; do
   [ -d "$subfolder" ] || continue
   if [ -f "$subfolder/mesh.xdmf" ]; then
-    srun -n 1 apptainer exec --bind "$SIM_BIND" "$SIM_CONTAINER" \
+    srun -n 1 apptainer exec --bind "$SIM_BIND_RUNTIME" "$SIM_CONTAINER" \
       python3 "$working_directory/make_mesh_dlfx_compatible_cluster.py" "$subfolder" -f mesh.xdmf
   fi
 done
@@ -115,16 +116,16 @@ for mat in "${MATERIALS[@]}"; do
 
       cp -v "$SOURCE_DIR"/* "$subfolder"
 
-      srun -n 16 --chdir="$subfolder" apptainer exec --bind "$SIM_BIND" "$SIM_CONTAINER" \
+      srun -n 16 --chdir="$subfolder" apptainer exec --bind "$SIM_BIND_RUNTIME" "$SIM_CONTAINER" \
         python3 "$subfolder/linearelastic.py" --material "$mat"
 
-      srun -n 1 --chdir="$subfolder" apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" python3 update_trafo.py
-      srun -n 1 --chdir="$subfolder" apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" make
-      srun -n 1 --chdir="$subfolder" apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" ./trafo.x
-      srun -n 1 --chdir="$subfolder" apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" \
+      srun -n 1 --chdir="$subfolder" apptainer exec --bind "$BIND_PATHS_RUNTIME" "$CONTAINER_PATH" python3 update_trafo.py
+      srun -n 1 --chdir="$subfolder" apptainer exec --bind "$BIND_PATHS_RUNTIME" "$CONTAINER_PATH" make
+      srun -n 1 --chdir="$subfolder" apptainer exec --bind "$BIND_PATHS_RUNTIME" "$CONTAINER_PATH" ./trafo.x
+      srun -n 1 --chdir="$subfolder" apptainer exec --bind "$BIND_PATHS_RUNTIME" "$CONTAINER_PATH" \
         bash -c "Xvfb :99 -screen 0 1024x768x24 & sleep 2 && export DISPLAY=:99 && python3 print_e_body_2_paraview.py"
-      srun -n 1 --chdir="$subfolder" apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" python3 find_e33.py
-      srun -n 1 --chdir="$subfolder" apptainer exec --bind "$SIM_BIND" "$SIM_CONTAINER" python3 write_e33_to_mesh.py
+      srun -n 1 --chdir="$subfolder" apptainer exec --bind "$BIND_PATHS_RUNTIME" "$CONTAINER_PATH" python3 find_e33.py
+      srun -n 1 --chdir="$subfolder" apptainer exec --bind "$SIM_BIND_RUNTIME" "$SIM_CONTAINER" python3 write_e33_to_mesh.py
     done
 
     mkdir -p "$final_output_dir"
@@ -136,5 +137,5 @@ done
 
 rm -rf "$case_scratch"
 
-srun -n 1 apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" \
+srun -n 1 apptainer exec --bind "$BIND_PATHS_RUNTIME" "$CONTAINER_PATH" \
   python3 "$working_directory/collect_binning_results.py" --project-dir "$working_directory" --specimen-name "$SPECIMEN_NAME" --config "$CONFIG_PATH"
