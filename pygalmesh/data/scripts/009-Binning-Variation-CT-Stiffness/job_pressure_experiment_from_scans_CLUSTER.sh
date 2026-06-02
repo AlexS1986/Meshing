@@ -1,14 +1,22 @@
 #!/bin/bash
-#SBATCH -J pressure-bin
-#SBATCH -A p0023647
-#SBATCH -t 120
-#SBATCH --mem-per-cpu=9000
-#SBATCH -n 16
-#SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/%x.err.%j
-#SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/%x.out.%j
-#SBATCH --mail-type=END
-#SBATCH -C i01
 
+#SBATCH -J pressure-bin
+
+#SBATCH -A p0023647
+
+#SBATCH -t 1440
+
+#SBATCH -n 96
+#SBATCH -N 1
+#SBATCH --mem-per-cpu=9000
+
+#SBATCH -C "mem"
+
+#SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/%x.err.%j
+
+#SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/%x.out.%j
+
+#SBATCH --mail-type=END
 set -euo pipefail
 
 working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness"
@@ -20,6 +28,7 @@ SIM_CONTAINER="$HOME/dolfinx_alex/alex-dolfinx.sif"
 SIM_BIND="$HOME/dolfinx_alex/shared:/home"
 
 SOURCE_DIR="$working_directory/00_template"
+sim_ntasks="${SLURM_NTASKS:-96}"
 VOLUME_FILENAME="volume.npy"
 EXTEND_SCRIPT="$working_directory/02c_extend_image_pressure_experiment.py"
 EXTEND_THICKNESS=10
@@ -81,7 +90,7 @@ for binning_id in "${BINNING_IDS[@]}"; do
         srun -n 1 apptainer exec --bind "$SIM_BIND" "$SIM_CONTAINER" \
           python3 "$working_directory/make_mesh_dlfx_compatible_cluster.py" "$subfolder" -f mesh.xdmf
         cp -v "$SOURCE_DIR"/* "$subfolder"
-        srun -n 16 --chdir="$subfolder" apptainer exec --bind "$SIM_BIND" "$SIM_CONTAINER" \
+        srun -n "$sim_ntasks" --chdir="$subfolder" apptainer exec --bind "$SIM_BIND" "$SIM_CONTAINER" \
           python3 "$subfolder/linearelastic_pressure_test.py" "$mat" "$dir"
       done
 

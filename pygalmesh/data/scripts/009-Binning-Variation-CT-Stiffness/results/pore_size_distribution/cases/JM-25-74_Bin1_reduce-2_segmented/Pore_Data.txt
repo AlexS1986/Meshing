@@ -1,0 +1,4 @@
+# Pore_ID Pore_Size
+1 4
+2 1
+3 1

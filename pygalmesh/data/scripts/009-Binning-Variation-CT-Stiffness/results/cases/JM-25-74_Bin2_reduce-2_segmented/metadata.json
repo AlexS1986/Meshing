@@ -1,0 +1,26 @@
+{
+    "00_dicom2npy": {
+        "Option": "reduce",
+        "ReductionFactor": 2,
+        "SliceThickness": 0.0669534454345704,
+        "PixelSpacing": [
+            0.0669534454345704,
+            0.0669534454345704
+        ],
+        "ImageDimensions": [
+            851,
+            952
+        ],
+        "NumberOfSlices": 769,
+        "CroppingInfo": {
+            "OriginalSize": [
+                851,
+                952
+            ],
+            "CroppedSize": [
+                850,
+                952
+            ]
+        }
+    }
+}

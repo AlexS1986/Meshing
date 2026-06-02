@@ -1,0 +1,11 @@
+JM-25-74_Bin1_reduce-2_segmented
+JM-25-74_Bin1_reduce-4_segmented
+JM-25-74_Bin1_reduce-8_segmented
+JM-25-74_Bin1_reduce-null_segmented
+JM-25-74_Bin2_reduce-2_segmented
+JM-25-74_Bin2_reduce-4_segmented
+JM-25-74_Bin2_reduce-null_segmented
+JM-25-74_Bin4_reduce-2_segmented
+JM-25-74_Bin4_reduce-4_segmented
+JM-25-74_Bin4_reduce-8_segmented
+JM-25-74_Bin4_reduce-null_segmented

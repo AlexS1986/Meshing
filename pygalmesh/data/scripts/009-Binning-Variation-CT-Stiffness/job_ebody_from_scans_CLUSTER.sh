@@ -1,14 +1,22 @@
 #!/bin/bash
-#SBATCH -J ebody-bin
-#SBATCH -A p0023647
-#SBATCH -t 1440
-#SBATCH --mem-per-cpu=9000
-#SBATCH -n 16
-#SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/%x.err.%j
-#SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/%x.out.%j
-#SBATCH --mail-type=END
-#SBATCH -C i01
 
+#SBATCH -J ebody-bin
+
+#SBATCH -A p0023647
+
+#SBATCH -t 1440
+
+#SBATCH -n 96
+#SBATCH -N 1
+#SBATCH --mem-per-cpu=9000
+
+#SBATCH -C "mem"
+
+#SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/%x.err.%j
+
+#SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/%x.out.%j
+
+#SBATCH --mail-type=END
 set -euo pipefail
 
 working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness"
@@ -53,14 +61,20 @@ with open(sys.argv[1], "r") as handle:
 print(config["binning"]["label"])
 print(config["01_segment_slice_wise"]["specimen_name"])
 print(config["02b_build_subvolume_arrays"]["subvolume_output_folder"])
+print(config["binning"]["id"])
+reduce_factor = config["binning"].get("script_reduce_factor")
+print("null" if reduce_factor is None else reduce_factor)
 PY
 )
 
 binning_label="$(echo "$CONFIG_INFO" | sed -n '1p')"
 run_name="$(echo "$CONFIG_INFO" | sed -n '2p')"
 base_subvolume_container_path="$(echo "$CONFIG_INFO" | sed -n '3p')"
+binning_id_config="$(echo "$CONFIG_INFO" | sed -n '4p')"
+reduce_factor_config="$(echo "$CONFIG_INFO" | sed -n '5p')"
 base_subvolume_folder="${base_subvolume_container_path/#\/data/$HPC_SCRATCH/pygalmesh/data}"
 case_scratch="$working_directory/scratch/${run_name}_${SLURM_JOB_ID:-manual}"
+sim_ntasks="${SLURM_NTASKS:-96}"
 
 echo "Processing $binning_label"
 echo "Using config: $CONFIG_PATH"
@@ -96,6 +110,17 @@ for script in "${PREPROCESS_SCRIPTS[@]}"; do
   run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH" \
     python3 "$working_directory/$script" --config "$CONFIG_PATH"
 done
+
+if [[ "$binning_id_config" == "1" && "$reduce_factor_config" == "null" ]]; then
+  echo "Skipping pore-size evaluation for $run_name (Bin1 reduce-null)."
+else
+  run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH" \
+    python3 "$working_directory/evaluate_pore_size_distribution.py" \
+      --results-dir "$working_directory" \
+      --output-dir "$working_directory/00_results/pore_size_distribution" \
+      --only-case "${run_name}_segmented" \
+      --porespy-cores 1
+fi
 
 for subfolder in "$base_subvolume_folder"/subvolume_x*_y*/; do
   [ -d "$subfolder" ] || continue
@@ -136,7 +161,7 @@ for mat in "${MATERIALS[@]}"; do
 
       cp -v "$SOURCE_DIR"/* "$subfolder"
 
-      run_container 16 "$subfolder" "$SIM_BIND" "$SIM_CONTAINER" \
+      run_container "$sim_ntasks" "$subfolder" "$SIM_BIND" "$SIM_CONTAINER" \
         python3 "$subfolder/linearelastic.py" --material "$mat"
 
       run_container 1 "$subfolder" "$BIND_PATHS" "$CONTAINER_PATH" python3 update_trafo.py

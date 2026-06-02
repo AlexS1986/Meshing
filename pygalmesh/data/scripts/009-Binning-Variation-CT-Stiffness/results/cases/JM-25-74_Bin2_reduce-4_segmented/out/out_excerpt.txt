@@ -1,0 +1,14 @@
+=== Homogenization Box Boundaries ===
+x: [-2.774507761001587, 13.486957550048828]
+y: [-4.067931652069092, 14.78060531616211]
+z: [0.4070769250392914, 9.769757270812988]
+Volume of Cuboid for Homogenization: 2869.7067484086506
+Volume of Real Material in Homogenization Box: 1070.1426147290863
+
+=== Total Domain Boundaries ===
+x: [-3.481579065322876, 14.194129943847656]
+y: [-4.887601375579834, 15.600154876708984]
+z: [0.0, 10.176922798156738]
+Volume of Cuboid Total: 3685.4262244701413
+solving fem problem with 1173024 dofs ...
+Wrote 1 rows to /work/scratch/as12vapa/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/00_results/binning_summary.csv

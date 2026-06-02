@@ -1,0 +1,155 @@
+{
+    "00_dicom2npy": {
+        "Option": "reduce",
+        "ReductionFactor": 2,
+        "SliceThickness": 0.13390576171875,
+        "PixelSpacing": [
+            0.13390576171875,
+            0.13390576171875
+        ],
+        "ImageDimensions": [
+            440,
+            502
+        ],
+        "NumberOfSlices": 405,
+        "CroppingInfo": {
+            "OriginalSize": [
+                440,
+                502
+            ],
+            "CroppedSize": [
+                440,
+                502
+            ]
+        }
+    },
+    "01_segment_slice_wise": {
+        "algorithm": "otsu",
+        "gaussian_sigma_factor": 1,
+        "computed_gaussian_sigma": 0.13390576171875
+    },
+    "02_segmented_3D_array": {
+        "min_x": 0,
+        "max_x": 220,
+        "min_y": 0,
+        "max_y": 251,
+        "min_z": 55,
+        "max_z": 143,
+        "output_shape": [
+            220,
+            251,
+            88
+        ]
+    },
+    "02a_rotate_pic_to_align_with_axis.py": {
+        "timestamp": "2026-05-25T14:15:16.833665",
+        "input_path": "/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin4_reduce-2_segmented/JM-25-74_Bin4_reduce-2_segmented_3D/segmented_3D_volume.npy",
+        "angles_deg": [
+            -3.05,
+            -2.9,
+            -5.0
+        ],
+        "buffer_widths": {
+            "min_x": 40,
+            "max_x": 40,
+            "min_y": 40,
+            "max_y": 40,
+            "min_z": 6,
+            "max_z": 6
+        },
+        "material_value": 1,
+        "pore_value": 0,
+        "final_shape": [
+            220,
+            251,
+            88
+        ],
+        "material_bounds": {
+            "x": [
+                40,
+                179
+            ],
+            "y": [
+                42,
+                205
+            ],
+            "z": [
+                6,
+                81
+            ]
+        }
+    },
+    "02b_build_subvolume_arrays.py": {
+        "subvolume_count": 1,
+        "xy_divisions": 1,
+        "material_bounds": {
+            "x": [
+                40,
+                179
+            ],
+            "y": [
+                42,
+                205
+            ],
+            "z": [
+                6,
+                81
+            ]
+        },
+        "subvolume_output_folder": "/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin4_reduce-2_segmented/JM-25-74_Bin4_reduce-2_segmented_3D",
+        "subvolumes": [
+            {
+                "x_start": 40,
+                "x_end": 179,
+                "y_start": 42,
+                "y_end": 205,
+                "z_start": 6,
+                "z_end": 81,
+                "shape": [
+                    140,
+                    164,
+                    76
+                ],
+                "path": "subvolume_x40_y42",
+                "relative_density": 0.6260899963322941,
+                "porosity": 0.3739100036677058
+            }
+        ]
+    },
+    "03_mesh_3D_array": {
+        "specimen_name": "JM-25-74_Bin4_reduce-2_segmented",
+        "input_volume_shape": [
+            140,
+            164,
+            76
+        ],
+        "subvolume_bounds": {
+            "x_range": [
+                0,
+                140
+            ]
+        },
+        "smoothing_sigma": 1,
+        "threshold_method": "otsu",
+        "scale_factor": 1.0,
+        "voxel_size": [
+            0.13390576171875,
+            0.13390576171875,
+            0.13390576171875
+        ],
+        "voxel_dim": 0.13390576171875,
+        "mesh_output_path": "/work/scratch/as12vapa/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin4_reduce-2_segmented/JM-25-74_Bin4_reduce-2_segmented_3D/subvolume_x40_y42//mesh.xdmf",
+        "meshing_method": "pygalmesh",
+        "timestamp": "2026-05-25T14:15:24.227783",
+        "segmented_volume_value_counts": {
+            "0": 1092502,
+            "1": 652458
+        },
+        "pygalmesh_parameters": {
+            "max_element_size_factor": 5.0,
+            "max_facet_distance_factor": 0.3,
+            "max_cell_circumradius": 0.66952880859375,
+            "max_facet_distance": 0.040171728515625
+        }
+    }
+}

@@ -1,0 +1,19 @@
+{
+  "fem_dofs": 1320504,
+  "homogenization_cuboid_volume": 2922.8508626403222,
+  "homogenization_real_material_volume": 1041.500084673156,
+  "homogenization_x_max": 13.917756080627441,
+  "homogenization_x_min": -3.2055530548095703,
+  "homogenization_y_max": 14.471768379211426,
+  "homogenization_y_min": -3.7599740028381348,
+  "homogenization_z_max": 9.769545555114746,
+  "homogenization_z_min": 0.407068133354187,
+  "summary_write_line": "Wrote 1 rows to /work/scratch/as12vapa/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/00_results/binning_summary.csv",
+  "total_domain_cuboid_volume": 3753.7204639547767,
+  "total_domain_x_max": 14.662388801574707,
+  "total_domain_x_min": -3.950141191482544,
+  "total_domain_y_max": 15.264952659606934,
+  "total_domain_y_min": -4.55270528793335,
+  "total_domain_z_max": 10.176634788513184,
+  "total_domain_z_min": 0.0
+}
