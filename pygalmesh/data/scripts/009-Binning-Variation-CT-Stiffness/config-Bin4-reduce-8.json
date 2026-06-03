@@ -58,7 +58,9 @@
     "mesh_output_path": "/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin4_reduce-8_segmented/mesh.xdmf",
     "pygalmesh_parameters": {
       "max_element_size_factor": 5.0,
-      "max_facet_distance_factor": 0.3
+      "max_facet_distance_factor": 0.3,
+      "exude_time_limit": 0.0,
+      "exude_sliver_bound": 0.0
     },
     "nanomesh_parameters": {
       "meshing_options": "-pAqD",
@@ -76,7 +78,11 @@
     "buffer_width_max_y": 10,
     "buffer_width_min_z": 2,
     "buffer_width_max_z": 2,
-    "angles": [-3.05, -2.9, -5.0]
+    "angles": [
+      -3.05,
+      -2.9,
+      -5.0
+    ]
   },
   "02b_build_subvolume_arrays": {
     "xy_divisions": 1,

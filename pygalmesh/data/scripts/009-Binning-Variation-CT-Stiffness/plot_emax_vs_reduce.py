@@ -94,11 +94,12 @@ def collect_rows(results_dir):
             "E_moduli_json": str(e_path),
             "vol_json": str(vol_path) if vol_path.exists() else "",
         }
+        row["total_reduce_factor"] = row["bin"] * row["reduce_numeric"]
         row.update(moduli)
         row.update(volume)
         rows.append(row)
 
-    return sorted(rows, key=lambda row: (row["bin"], row["reduce_numeric"]))
+    return sorted(rows, key=lambda row: (row["total_reduce_factor"], row["bin"], row["reduce_numeric"]))
 
 
 def write_csv(rows, output_path):
@@ -108,6 +109,7 @@ def write_csv(rows, output_path):
         "bin",
         "reduce",
         "reduce_numeric",
+        "total_reduce_factor",
         "E11",
         "E22",
         "E33",
@@ -136,16 +138,27 @@ def configure_matplotlib(output_dir):
     os.environ.setdefault("XDG_CACHE_HOME", str(xdg_cache_dir))
 
     import matplotlib.pyplot as plt
+    plt.rcParams.update(
+        {
+            "font.size": 18,
+            "axes.labelsize": 22,
+            "axes.titlesize": 22,
+            "xtick.labelsize": 18,
+            "ytick.labelsize": 18,
+            "legend.fontsize": 18,
+            "legend.title_fontsize": 19,
+        }
+    )
     return plt
 
 
-def plot_quantity(rows, quantity, ylabel, output_path, plt):
+def plot_quantity(rows, quantity, ylabel, output_path, plt, x_key="reduce_numeric", xlabel="FEM reduce"):
     plot_rows = [row for row in rows if isinstance(row.get(quantity), (int, float))]
     if not plot_rows:
         return False
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(7.0, 4.5), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(9.0, 6.0), constrained_layout=True)
     markers = {
         1: "o",
         2: "s",
@@ -155,25 +168,143 @@ def plot_quantity(rows, quantity, ylabel, output_path, plt):
     for bin_value in sorted({row["bin"] for row in plot_rows}):
         subset = [row for row in plot_rows if row["bin"] == bin_value]
         ax.scatter(
-            [row["reduce_numeric"] for row in subset],
+            [row[x_key] for row in subset],
             [row[quantity] for row in subset],
             marker=markers.get(bin_value, "D"),
-            s=72,
+            s=120,
             label=f"Bin {bin_value}",
         )
 
-    tick_values = sorted({row["reduce_numeric"] for row in plot_rows})
+    tick_values = sorted({row[x_key] for row in plot_rows})
     tick_labels = []
     for value in tick_values:
-        has_null = any(row["reduce"] == "null" and row["reduce_numeric"] == value for row in plot_rows)
+        has_null = x_key == "reduce_numeric" and any(
+            row["reduce"] == "null" and row[x_key] == value for row in plot_rows
+        )
         tick_labels.append("null/1" if has_null else f"{value:g}")
 
-    ax.set_xlabel("Reduce factor")
+    ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_xticks(tick_values)
     ax.set_xticklabels(tick_labels)
     ax.grid(True, axis="y", alpha=0.25)
-    ax.legend(title="Binning")
+    ax.legend(title="Binning", markerscale=1.2)
+
+    fig.savefig(output_path, dpi=300)
+    plt.close(fig)
+    return True
+
+
+def plot_min_max_e(rows, output_path, plt, x_key="reduce_numeric", xlabel="FEM reduce"):
+    plot_rows = [
+        row
+        for row in rows
+        if isinstance(row.get("Emax"), (int, float)) and isinstance(row.get("Emin"), (int, float))
+    ]
+    if not plot_rows:
+        return False
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(9.0, 6.0), constrained_layout=True)
+    colors = {
+        1: "#1f77b4",
+        2: "#ff7f0e",
+        4: "#2ca02c",
+    }
+    marker_specs = [
+        ("Emax", "E max", "^"),
+        ("Emin", "E min", "v"),
+    ]
+
+    for bin_value in sorted({row["bin"] for row in plot_rows}):
+        subset = [row for row in plot_rows if row["bin"] == bin_value]
+        color = colors.get(bin_value)
+        for quantity, label, marker in marker_specs:
+            ax.scatter(
+                [row[x_key] for row in subset],
+                [row[quantity] for row in subset],
+                marker=marker,
+                s=120,
+                color=color,
+                label=f"Bin {bin_value} {label}",
+            )
+
+    tick_values = sorted({row[x_key] for row in plot_rows})
+    tick_labels = []
+    for value in tick_values:
+        has_null = x_key == "reduce_numeric" and any(
+            row["reduce"] == "null" and row[x_key] == value for row in plot_rows
+        )
+        tick_labels.append("null/1" if has_null else f"{value:g}")
+
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("E min / E max")
+    ax.set_xticks(tick_values)
+    ax.set_xticklabels(tick_labels)
+    ax.grid(True, axis="y", alpha=0.25)
+    ax.legend(title="Binning and E range", markerscale=1.2)
+
+    fig.savefig(output_path, dpi=300)
+    plt.close(fig)
+    return True
+
+
+def plot_e_range(rows, output_path, plt, x_key="reduce_numeric", xlabel="FEM reduce"):
+    plot_rows = [
+        row
+        for row in rows
+        if isinstance(row.get("Emax"), (int, float)) and isinstance(row.get("Emin"), (int, float))
+    ]
+    if not plot_rows:
+        return False
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(9.0, 6.0), constrained_layout=True)
+    colors = {
+        1: "#1f77b4",
+        2: "#ff7f0e",
+        4: "#2ca02c",
+    }
+    markers = {
+        1: "o",
+        2: "s",
+        4: "^",
+    }
+
+    for bin_value in sorted({row["bin"] for row in plot_rows}):
+        subset = [row for row in plot_rows if row["bin"] == bin_value]
+        x_values = [row[x_key] for row in subset]
+        y_mid = [(row["Emax"] + row["Emin"]) / 2.0 for row in subset]
+        y_lower = [mid - row["Emin"] for mid, row in zip(y_mid, subset)]
+        y_upper = [row["Emax"] - mid for mid, row in zip(y_mid, subset)]
+        ax.errorbar(
+            x_values,
+            y_mid,
+            yerr=[y_lower, y_upper],
+            fmt=markers.get(bin_value, "D"),
+            color=colors.get(bin_value),
+            markersize=11,
+            capsize=8,
+            capthick=2.0,
+            elinewidth=2.4,
+            linestyle="none",
+            label=f"Bin {bin_value}",
+        )
+
+    tick_values = sorted({row[x_key] for row in plot_rows})
+    tick_labels = []
+    for value in tick_values:
+        has_null = x_key == "reduce_numeric" and any(
+            row["reduce"] == "null" and row[x_key] == value for row in plot_rows
+        )
+        tick_labels.append("null/1" if has_null else f"{value:g}")
+
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("E range (E min to E max)")
+    ax.set_xticks(tick_values)
+    ax.set_xticklabels(tick_labels)
+    ax.grid(True, axis="y", alpha=0.25)
+    ax.legend(title="Binning", markerscale=1.2)
 
     fig.savefig(output_path, dpi=300)
     plt.close(fig)
@@ -187,12 +318,43 @@ def plot_rows(rows, output_dir):
         output_path = output_dir / f"{file_stem}_vs_reduce.png"
         if plot_quantity(rows, quantity, ylabel, output_path, plt):
             written.append(output_path)
+        total_output_path = output_dir / f"{file_stem}_vs_total_reduce_factor.png"
+        if plot_quantity(
+            rows,
+            quantity,
+            ylabel,
+            total_output_path,
+            plt,
+            x_key="total_reduce_factor",
+            xlabel="Total FEM reduce (Binning x FEM reduce)",
+        ):
+            written.append(total_output_path)
+    if plot_min_max_e(rows, output_dir / "E_min_max_vs_reduce.png", plt):
+        written.append(output_dir / "E_min_max_vs_reduce.png")
+    if plot_min_max_e(
+        rows,
+        output_dir / "E_min_max_vs_total_reduce_factor.png",
+        plt,
+        x_key="total_reduce_factor",
+        xlabel="Total FEM reduce (Binning x FEM reduce)",
+    ):
+        written.append(output_dir / "E_min_max_vs_total_reduce_factor.png")
+    if plot_e_range(rows, output_dir / "E_range_vs_reduce.png", plt):
+        written.append(output_dir / "E_range_vs_reduce.png")
+    if plot_e_range(
+        rows,
+        output_dir / "E_range_vs_total_reduce_factor.png",
+        plt,
+        x_key="total_reduce_factor",
+        xlabel="Total FEM reduce (Binning x FEM reduce)",
+    ):
+        written.append(output_dir / "E_range_vs_total_reduce_factor.png")
     return written
 
 
 def main():
     script_dir = Path(__file__).resolve().parent
-    parser = argparse.ArgumentParser(description="Plot elastic moduli and relative density versus reduce factor.")
+    parser = argparse.ArgumentParser(description="Plot elastic moduli and relative density versus FEM reduce factors.")
     parser.add_argument("--results-dir", type=Path, default=script_dir / "results")
     parser.add_argument("--output-dir", type=Path, default=script_dir / "results" / "plots")
     parser.add_argument("--csv", type=Path, default=script_dir / "results" / "plots" / "moduli_and_density_vs_reduce.csv")

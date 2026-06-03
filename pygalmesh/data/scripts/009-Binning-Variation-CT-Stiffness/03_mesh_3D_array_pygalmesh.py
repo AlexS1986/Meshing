@@ -9,6 +9,7 @@ from datetime import datetime
 from skimage.transform import rescale
 import pygalmesh
 import traceback
+import tempfile
 
 
 def load_config(config_path):
@@ -112,6 +113,8 @@ def main():
         params = config.get("pygalmesh_parameters", {})
         max_element_size_factor = params.get("max_element_size_factor", 1.0)
         max_facet_distance_factor = params.get("max_facet_distance_factor", 0.1)
+        exude_time_limit = params.get("exude_time_limit", 0.0)
+        exude_sliver_bound = params.get("exude_sliver_bound", 0.0)
 
         vol_pygal = np.array(subvol_seg.image, dtype=np.uint8)
         unique_values, unique_counts = np.unique(vol_pygal, return_counts=True)
@@ -124,16 +127,32 @@ def main():
         print(
             "📐 Pygalmesh parameters: "
             f"max_cell_circumradius={max_element_size_factor * voxel_dim}, "
-            f"max_facet_distance={max_facet_distance_factor * voxel_dim}"
+            f"max_facet_distance={max_facet_distance_factor * voxel_dim}, "
+            f"exude_time_limit={exude_time_limit}, "
+            f"exude_sliver_bound={exude_sliver_bound}"
         )
 
         try:
-            mesh = pygalmesh.generate_from_array(
-                vol_pygal,
-                voxel_size,
-                max_cell_circumradius=max_element_size_factor * voxel_dim,
-                max_facet_distance=max_facet_distance_factor * voxel_dim
-            )
+            generate_kwargs = {
+                "max_cell_circumradius": max_element_size_factor * voxel_dim,
+                "max_facet_distance": max_facet_distance_factor * voxel_dim,
+            }
+            if exude_time_limit or exude_sliver_bound:
+                with tempfile.NamedTemporaryFile(suffix=".inr", delete=False) as handle:
+                    inr_path = handle.name
+                try:
+                    pygalmesh.save_inr(vol_pygal, voxel_size, inr_path)
+                    mesh = pygalmesh.generate_from_inr(
+                        inr_path,
+                        **generate_kwargs,
+                        exude_time_limit=exude_time_limit,
+                        exude_sliver_bound=exude_sliver_bound
+                    )
+                finally:
+                    if os.path.exists(inr_path):
+                        os.remove(inr_path)
+            else:
+                mesh = pygalmesh.generate_from_array(vol_pygal, voxel_size, **generate_kwargs)
         except ValueError as exc:
             print("❌ pygalmesh failed while reading the generated temporary mesh.")
             print("   This often means the generated mesh file was truncated, commonly")
@@ -149,7 +168,9 @@ def main():
             "max_element_size_factor": max_element_size_factor,
             "max_facet_distance_factor": max_facet_distance_factor,
             "max_cell_circumradius": max_element_size_factor * voxel_dim,
-            "max_facet_distance": max_facet_distance_factor * voxel_dim
+            "max_facet_distance": max_facet_distance_factor * voxel_dim,
+            "exude_time_limit": exude_time_limit,
+            "exude_sliver_bound": exude_sliver_bound
         }
 
     elif meshing_method == "nanomesh":
@@ -189,4 +210,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

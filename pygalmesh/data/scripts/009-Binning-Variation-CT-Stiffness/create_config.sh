@@ -169,7 +169,9 @@ write_config_for_binning() {
     "mesh_output_path": "$mesh_output_path",
     "pygalmesh_parameters": {
       "max_element_size_factor": $MAX_ELEMENT_SIZE_FACTOR,
-      "max_facet_distance_factor": $MAX_FACET_DISTANCE_FACTOR
+      "max_facet_distance_factor": $MAX_FACET_DISTANCE_FACTOR,
+      "exude_time_limit": $PYGALMESH_EXUDE_TIME_LIMIT,
+      "exude_sliver_bound": $PYGALMESH_EXUDE_SLIVER_BOUND
     },
     "nanomesh_parameters": {
       "meshing_options": "-pAqD",
