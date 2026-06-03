@@ -59,7 +59,7 @@
     "pygalmesh_parameters": {
       "max_element_size_factor": 5.0,
       "max_facet_distance_factor": 0.3,
-      "exude_time_limit": 0.0,
+      "exude_time_limit": 30,
       "exude_sliver_bound": 0.0
     },
     "nanomesh_parameters": {

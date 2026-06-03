@@ -1,22 +1,20 @@
 #!/bin/bash
 
 #SBATCH -J ebody-bin
-
 #SBATCH -A p0023647
-
 #SBATCH -t 1440
 
+#SBATCH -p mem
+#SBATCH --nodes=1
 #SBATCH -n 96
-#SBATCH -N 1
-#SBATCH --mem-per-cpu=9000
-
-#SBATCH -C "mem"
+#SBATCH --mem-per-cpu=15000
+#SBATCH -C "m01&mem1536g"
 
 #SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/%x.err.%j
-
 #SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/%x.out.%j
 
 #SBATCH --mail-type=END
+
 set -euo pipefail
 
 working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness"

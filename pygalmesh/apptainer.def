@@ -60,7 +60,7 @@ From: ubuntu:22.04
     echo "Installing Python packages..."
     pip3 install --upgrade pip
     pip3 install /root/Progs/pygalmesh-main
-    pip3 install tifffile scipy h5py pandas nanomesh pydicom pyvista open3d
+    pip3 install tifffile scipy h5py pandas nanomesh pydicom pyvista open3d porespy
 
     echo "Creating Xvfb startup script..."
     echo '#!/bin/bash' > /usr/local/bin/start-xvfb.sh

@@ -26,6 +26,12 @@ PLOT_SPECS = [
 ]
 
 
+DOMAIN_PLOT_SPECS = [
+    ("homogenization", "Homogenization box"),
+    ("total_domain", "Total domain"),
+]
+
+
 def nested_value(data, key):
     value = data.get(key)
     if isinstance(value, dict) and "value" in value:
@@ -68,6 +74,29 @@ def load_volume(path):
     return values
 
 
+def load_out_metrics(path):
+    if not path.exists():
+        return {}
+    with path.open("r") as handle:
+        data = json.load(handle)
+
+    values = {}
+    for prefix, _label in DOMAIN_PLOT_SPECS:
+        for axis in ("x", "y", "z"):
+            min_key = f"{prefix}_{axis}_min"
+            max_key = f"{prefix}_{axis}_max"
+            if isinstance(data.get(min_key), (int, float)) and isinstance(data.get(max_key), (int, float)):
+                values[f"{prefix}_{axis}_length"] = float(data[max_key]) - float(data[min_key])
+                values[min_key] = float(data[min_key])
+                values[max_key] = float(data[max_key])
+        volume_key = f"{prefix}_cuboid_volume"
+        if isinstance(data.get(volume_key), (int, float)):
+            values[volume_key] = float(data[volume_key])
+    if isinstance(data.get("fem_dofs"), (int, float)):
+        values["fem_dofs"] = int(data["fem_dofs"])
+    return values
+
+
 def collect_rows(results_dir):
     case_root = results_dir / "cases"
     rows = []
@@ -83,9 +112,11 @@ def collect_rows(results_dir):
 
         e_path = e_files[0]
         vol_path = e_path.with_name("vol.json")
+        out_metrics_path = case_dir / "out_metrics.json"
         reduce_label = match.group("reduce")
         moduli = load_moduli(e_path)
         volume = load_volume(vol_path)
+        out_metrics = load_out_metrics(out_metrics_path)
         row = {
             "case_name": case_dir.name,
             "bin": int(match.group("bin")),
@@ -93,10 +124,12 @@ def collect_rows(results_dir):
             "reduce_numeric": reduce_to_number(reduce_label),
             "E_moduli_json": str(e_path),
             "vol_json": str(vol_path) if vol_path.exists() else "",
+            "out_metrics_json": str(out_metrics_path) if out_metrics_path.exists() else "",
         }
         row["total_reduce_factor"] = row["bin"] * row["reduce_numeric"]
         row.update(moduli)
         row.update(volume)
+        row.update(out_metrics)
         rows.append(row)
 
     return sorted(rows, key=lambda row: (row["total_reduce_factor"], row["bin"], row["reduce_numeric"]))
@@ -119,8 +152,30 @@ def write_csv(rows, output_path):
         "vol_material",
         "vol_overall",
         "vol_material_over_vol",
+        "homogenization_x_min",
+        "homogenization_x_max",
+        "homogenization_x_length",
+        "homogenization_y_min",
+        "homogenization_y_max",
+        "homogenization_y_length",
+        "homogenization_z_min",
+        "homogenization_z_max",
+        "homogenization_z_length",
+        "homogenization_cuboid_volume",
+        "total_domain_x_min",
+        "total_domain_x_max",
+        "total_domain_x_length",
+        "total_domain_y_min",
+        "total_domain_y_max",
+        "total_domain_y_length",
+        "total_domain_z_min",
+        "total_domain_z_max",
+        "total_domain_z_length",
+        "total_domain_cuboid_volume",
+        "fem_dofs",
         "E_moduli_json",
         "vol_json",
+        "out_metrics_json",
     ]
     with output_path.open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -311,6 +366,78 @@ def plot_e_range(rows, output_path, plt, x_key="reduce_numeric", xlabel="FEM red
     return True
 
 
+def format_reduce_ticks(plot_rows, x_key):
+    tick_values = sorted({row[x_key] for row in plot_rows})
+    tick_labels = []
+    for value in tick_values:
+        has_null = x_key == "reduce_numeric" and any(
+            row["reduce"] == "null" and row[x_key] == value for row in plot_rows
+        )
+        tick_labels.append("null/1" if has_null else f"{value:g}")
+    return tick_values, tick_labels
+
+
+def plot_domain_lengths(rows, prefix, title, output_path, plt, x_key="reduce_numeric", xlabel="FEM reduce"):
+    length_keys = [
+        (f"{prefix}_x_length", "x length", "o"),
+        (f"{prefix}_y_length", "y length", "s"),
+        (f"{prefix}_z_length", "z length", "^"),
+    ]
+    plot_rows = [
+        row
+        for row in rows
+        if any(isinstance(row.get(key), (int, float)) for key, _label, _marker in length_keys)
+    ]
+    if not plot_rows:
+        return False
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(9.0, 6.0), constrained_layout=True)
+    colors = {
+        1: "#1f77b4",
+        2: "#ff7f0e",
+        4: "#2ca02c",
+    }
+
+    for bin_value in sorted({row["bin"] for row in plot_rows}):
+        subset = [row for row in plot_rows if row["bin"] == bin_value]
+        for key, label, marker in length_keys:
+            values = [row.get(key) for row in subset]
+            valid = [
+                (row[x_key], value)
+                for row, value in zip(subset, values)
+                if isinstance(value, (int, float))
+            ]
+            if not valid:
+                continue
+            ax.scatter(
+                [item[0] for item in valid],
+                [item[1] for item in valid],
+                marker=marker,
+                s=120,
+                color=colors.get(bin_value),
+                label=f"Bin {bin_value} {label}",
+            )
+
+    tick_values, tick_labels = format_reduce_ticks(plot_rows, x_key)
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("Cuboid side length")
+    ax.set_xticks(tick_values)
+    ax.set_xticklabels(tick_labels)
+    ax.grid(True, axis="y", alpha=0.25)
+    ax.legend(title="Binning and axis", markerscale=1.2)
+
+    fig.savefig(output_path, dpi=300)
+    plt.close(fig)
+    return True
+
+
+def plot_domain_volume(rows, prefix, title, output_path, plt, x_key="reduce_numeric", xlabel="FEM reduce"):
+    volume_key = f"{prefix}_cuboid_volume"
+    return plot_quantity(rows, volume_key, title, output_path, plt, x_key=x_key, xlabel=xlabel)
+
+
 def plot_rows(rows, output_dir):
     plt = configure_matplotlib(output_dir)
     written = []
@@ -349,6 +476,36 @@ def plot_rows(rows, output_dir):
         xlabel="Total FEM reduce (Binning x FEM reduce)",
     ):
         written.append(output_dir / "E_range_vs_total_reduce_factor.png")
+    for prefix, title in DOMAIN_PLOT_SPECS:
+        length_path = output_dir / f"{prefix}_cuboid_lengths_vs_reduce.png"
+        if plot_domain_lengths(rows, prefix, title, length_path, plt):
+            written.append(length_path)
+        total_length_path = output_dir / f"{prefix}_cuboid_lengths_vs_total_reduce_factor.png"
+        if plot_domain_lengths(
+            rows,
+            prefix,
+            title,
+            total_length_path,
+            plt,
+            x_key="total_reduce_factor",
+            xlabel="Total FEM reduce (Binning x FEM reduce)",
+        ):
+            written.append(total_length_path)
+
+        volume_path = output_dir / f"{prefix}_cuboid_volume_vs_reduce.png"
+        if plot_domain_volume(rows, prefix, f"{title} cuboid volume", volume_path, plt):
+            written.append(volume_path)
+        total_volume_path = output_dir / f"{prefix}_cuboid_volume_vs_total_reduce_factor.png"
+        if plot_domain_volume(
+            rows,
+            prefix,
+            f"{title} cuboid volume",
+            total_volume_path,
+            plt,
+            x_key="total_reduce_factor",
+            xlabel="Total FEM reduce (Binning x FEM reduce)",
+        ):
+            written.append(total_volume_path)
     return written
 
 
