@@ -1,0 +1,117 @@
+{
+  "variants": [
+    {
+      "name": "gauss_px_0p5_threshold_1p02",
+      "01_segment_slice_wise": {
+        "gaussian_sigma_pixels": 0.5,
+        "threshold_multiplier": 1.02,
+        "median_filter_size": 0,
+        "remove_small_objects_min_size": 0,
+        "remove_small_holes_area_threshold": 0,
+        "binary_opening_radius": 0,
+        "binary_closing_radius": 0
+      }
+    },
+    {
+      "name": "gauss_px_0p5_threshold_1p05",
+      "01_segment_slice_wise": {
+        "gaussian_sigma_pixels": 0.5,
+        "threshold_multiplier": 1.05,
+        "median_filter_size": 0,
+        "remove_small_objects_min_size": 0,
+        "remove_small_holes_area_threshold": 0,
+        "binary_opening_radius": 0,
+        "binary_closing_radius": 0
+      }
+    },
+    {
+      "name": "gauss_px_0p5_threshold_1p08",
+      "01_segment_slice_wise": {
+        "gaussian_sigma_pixels": 0.5,
+        "threshold_multiplier": 1.08,
+        "median_filter_size": 0,
+        "remove_small_objects_min_size": 0,
+        "remove_small_holes_area_threshold": 0,
+        "binary_opening_radius": 0,
+        "binary_closing_radius": 0
+      }
+    },
+    {
+      "name": "gauss_px_0p5_threshold_1p12",
+      "01_segment_slice_wise": {
+        "gaussian_sigma_pixels": 0.5,
+        "threshold_multiplier": 1.12,
+        "median_filter_size": 0,
+        "remove_small_objects_min_size": 0,
+        "remove_small_holes_area_threshold": 0,
+        "binary_opening_radius": 0,
+        "binary_closing_radius": 0
+      }
+    },
+    {
+      "name": "gauss_px_0p75_threshold_1p04",
+      "01_segment_slice_wise": {
+        "gaussian_sigma_pixels": 0.75,
+        "threshold_multiplier": 1.04,
+        "median_filter_size": 0,
+        "remove_small_objects_min_size": 0,
+        "remove_small_holes_area_threshold": 0,
+        "binary_opening_radius": 0,
+        "binary_closing_radius": 0
+      }
+    },
+    {
+      "name": "gauss_px_0p75_threshold_1p08",
+      "01_segment_slice_wise": {
+        "gaussian_sigma_pixels": 0.75,
+        "threshold_multiplier": 1.08,
+        "median_filter_size": 0,
+        "remove_small_objects_min_size": 0,
+        "remove_small_holes_area_threshold": 0,
+        "binary_opening_radius": 0,
+        "binary_closing_radius": 0
+      }
+    },
+    {
+      "name": "gauss_px_0p75_threshold_1p12",
+      "01_segment_slice_wise": {
+        "gaussian_sigma_pixels": 0.75,
+        "threshold_multiplier": 1.12,
+        "median_filter_size": 0,
+        "remove_small_objects_min_size": 0,
+        "remove_small_holes_area_threshold": 0,
+        "binary_opening_radius": 0,
+        "binary_closing_radius": 0
+      }
+    },
+    {
+      "name": "gauss_px_0p75_threshold_1p16",
+      "01_segment_slice_wise": {
+        "gaussian_sigma_pixels": 0.75,
+        "threshold_multiplier": 1.16,
+        "median_filter_size": 0,
+        "remove_small_objects_min_size": 0,
+        "remove_small_holes_area_threshold": 0,
+        "binary_opening_radius": 0,
+        "binary_closing_radius": 0
+      }
+    },
+    {
+      "name": "gauss_px_0p5_threshold_1p08_holes16_objects8",
+      "01_segment_slice_wise": {
+        "gaussian_sigma_pixels": 0.5,
+        "threshold_multiplier": 1.08,
+        "remove_small_objects_min_size": 8,
+        "remove_small_holes_area_threshold": 16
+      }
+    },
+    {
+      "name": "median3_gauss_px_0p5_threshold_1p08",
+      "01_segment_slice_wise": {
+        "median_filter_size": 3,
+        "gaussian_sigma_pixels": 0.5,
+        "threshold_multiplier": 1.08
+      }
+    }
+  ]
+}

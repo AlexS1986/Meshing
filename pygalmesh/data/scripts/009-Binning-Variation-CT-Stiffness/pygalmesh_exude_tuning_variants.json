@@ -1,0 +1,49 @@
+{
+  "variants": [
+    {
+      "name": "exude120_s2",
+      "pygalmesh_parameters": {
+        "max_element_size_factor": 5.0,
+        "max_facet_distance_factor": 0.3,
+        "lloyd": false,
+        "odt": false,
+        "perturb": true,
+        "exude": true,
+        "exude_time_limit": 120,
+        "exude_sliver_bound": 2.0,
+        "seed": 0,
+        "verbose": false
+      }
+    },
+    {
+      "name": "exude120_s10",
+      "pygalmesh_parameters": {
+        "max_element_size_factor": 5.0,
+        "max_facet_distance_factor": 0.3,
+        "lloyd": false,
+        "odt": false,
+        "perturb": true,
+        "exude": true,
+        "exude_time_limit": 120,
+        "exude_sliver_bound": 10.0,
+        "seed": 0,
+        "verbose": false
+      }
+    },
+    {
+      "name": "exude300_s5",
+      "pygalmesh_parameters": {
+        "max_element_size_factor": 5.0,
+        "max_facet_distance_factor": 0.3,
+        "lloyd": false,
+        "odt": false,
+        "perturb": true,
+        "exude": true,
+        "exude_time_limit": 300,
+        "exude_sliver_bound": 5.0,
+        "seed": 0,
+        "verbose": false
+      }
+    }
+  ]
+}

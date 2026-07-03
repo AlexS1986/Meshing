@@ -1,4 +1,5 @@
 import dolfinx as dlfx
+import dolfinx.io
 from mpi4py import MPI
 import meshio
 import numpy as np
@@ -56,10 +57,24 @@ for input_file, output_file in mesh_files:
         points[:, 0] = points_tmp[:, 0]
         points[:, 1] = points_tmp[:, 1]
 
-        # Filter active tetrahedral cells
+        # Filter active tetrahedral cells. Pygalmesh writes medit:ref; nanomesh writes tetgen:ref.
         tetra_cells = meshio_data.cells_dict.get("tetra")
-        cells_id = meshio_data.cell_data_dict['medit:ref']['tetra']
-        active_cells = [cell for idx, cell in enumerate(tetra_cells) if cells_id[idx] == 1]
+        cell_data = meshio_data.cell_data_dict
+        if "medit:ref" in cell_data and "tetra" in cell_data["medit:ref"]:
+            cells_id = cell_data["medit:ref"]["tetra"]
+        elif "tetgen:ref" in cell_data and "tetra" in cell_data["tetgen:ref"]:
+            cells_id = cell_data["tetgen:ref"]["tetra"]
+        elif "gmsh:physical" in cell_data and "tetra" in cell_data["gmsh:physical"]:
+            cells_id = cell_data["gmsh:physical"]["tetra"]
+        else:
+            cells_id = None
+
+        if tetra_cells is None:
+            raise ValueError(f"No tetra cells found in {input_file}")
+        if cells_id is None:
+            active_cells = tetra_cells
+        else:
+            active_cells = [cell for idx, cell in enumerate(tetra_cells) if cells_id[idx] != 0]
     else:
         points = None
         active_cells = None

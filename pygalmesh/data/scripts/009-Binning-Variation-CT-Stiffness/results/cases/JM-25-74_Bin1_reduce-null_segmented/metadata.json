@@ -32,7 +32,7 @@
         ]
     },
     "02a_rotate_pic_to_align_with_axis.py": {
-        "timestamp": "2026-06-02T09:16:57.538543",
+        "timestamp": "2026-06-03T17:52:12.265010",
         "input_path": "/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin1_reduce-null_segmented/JM-25-74_Bin1_reduce-null_segmented_3D/segmented_3D_volume.npy",
         "angles_deg": [
             -3.05,
@@ -130,7 +130,7 @@
         "voxel_dim": 0.016737886428833,
         "mesh_output_path": "/work/scratch/as12vapa/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin1_reduce-null_segmented/JM-25-74_Bin1_reduce-null_segmented_3D/subvolume_x320_y320//mesh.xdmf",
         "meshing_method": "pygalmesh",
-        "timestamp": "2026-06-02T09:18:21.031745",
+        "timestamp": "2026-06-03T17:53:58.759351",
         "segmented_volume_value_counts": {
             "0": 732549835,
             "1": 60083765
@@ -139,7 +139,9 @@
             "max_element_size_factor": 5.0,
             "max_facet_distance_factor": 0.3,
             "max_cell_circumradius": 0.08368943214416501,
-            "max_facet_distance": 0.0050213659286499
+            "max_facet_distance": 0.0050213659286499,
+            "exude_time_limit": 30,
+            "exude_sliver_bound": 0.0
         }
     }
 }

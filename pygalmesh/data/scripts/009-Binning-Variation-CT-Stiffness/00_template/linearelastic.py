@@ -3,6 +3,7 @@ import alex.linearelastic
 import alex.phasefield
 import alex.util
 import dolfinx as dlfx
+import dolfinx.io
 from mpi4py import MPI
 
 import ufl 
@@ -24,6 +25,10 @@ parser.add_argument(
     "--material", type=str, choices=["conv", "am", "std","ad"], default="conv",
     help="Material model: 'conv' (default) or 'am' or 'std' "
 )
+parser.add_argument(
+    "--config", type=str, default=None,
+    help="Optional config JSON. Defaults to config.json in the solver folder if present."
+)
 args = parser.parse_args()
 
 # Setup paths
@@ -32,6 +37,99 @@ script_name_without_extension = os.path.splitext(os.path.basename(__file__))[0]
 logfile_path = alex.os.logfile_full_path(script_path, script_name_without_extension)
 outputfile_graph_path = alex.os.outputfile_graph_full_path(script_path, script_name_without_extension)
 outputfile_xdmf_path = alex.os.outputfile_xdmf_full_path(script_path, script_name_without_extension)
+
+
+def load_optional_config():
+    config_path = args.config or os.path.join(script_path, "config.json")
+    if not config_path or not os.path.isfile(config_path):
+        return {}, None
+    with open(config_path, "r") as handle:
+        return json.load(handle), config_path
+
+
+def boundary_shell_voxel_thicknesses(config):
+    seal = config.get("02d_axis_aligned_cuboid_crop", {}).get("boundary_seal", {})
+    if not seal.get("enabled", False):
+        return None
+    base = int(seal.get("thickness", 0) or 0)
+    thicknesses = {
+        "x_min": base, "x_max": base,
+        "y_min": base, "y_max": base,
+        "z_min": base, "z_max": base,
+    }
+    for key, value in (seal.get("thicknesses") or {}).items():
+        if key == "x":
+            thicknesses["x_min"] = int(value)
+            thicknesses["x_max"] = int(value)
+        elif key == "y":
+            thicknesses["y_min"] = int(value)
+            thicknesses["y_max"] = int(value)
+        elif key == "z":
+            thicknesses["z_min"] = int(value)
+            thicknesses["z_max"] = int(value)
+        elif key in thicknesses:
+            thicknesses[key] = int(value)
+        else:
+            raise ValueError(f"Unsupported boundary shell thickness key: {key}")
+    return thicknesses
+
+
+def load_solver_volume_shape(config):
+    prep = config.get("02d_axis_aligned_cuboid_crop", {})
+    names = []
+    if prep.get("output_filename"):
+        names.append(prep["output_filename"])
+    names.extend(["volume_boundary_shell.npy", "volume_cuboid.npy", "volume.npy"])
+    for name in names:
+        volume_path = os.path.join(script_path, name)
+        if os.path.isfile(volume_path):
+            return np.load(volume_path, mmap_mode="r").shape, volume_path
+    return None, None
+
+
+def shell_widths_from_config(config, bounds):
+    thicknesses = boundary_shell_voxel_thicknesses(config)
+    if thicknesses is None:
+        return None, None, None
+    shape, volume_path = load_solver_volume_shape(config)
+    if shape is None:
+        return None, thicknesses, volume_path
+    x_min, x_max, y_min, y_max, z_min, z_max = bounds
+    return {
+        "x_min": thicknesses["x_min"] / shape[0] * (x_max - x_min),
+        "x_max": thicknesses["x_max"] / shape[0] * (x_max - x_min),
+        "y_min": thicknesses["y_min"] / shape[1] * (y_max - y_min),
+        "y_max": thicknesses["y_max"] / shape[1] * (y_max - y_min),
+        "z_min": thicknesses["z_min"] / shape[2] * (z_max - z_min),
+        "z_max": thicknesses["z_max"] / shape[2] * (z_max - z_min),
+    }, thicknesses, volume_path
+
+
+def shell_band_marker(widths, bounds):
+    x_min, x_max, y_min, y_max, z_min, z_max = bounds
+    return lambda x: (
+        (x[0] <= x_min + widths["x_min"]) |
+        (x[0] >= x_max - widths["x_max"]) |
+        (x[1] <= y_min + widths["y_min"]) |
+        (x[1] >= y_max - widths["y_max"]) |
+        (x[2] <= z_min + widths["z_min"]) |
+        (x[2] >= z_max - widths["z_max"])
+    )
+
+
+def interior_marker_from_shell(widths, bounds):
+    x_min, x_max, y_min, y_max, z_min, z_max = bounds
+    return lambda x: (
+        (x[0] > x_min + widths["x_min"]) &
+        (x[0] < x_max - widths["x_max"]) &
+        (x[1] > y_min + widths["y_min"]) &
+        (x[1] < y_max - widths["y_max"]) &
+        (x[2] > z_min + widths["z_min"]) &
+        (x[2] < z_max - widths["z_max"])
+    )
+
+
+config, config_path = load_optional_config()
 
 # Timer
 timer = dlfx.common.Timer()
@@ -115,10 +213,17 @@ atol_x = (x_max_all - x_min_all) * atol_scal
 atol_y = (y_max_all - y_min_all) * atol_scal
 atol_z = (z_max_all - z_min_all) * atol_scal
 
+domain_bounds = (x_min_all, x_max_all, y_min_all, y_max_all, z_min_all, z_max_all)
+shell_widths, shell_voxel_thicknesses, shell_volume_path = shell_widths_from_config(config, domain_bounds)
+
 u_D = dlfx.fem.Function(V)
-boundary = bc.get_boundary_of_box_as_function(domain, comm, atol_x = atol_x, atol_y=atol_y, atol_z=atol_z)
-facets_at_boundary = dlfx.mesh.locate_entities_boundary(domain, fdim, boundary)
-dofs_at_boundary = dlfx.fem.locate_dofs_topological(V, fdim, facets_at_boundary)
+if shell_widths is not None:
+    boundary = shell_band_marker(shell_widths, domain_bounds)
+    dofs_at_boundary = dlfx.fem.locate_dofs_geometrical(V, boundary)
+else:
+    boundary = bc.get_boundary_of_box_as_function(domain, comm, atol_x = atol_x, atol_y=atol_y, atol_z=atol_z)
+    facets_at_boundary = dlfx.mesh.locate_entities_boundary(domain, fdim, boundary)
+    dofs_at_boundary = dlfx.fem.locate_dofs_topological(V, fdim, facets_at_boundary)
 
 eps_mac = dlfx.fem.Constant(domain, np.zeros((3, 3)))
 
@@ -155,7 +260,10 @@ Chom = np.zeros((6, 6))
 
 # Integration measure for homogenization
 tag_value_hom_cells = 1
-marker1 = bc.dont_get_boundary_of_box_as_function(domain, comm, atol_x = atol_x, atol_y=atol_y, atol_z=atol_z)
+if shell_widths is not None:
+    marker1 = interior_marker_from_shell(shell_widths, domain_bounds)
+else:
+    marker1 = bc.dont_get_boundary_of_box_as_function(domain, comm, atol_x = atol_x, atol_y=atol_y, atol_z=atol_z)
 marked_cells = dlfx.mesh.locate_entities(domain, dim=3, marker=marker1)
 marked_values = np.full(len(marked_cells), tag_value_hom_cells, dtype=np.int32)
 cell_tags = dlfx.mesh.meshtags(domain, 3, marked_cells, marked_values)
@@ -221,7 +329,11 @@ def after_last_timestep():
             "vol": vol,
             "vol_material": vol_material,
             "vol_overall": vol_overall,
-            "vol_material_over_vol": vol_material / vol if vol > 0 else None
+            "vol_material_over_vol": vol_material / vol if vol > 0 else None,
+            "boundary_shell_voxel_thicknesses": shell_voxel_thicknesses,
+            "boundary_shell_physical_widths": shell_widths,
+            "boundary_shell_volume_path": shell_volume_path,
+            "homogenization_excludes_boundary_shell": shell_widths is not None
         }
         vol_path = os.path.join(script_path, "vol.json")
         with open(vol_path, "w") as f:

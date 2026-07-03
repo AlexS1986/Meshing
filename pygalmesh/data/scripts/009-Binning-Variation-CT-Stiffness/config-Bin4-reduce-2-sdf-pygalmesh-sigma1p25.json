@@ -1,0 +1,251 @@
+{
+  "metadata_output_path": "/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin4_reduce-2_segmented_sigma0p5_thr1p12_sdf_pygalmesh_sigma1p25/metadata.json",
+  "binning": {
+    "id": 4,
+    "label": "Bin4",
+    "resource_folder": "/data/resources/B02_Mevert_AlSi10MgSchaum_JM-26-74_Binning_Variation/Binning 4/JM-25-74_6min15_750^C_erodiert_nach Trockenschrank_Bin4",
+    "script_reduce_factor": 2,
+    "effective_binning_factor": 8,
+    "region_reference": {
+      "binning_id": 2,
+      "reduce_factor": 1,
+      "min_z": 220,
+      "max_z": 570
+    }
+  },
+  "dicom2npy": {
+    "foldername": "/data/resources/B02_Mevert_AlSi10MgSchaum_JM-26-74_Binning_Variation/Binning 4/JM-25-74_6min15_750^C_erodiert_nach Trockenschrank_Bin4",
+    "option": "reduce",
+    "crop": {
+      "x_start": null,
+      "x_end": null,
+      "y_start": null,
+      "y_end": null
+    },
+    "reduce": {
+      "factor": 2
+    },
+    "slice_start": 0,
+    "slice_end": null,
+    "output_folder": "/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin4_reduce-2/npy"
+  },
+  "01_segment_slice_wise": {
+    "specimen_name": "JM-25-74_Bin4_reduce-2",
+    "input_folder": "/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin4_reduce-2/npy",
+    "output_folder": "/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin4_reduce-2_segmented_sigma0p5_thr1p12_sdf_pygalmesh_sigma1p25",
+    "preview_slice_index": 100,
+    "seg_algorithm": "otsu",
+    "gaussian_filter_sigma_factor": 1,
+    "gaussian_sigma_pixels": 0.5,
+    "median_filter_size": 0,
+    "threshold_multiplier": 1.12,
+    "threshold_offset": 0.0,
+    "invert_contrast": true,
+    "remove_small_objects_min_size": 0,
+    "remove_small_holes_area_threshold": 0,
+    "binary_opening_radius": 0,
+    "binary_closing_radius": 0,
+    "save_visualizations": false
+  },
+  "02_segmented_3D_array": {
+    "input_folder": "/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin4_reduce-2_segmented_sigma0p5_thr1p12_sdf_pygalmesh_sigma1p25",
+    "output_folder": "/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin4_reduce-2_segmented_sigma0p5_thr1p12_sdf_pygalmesh_sigma1p25/JM-25-74_Bin4_reduce-2_segmented_sigma0p5_thr1p12_sdf_pygalmesh_sigma1p25_3D",
+    "desired_width_x": null,
+    "desired_height_y": null,
+    "center_x": null,
+    "center_y": null,
+    "min_z": 55,
+    "max_z": 143
+  },
+  "03_mesh_3D_array": {
+    "specimen_name": "JM-25-74_Bin4_reduce-2_segmented_sigma0p5_thr1p12_sdf_pygalmesh_sigma1p25",
+    "input_folder": "/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin4_reduce-2_segmented_sigma0p5_thr1p12_sdf_pygalmesh_sigma1p25/JM-25-74_Bin4_reduce-2_segmented_sigma0p5_thr1p12_sdf_pygalmesh_sigma1p25_3D",
+    "smoothing_sigma_factor": 1,
+    "segmentation_algorithm": "otsu",
+    "z_slice": 0,
+    "scale_factor": 1.0,
+    "meshing_method": "sdf_pygalmesh",
+    "mesh_output_path": "/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin4_reduce-2_segmented_sigma0p5_thr1p12_sdf_pygalmesh_sigma1p25/mesh.xdmf",
+    "pygalmesh_parameters": {
+      "max_element_size_factor": 5.0,
+      "max_facet_distance_factor": 0.3,
+      "exude_time_limit": 30,
+      "exude_sliver_bound": 0.0,
+      "lloyd": false,
+      "odt": false,
+      "perturb": true,
+      "exude": true,
+      "max_edge_size_at_feature_edges_factor": 0.0,
+      "min_facet_angle": 0.0,
+      "max_radius_surface_delaunay_ball_factor": 0.0,
+      "max_circumradius_edge_ratio": 0.0,
+      "seed": 0,
+      "verbose": true
+    },
+    "nanomesh_parameters": {
+      "meshing_options": "-p",
+      "output_format": "xdmf",
+      "output_binary": false
+    },
+    "sdf_gmsh_parameters": {
+      "material_value": 1,
+      "sdf_sigma_voxels": 0.75,
+      "level": 0.0,
+      "pad_width": 1,
+      "keep_largest_component": false,
+      "component_connectivity": 6,
+      "fill_holes": true,
+      "mesh_size_min_factor": 0.5,
+      "mesh_size_max_factor": 5.0,
+      "classification_angle_degrees": 40.0,
+      "curve_angle_degrees": 180.0,
+      "force_parametrizable_patches": true,
+      "include_boundary": true,
+      "algorithm3d": 10,
+      "optimize_methods": [
+        "Netgen"
+      ],
+      "verbose": true,
+      "marching_cubes_step_size": 1,
+      "surface_decimation_reduction": 0.0,
+      "surface_decimation_preserve_topology": true,
+      "surface_decimation_splitting": false,
+      "surface_decimation_boundary_vertex_deletion": false
+    },
+    "sdf_pygalmesh_parameters": {
+      "material_value": 1,
+      "sdf_sigma_voxels": 1.25,
+      "level": 0.0,
+      "pad_width": 1,
+      "keep_largest_component": false,
+      "component_connectivity": 6,
+      "fill_holes": true,
+      "require_watertight_surface": true,
+      "reorient": false,
+      "marching_cubes_step_size": 1,
+      "surface_decimation_reduction": 0.0,
+      "surface_decimation_preserve_topology": true,
+      "surface_decimation_splitting": false,
+      "surface_decimation_boundary_vertex_deletion": false,
+      "pygalmesh_parameters": {
+        "max_element_size_factor": 5.0,
+        "max_facet_distance_factor": 0.3,
+        "exude_time_limit": 30,
+        "exude_sliver_bound": 0.0,
+        "lloyd": false,
+        "odt": false,
+        "perturb": true,
+        "exude": true,
+        "max_edge_size_at_feature_edges_factor": 0.0,
+        "min_facet_angle": 0.0,
+        "max_radius_surface_delaunay_ball_factor": 0.0,
+        "max_circumradius_edge_ratio": 0.0,
+        "seed": 0,
+        "verbose": true
+      }
+    }
+  },
+  "02a_rotate_pic_to_align_with_axis": {
+    "material_value": 1,
+    "pore_value": 0,
+    "buffer_width": 15,
+    "buffer_width_min_x": 40,
+    "buffer_width_max_x": 40,
+    "buffer_width_min_y": 40,
+    "buffer_width_max_y": 40,
+    "buffer_width_min_z": 6,
+    "buffer_width_max_z": 6,
+    "angles": [
+      -3.05,
+      -2.9,
+      -5.0
+    ]
+  },
+  "02b_build_subvolume_arrays": {
+    "xy_divisions": 1,
+    "subvolume_output_folder": "/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin4_reduce-2_segmented_sigma0p5_thr1p12_sdf_pygalmesh_sigma1p25/JM-25-74_Bin4_reduce-2_segmented_sigma0p5_thr1p12_sdf_pygalmesh_sigma1p25_3D"
+  },
+  "05_tetgen_postprocess": {
+    "enabled": true,
+    "switches": "-rO2CV",
+    "active_ref": 1,
+    "all_tets": false,
+    "keep_workdir": false
+  },
+  "06_gmsh_postprocess": {
+    "enabled": false,
+    "methods": [
+      "Netgen"
+    ],
+    "active_ref": 1,
+    "all_tets": false,
+    "binary_msh": false
+  },
+  "08_mesh_quality_report": {
+    "enabled": true,
+    "thresholds": {
+      "largest_aspect_ratio": {
+        "good": 20.0,
+        "acceptable": 50.0,
+        "direction": "max"
+      },
+      "smallest_dihedral": {
+        "good": 10.0,
+        "acceptable": 5.0,
+        "direction": "min"
+      },
+      "dihedral_0_5_fraction": {
+        "good": 0.0,
+        "acceptable": 0.001,
+        "direction": "max"
+      },
+      "dihedral_5_10_fraction": {
+        "good": 0.01,
+        "acceptable": 0.05,
+        "direction": "max"
+      },
+      "smallest_facet_angle": {
+        "good": 5.0,
+        "acceptable": 2.0,
+        "direction": "min"
+      }
+    }
+  },
+  "09_mesh_topology_audit": {
+    "enabled": true,
+    "active_ref": 1,
+    "all_tets": false,
+    "volume_tolerance": 1e-14,
+    "tiny_volume_absolute": 1e-12,
+    "tiny_volume_relative_to_median": 1e-08,
+    "face_area_tolerance": 1e-14,
+    "write_boundary_surface": false,
+    "repair": {
+      "enabled": false,
+      "drop_duplicate_tets": true,
+      "drop_degenerate_tets": true,
+      "drop_tiny_tets": false,
+      "orient_tets_positive": true,
+      "output_mesh_path": null
+    }
+  },
+  "02c_voxel_topology_cleanup": {
+    "enabled": true,
+    "material_value": 1,
+    "output_filename": "volume_topology_cleaned.npy",
+    "report_filename": "volume_topology.txt",
+    "use_cleaned_for_meshing": false,
+    "connectivity": {
+      "material": 6,
+      "pore": 6
+    },
+    "cleanup": {
+      "enabled": false,
+      "keep_largest_material_component": false,
+      "min_material_component_voxels": 0,
+      "fill_pore_cavities_max_voxels": 0,
+      "binary_opening_iterations": 0,
+      "binary_closing_iterations": 0
+    }
+  }
+}

@@ -177,6 +177,39 @@ write_config_for_binning() {
       "meshing_options": "-pAqD",
       "output_format": "gmsh22",
       "output_binary": false
+    },
+    "sdf_pygalmesh_parameters": {
+      "material_value": $SDF_PYGALMESH_MATERIAL_VALUE,
+      "sdf_sigma_voxels": $SDF_SIGMA_VOXELS,
+      "level": 0.0,
+      "pad_width": $SDF_SURFACE_PAD_WIDTH,
+      "keep_largest_component": false,
+      "component_connectivity": 6,
+      "fill_holes": true,
+      "require_watertight_surface": true,
+      "reorient": false,
+      "marching_cubes_step_size": 1,
+      "surface_decimation_reduction": 0.0,
+      "surface_decimation_preserve_topology": true,
+      "surface_decimation_splitting": false,
+      "surface_decimation_boundary_vertex_deletion": false,
+      "min_surface_component_faces": 0,
+      "pygalmesh_parameters": {
+        "max_element_size_factor": $MAX_ELEMENT_SIZE_FACTOR,
+        "max_facet_distance_factor": $MAX_FACET_DISTANCE_FACTOR,
+        "exude_time_limit": $PYGALMESH_EXUDE_TIME_LIMIT,
+        "exude_sliver_bound": $PYGALMESH_EXUDE_SLIVER_BOUND,
+        "lloyd": false,
+        "odt": false,
+        "perturb": true,
+        "exude": true,
+        "max_edge_size_at_feature_edges_factor": 0.0,
+        "min_facet_angle": 0.0,
+        "max_radius_surface_delaunay_ball_factor": 0.0,
+        "max_circumradius_edge_ratio": 0.0,
+        "seed": 0,
+        "verbose": true
+      }
     }
   },
   "02a_rotate_pic_to_align_with_axis": {
@@ -194,6 +227,30 @@ write_config_for_binning() {
   "02b_build_subvolume_arrays": {
     "xy_divisions": $(json_value_or_null "$XY_DIVISIONS"),
     "subvolume_output_folder": "$segmented_3d_output"
+  },
+  "02d_axis_aligned_cuboid_crop": {
+    "enabled": $BOUNDARY_SHELL_ENABLED,
+    "output_filename": "volume_boundary_shell_aniso.npy",
+    "report_filename": "volume_boundary_shell_aniso.txt",
+    "use_cuboid_for_meshing": true,
+    "crop": {
+      "enabled": false,
+      "value": $BOUNDARY_SHELL_VALUE,
+      "margin": 0
+    },
+    "boundary_seal": {
+      "enabled": $BOUNDARY_SHELL_ENABLED,
+      "value": $BOUNDARY_SHELL_VALUE,
+      "thickness": $BOUNDARY_SHELL_THICKNESS,
+      "thicknesses": {
+        "x_min": $BOUNDARY_SHELL_X_MIN,
+        "x_max": $BOUNDARY_SHELL_X_MAX,
+        "y_min": $BOUNDARY_SHELL_Y_MIN,
+        "y_max": $BOUNDARY_SHELL_Y_MAX,
+        "z_min": $BOUNDARY_SHELL_Z_MIN,
+        "z_max": $BOUNDARY_SHELL_Z_MAX
+      }
+    }
   }
 }
 EOF

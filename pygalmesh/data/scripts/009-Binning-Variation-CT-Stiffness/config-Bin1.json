@@ -54,7 +54,7 @@
     "segmentation_algorithm": "otsu",
     "z_slice": 0,
     "scale_factor": 1.0,
-    "meshing_method": "pygalmesh",
+    "meshing_method": "sdf_pygalmesh",
     "mesh_output_path": "/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin1_segmented/mesh.xdmf",
     "pygalmesh_parameters": {
       "max_element_size_factor": 5.0,
@@ -66,6 +66,39 @@
       "meshing_options": "-pAqD",
       "output_format": "gmsh22",
       "output_binary": false
+    },
+    "sdf_pygalmesh_parameters": {
+      "material_value": 1,
+      "sdf_sigma_voxels": 1.0,
+      "level": 0.0,
+      "pad_width": 1,
+      "keep_largest_component": false,
+      "component_connectivity": 6,
+      "fill_holes": true,
+      "require_watertight_surface": true,
+      "reorient": false,
+      "marching_cubes_step_size": 1,
+      "surface_decimation_reduction": 0.0,
+      "surface_decimation_preserve_topology": true,
+      "surface_decimation_splitting": false,
+      "surface_decimation_boundary_vertex_deletion": false,
+      "min_surface_component_faces": 0,
+      "pygalmesh_parameters": {
+        "max_element_size_factor": 5.0,
+        "max_facet_distance_factor": 0.3,
+        "exude_time_limit": 30,
+        "exude_sliver_bound": 0.0,
+        "lloyd": false,
+        "odt": false,
+        "perturb": true,
+        "exude": true,
+        "max_edge_size_at_feature_edges_factor": 0.0,
+        "min_facet_angle": 0.0,
+        "max_radius_surface_delaunay_ball_factor": 0.0,
+        "max_circumradius_edge_ratio": 0.0,
+        "seed": 0,
+        "verbose": true
+      }
     }
   },
   "02a_rotate_pic_to_align_with_axis": {
@@ -87,5 +120,103 @@
   "02b_build_subvolume_arrays": {
     "xy_divisions": 1,
     "subvolume_output_folder": "/data/scripts/009-Binning-Variation-CT-Stiffness/JM-25-74_Bin1_segmented/JM-25-74_Bin1_segmented_3D"
+  },
+  "02d_axis_aligned_cuboid_crop": {
+    "enabled": true,
+    "output_filename": "volume_boundary_shell_aniso.npy",
+    "report_filename": "volume_boundary_shell_aniso.txt",
+    "use_cuboid_for_meshing": true,
+    "crop": {
+      "enabled": false,
+      "value": 0,
+      "margin": 0
+    },
+    "boundary_seal": {
+      "enabled": true,
+      "value": 0,
+      "thickness": 3,
+      "thicknesses": {
+        "x_min": 3,
+        "x_max": 3,
+        "y_min": 12,
+        "y_max": 12,
+        "z_min": 3,
+        "z_max": 3
+      }
+    }
+  },
+  "02c_voxel_topology_cleanup": {
+    "enabled": true,
+    "material_value": 1,
+    "output_filename": "volume_topology_cleaned.npy",
+    "report_filename": "volume_topology.txt",
+    "use_cleaned_for_meshing": false,
+    "connectivity": {
+      "material": 6,
+      "pore": 6
+    },
+    "cleanup": {
+      "enabled": false,
+      "keep_largest_material_component": false,
+      "min_material_component_voxels": 0,
+      "fill_pore_cavities_max_voxels": 0,
+      "binary_opening_iterations": 0,
+      "binary_closing_iterations": 0
+    }
+  },
+  "05_tetgen_postprocess": {
+    "enabled": true,
+    "switches": "-rO2CV",
+    "active_ref": 1,
+    "all_tets": false,
+    "keep_workdir": false
+  },
+  "08_mesh_quality_report": {
+    "enabled": true,
+    "thresholds": {
+      "largest_aspect_ratio": {
+        "good": 20.0,
+        "acceptable": 50.0,
+        "direction": "max"
+      },
+      "smallest_dihedral": {
+        "good": 10.0,
+        "acceptable": 5.0,
+        "direction": "min"
+      },
+      "dihedral_0_5_fraction": {
+        "good": 0.0,
+        "acceptable": 0.001,
+        "direction": "max"
+      },
+      "dihedral_5_10_fraction": {
+        "good": 0.01,
+        "acceptable": 0.05,
+        "direction": "max"
+      },
+      "smallest_facet_angle": {
+        "good": 5.0,
+        "acceptable": 2.0,
+        "direction": "min"
+      }
+    }
+  },
+  "09_mesh_topology_audit": {
+    "enabled": true,
+    "active_ref": 1,
+    "all_tets": false,
+    "volume_tolerance": 1e-14,
+    "tiny_volume_absolute": 1e-12,
+    "tiny_volume_relative_to_median": 1e-08,
+    "face_area_tolerance": 1e-14,
+    "write_boundary_surface": false,
+    "repair": {
+      "enabled": false,
+      "drop_duplicate_tets": true,
+      "drop_degenerate_tets": true,
+      "drop_tiny_tets": false,
+      "orient_tets_positive": true,
+      "output_mesh_path": null
+    }
   }
 }

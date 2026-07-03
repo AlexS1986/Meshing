@@ -18,6 +18,54 @@ SPECIMEN_NAME="${SPECIMEN_NAME:-JM-25-74}"
 SUBVOLUME_DIR="${SUBVOLUME_DIR:-subvolume_x160_y160}"
 SSH_BIN="${SSH_BIN:-ssh}"
 SCP_BIN="${SCP_BIN:-scp}"
+ONLY_BIN="${ONLY_BIN:-}"
+ONLY_REDUCE="${ONLY_REDUCE:-}"
+ONLY_CASE="${ONLY_CASE:-}"
+
+usage() {
+  cat <<'EOF'
+Usage: download_binning_results.sh [options]
+
+Options:
+  --bin VALUE       Download only cases with this binning value.
+  --reduce VALUE    Download only cases with this reduce value, e.g. null, 2, 4, or 8.
+  --case NAME       Download only this exact canonical case folder name.
+  -h, --help        Show this help.
+
+Examples:
+  ./download_binning_results.sh --bin 1 --reduce null
+  ./download_binning_results.sh --case JM-25-74_Bin1_reduce-null_segmented
+EOF
+}
+
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    --bin)
+      [[ "$#" -ge 2 ]] || { printf 'Missing value for --bin\n' >&2; exit 2; }
+      ONLY_BIN="$2"
+      shift 2
+      ;;
+    --reduce)
+      [[ "$#" -ge 2 ]] || { printf 'Missing value for --reduce\n' >&2; exit 2; }
+      ONLY_REDUCE="$2"
+      shift 2
+      ;;
+    --case)
+      [[ "$#" -ge 2 ]] || { printf 'Missing value for --case\n' >&2; exit 2; }
+      ONLY_CASE="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      printf 'Unknown option: %s\n' "$1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
 
 CASE_ROOT="$RESULTS_DIR/cases"
 REMOTE_CONFIG_DIR="$RESULTS_DIR/remote_configs"
@@ -409,6 +457,28 @@ main() {
       }
     }
   ' < <(sort -t $'\t' -k1,1 "$records_file") | sort -t $'\t' -k1,1nr -k2,2nr | cut -f3- > "$case_list_file"
+
+  if [[ -n "$ONLY_BIN" || -n "$ONLY_REDUCE" || -n "$ONLY_CASE" ]]; then
+    filtered_case_list="$RESULTS_DIR/.case_list.filtered.tsv"
+    awk -F '\t' \
+      -v only_bin="$ONLY_BIN" \
+      -v only_reduce="$ONLY_REDUCE" \
+      -v only_case="$ONLY_CASE" '
+        (only_bin == "" || $2 == only_bin) &&
+        (only_reduce == "" || $3 == only_reduce) &&
+        (only_case == "" || $1 == only_case)
+      ' "$case_list_file" > "$filtered_case_list"
+    mv "$filtered_case_list" "$case_list_file"
+  fi
+
+  if [[ ! -s "$case_list_file" ]]; then
+    printf 'No remote cases matched the requested filter' >&2
+    [[ -n "$ONLY_BIN" ]] && printf ' --bin %s' "$ONLY_BIN" >&2
+    [[ -n "$ONLY_REDUCE" ]] && printf ' --reduce %s' "$ONLY_REDUCE" >&2
+    [[ -n "$ONLY_CASE" ]] && printf ' --case %s' "$ONLY_CASE" >&2
+    printf '.\n' >&2
+    exit 1
+  fi
 
   case_count="$(wc -l < "$case_list_file" | tr -d ' ')"
   printf 'Discovered %s case(s):\n' "$case_count"

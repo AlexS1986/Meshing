@@ -3,6 +3,7 @@ import alex.linearelastic
 import alex.phasefield
 import alex.util
 import dolfinx as dlfx
+import dolfinx.io
 from mpi4py import MPI
 
 import ufl 

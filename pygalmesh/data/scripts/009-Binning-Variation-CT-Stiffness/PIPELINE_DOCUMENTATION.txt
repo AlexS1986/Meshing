@@ -1,0 +1,217 @@
+009-Binning-Variation-CT-Stiffness pipeline documentation
+==========================================================
+
+Purpose
+-------
+This pipeline converts CT/DICOM image data for JM-25-74 into segmented voxel volumes,
+prepares the voxel data for robust tetrahedral meshing, generates an FE mesh, audits mesh
+quality/topology, converts the mesh for DolfinX, and computes homogenized stiffness with a
+linear-elastic solve.
+
+Current default meshing route
+-----------------------------
+All ordinary Bin1/Bin2/Bin4 configs in this folder now use the same default route:
+
+  voxel subvolume
+    -> optional voxel topology audit/cleanup report (02c)
+    -> anisotropic solid boundary shell / cuboid preprocessing (02d)
+    -> signed-distance-field surface extraction inside 03_mesh_3D_array_pygalmesh.py
+    -> pygalmesh volume tetrahedralization from the SDF surface
+    -> scale/translate mesh into physical coordinates
+    -> TetGen postprocess/check
+    -> TetGen quality report (08)
+    -> mesh topology audit (09)
+    -> DolfinX mesh conversion
+    -> linearelastic homogenization
+
+The active ordinary configs use:
+
+  "03_mesh_3D_array": {
+    "meshing_method": "sdf_pygalmesh",
+    "sdf_pygalmesh_parameters": {
+      "sdf_sigma_voxels": 1.0,
+      "pad_width": 1,
+      "require_watertight_surface": true,
+      "pygalmesh_parameters": {
+        "max_element_size_factor": 5.0,
+        "max_facet_distance_factor": 0.3,
+        "exude_time_limit": 30
+      }
+    }
+  }
+
+Voxel preparation
+-----------------
+00_dicom_2_npy.py
+  Reads DICOM slices, optionally reduces/crops them, and writes npy slices plus metadata.
+
+01_segment_slice_wise.py
+  Segments the CT slices. The config can control Gaussian smoothing, median filtering,
+  threshold multiplier/offset, contrast inversion, and optional morphology. The current
+  ordinary configs keep the historical segmentation values unless changed per case.
+
+02_build3D_segmented_array.py
+  Stacks segmented slices into a 3D binary voxel volume.
+
+02a_rotate_pic_to_align_with_axis.py
+  Rotates the segmented volume into the selected specimen coordinate frame and clears
+  boundary artifacts according to configured buffer widths.
+
+02b_build_subvolume_arrays.py
+  Cuts the rotated volume into subvolume folders. Each subvolume contains volume.npy.
+
+02c_voxel_topology_cleanup.py
+  Audits voxel topology and optionally writes a cleaned voxel volume. In the current
+  default configs, cleanup is disabled but the report is enabled. This means the report
+  is useful for diagnosing ambiguous voxel topology, but meshing still uses the original
+  or 02d-processed volume unless use_cleaned_for_meshing is set true.
+
+02d_axis_aligned_cuboid_crop.py
+-------------------------------
+This optional step prepares a solid boundary shell for boundary conditions and can also
+crop to an axis-aligned cuboid. The current default ordinary configs enable it and mesh
+its output:
+
+  "02d_axis_aligned_cuboid_crop": {
+    "enabled": true,
+    "output_filename": "volume_boundary_shell_aniso.npy",
+    "report_filename": "volume_boundary_shell_aniso.txt",
+    "use_cuboid_for_meshing": true,
+    "crop": {
+      "enabled": false,
+      "value": 0,
+      "margin": 0
+    },
+    "boundary_seal": {
+      "enabled": true,
+      "value": 0,
+      "thickness": 3,
+      "thicknesses": {
+        "x_min": 3,
+        "x_max": 3,
+        "y_min": 12,
+        "y_max": 12,
+        "z_min": 3,
+        "z_max": 3
+      }
+    }
+  }
+
+The thicknesses are voxel counts. The y_min/y_max shell is four times thicker than the
+x/z shells. In this dataset, value 0 is the phase used by 03_mesh_3D_array_pygalmesh.py
+as the meshed material after its binary/invert handling, so value 0 is used for the shell.
+If a future config changes segmentation/phase conventions, verify this value.
+
+The 02d report records the original and processed voxel counts, the applied per-face
+thicknesses, and how many voxels were changed. The shell is intended to give the FE solve
+a solid band on each boundary for robust Dirichlet conditions.
+
+SDF surface extraction and pygalmesh meshing
+-------------------------------------------
+03_mesh_3D_array_pygalmesh.py with meshing_method=sdf_pygalmesh performs:
+
+  1. Load the selected volume.npy or 02d output.
+  2. Build a binary material mask.
+  3. Compute a signed distance field with scipy distance transforms.
+  4. Smooth the SDF with sdf_sigma_voxels.
+  5. Extract a surface using marching cubes.
+  6. Repair/normalize surface winding with trimesh.
+  7. Optionally filter tiny closed surface components.
+  8. Audit the surface topology and write mesh_sdf_surface.topology.txt.
+  9. Require a watertight/manifold surface before pygalmesh, if configured.
+  10. Write mesh_sdf_surface.off.
+  11. Generate a tetrahedral volume mesh with pygalmesh.generate_volume_mesh_from_surface_mesh.
+
+This route was adopted because direct pygalmesh-on-array produced many non-manifold
+boundary edges. SDF extraction gives a clean surface before tetrahedralization.
+
+Mesh postprocessing and quality reports
+---------------------------------------
+04_scale_and_translate_mesh_mod.py
+  Scales and translates the mesh into the physical coordinate system using metadata and
+  the subvolume position.
+
+05_tetgen_postprocess_mesh.py
+  Runs TetGen on the tetra mesh. The default switches are -rO2CV. The original mesh is
+  backed up as mesh.pre_tetgen.xdmf/h5 and the postprocessed mesh overwrites mesh.xdmf/h5.
+
+08_mesh_quality_report.py
+  Parses the TetGen log and writes mesh.quality.txt. It classifies metrics as good,
+  acceptable, or bad using thresholds in the config. Important values include largest
+  aspect ratio, smallest dihedral angle, and low-dihedral fractions.
+
+09_mesh_topology_audit.py
+  Reads mesh.xdmf and writes mesh.topology.txt. It checks duplicate/degenerate/tiny/inverted
+tetrahedra, non-manifold tetra faces, boundary faces/edges/components, open boundary edges,
+  and non-manifold boundary edges. Optional surface checks use trimesh/pyvista when available.
+
+FE boundary conditions and averaging
+------------------------------------
+00_template/linearelastic.py now reads config.json from the solver folder. The local and
+cluster runners copy the active config into each subvolume before solving.
+
+If 02d_axis_aligned_cuboid_crop.boundary_seal.enabled is true, linearelastic.py:
+
+  - reads the configured shell thicknesses in voxel counts;
+  - converts them to physical widths using the solver volume shape and mesh bounds;
+  - applies the macroscopic linear displacement Dirichlet condition to all dofs inside
+    the shell bands, not only the outer facets;
+  - excludes the shell bands from the homogenization/stress averaging volume;
+  - writes the shell settings and exclusion flag into vol.json.
+
+If no shell config is present, linearelastic.py falls back to the older 4% geometric
+boundary tolerance behavior.
+
+Local execution
+---------------
+For the Bin4 reduce-2 local case, use:
+
+  CONFIG_PATH=/data/scripts/009-Binning-Variation-CT-Stiffness/config-Bin4-reduce-2.json   LOCAL_NPROCS=6   /data/scripts/009-Binning-Variation-CT-Stiffness/job_ebody_Bin4_reduce_2_LOCAL.sh
+
+Any ordinary config-Bin*.json can be passed through CONFIG_PATH. The local runner now:
+
+  - runs preprocessing 00/01/02/02a/02b;
+  - runs 02c if enabled;
+  - runs 02d if enabled and switches meshing to its output when use_cuboid_for_meshing=true;
+  - runs 03/04/05/08/09;
+  - converts to DolfinX;
+  - copies config.json into each solver folder;
+  - runs linearelastic.py using up to LOCAL_NPROCS processes, capped at 6.
+
+Cluster execution
+-----------------
+The ordinary cluster submit scripts call job_ebody_from_scans_CLUSTER.sh. That generic
+runner now also:
+
+  - runs 02d when enabled;
+  - meshes the 02d output when use_cuboid_for_meshing=true;
+  - runs TetGen postprocess and quality/topology reports when enabled;
+  - copies config.json into each solver folder so linearelastic.py uses the shell settings.
+
+Configuration regeneration
+--------------------------
+create_config.sh and config.sh have been updated so newly generated ordinary configs use:
+
+  MESHING_METHOD="sdf_pygalmesh"
+  SDF_SIGMA_VOXELS=1.0
+  anisotropic boundary shell: x/z = 3 voxels, y = 12 voxels
+
+Regenerating configs with create_config.sh will therefore preserve the new default route.
+
+Known tradeoffs from Bin4 reduce-2 experiments
+----------------------------------------------
+The SDF/pygalmesh/aniso-shell route improves the handling of boundary conditions and gives
+a solid shell for FE constraints. However, pygalmesh volume tetrahedralization can still
+produce non-manifold boundary edges in the final tetra boundary even when the SDF surface
+is clean and watertight. The quality/topology reports must therefore be checked per case.
+
+For the tested Bin4 reduce-2 anisotropic-shell case:
+
+  tetrahedra: 489429
+  non-manifold boundary edges: 397
+  open boundary edges: 0
+  largest aspect ratio: 54.718
+  smallest dihedral: 3.0008
+
+This is not a perfect mesh, but it is now produced by a reproducible, documented pipeline
+with explicit shell-aware FE boundary handling and shell-excluded homogenization averaging.

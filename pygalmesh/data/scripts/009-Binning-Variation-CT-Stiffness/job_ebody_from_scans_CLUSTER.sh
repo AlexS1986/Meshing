@@ -134,11 +134,84 @@ for subfolder in "$base_subvolume_folder"/subvolume_x*_y*/; do
     continue
   fi
 
-  run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH" \
-    python3 "$working_directory/03_mesh_3D_array_pygalmesh.py" --config "$CONFIG_PATH" --npy "$npy_file" --mesh "$mesh_output"
+  meshing_npy_file="$npy_file"
+  cuboid_crop_enabled=$(python3 - "$CONFIG_PATH" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r") as handle:
+    config = json.load(handle)
+print("1" if config.get("02d_axis_aligned_cuboid_crop", {}).get("enabled", False) else "0")
+PY
+)
+  if [[ "$cuboid_crop_enabled" == "1" ]]; then
+    cuboid_npy_file="$subfolder/$(python3 - "$CONFIG_PATH" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r") as handle:
+    config = json.load(handle)
+print(config.get("02d_axis_aligned_cuboid_crop", {}).get("output_filename", "volume_cuboid.npy"))
+PY
+)"
+    cuboid_report_file="$subfolder/$(python3 - "$CONFIG_PATH" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r") as handle:
+    config = json.load(handle)
+print(config.get("02d_axis_aligned_cuboid_crop", {}).get("report_filename", "volume_cuboid.txt"))
+PY
+)"
+    run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH"       python3 "$working_directory/02d_axis_aligned_cuboid_crop.py" --config "$CONFIG_PATH" --npy "$meshing_npy_file" --output "$cuboid_npy_file" --report "$cuboid_report_file"
+    use_cuboid_for_meshing=$(python3 - "$CONFIG_PATH" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r") as handle:
+    config = json.load(handle)
+print("1" if config.get("02d_axis_aligned_cuboid_crop", {}).get("use_cuboid_for_meshing", False) else "0")
+PY
+)
+    if [[ "$use_cuboid_for_meshing" == "1" ]]; then
+      meshing_npy_file="$cuboid_npy_file"
+    fi
+  fi
 
-  run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH" \
-    python3 "$working_directory/04_scale_and_translate_mesh_mod.py" --config "$CONFIG_PATH" --mesh "$mesh_output" --center_x "$center_x" --center_y "$center_y"
+  run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH"     python3 "$working_directory/03_mesh_3D_array_pygalmesh.py" --config "$CONFIG_PATH" --npy "$meshing_npy_file" --mesh "$mesh_output"
+
+  run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH"     python3 "$working_directory/04_scale_and_translate_mesh_mod.py" --config "$CONFIG_PATH" --mesh "$mesh_output" --center_x "$center_x" --center_y "$center_y"
+
+  tetgen_enabled=$(python3 - "$CONFIG_PATH" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r") as handle:
+    config = json.load(handle)
+print("1" if config.get("05_tetgen_postprocess", {}).get("enabled", False) else "0")
+PY
+)
+  if [[ "$tetgen_enabled" == "1" ]]; then
+    run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH"       python3 "$working_directory/05_tetgen_postprocess_mesh.py" --config "$CONFIG_PATH" --mesh "$mesh_output"
+    quality_report_enabled=$(python3 - "$CONFIG_PATH" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r") as handle:
+    config = json.load(handle)
+print("1" if config.get("08_mesh_quality_report", {}).get("enabled", False) else "0")
+PY
+)
+    if [[ "$quality_report_enabled" == "1" ]]; then
+      run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH"         python3 "$working_directory/08_mesh_quality_report.py" --config "$CONFIG_PATH" --tetgen-log "${mesh_output%.xdmf}.tetgen.log" --output "${mesh_output%.xdmf}.quality.txt"
+    fi
+  fi
+
+  topology_audit_enabled=$(python3 - "$CONFIG_PATH" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r") as handle:
+    config = json.load(handle)
+print("1" if config.get("09_mesh_topology_audit", {}).get("enabled", False) else "0")
+PY
+)
+  if [[ "$topology_audit_enabled" == "1" ]]; then
+    run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH"       python3 "$working_directory/09_mesh_topology_audit.py" --config "$CONFIG_PATH" --mesh "$mesh_output" --output "${mesh_output%.xdmf}.topology.txt"
+  fi
 done
 
 for subfolder in "$base_subvolume_folder"/*/; do
@@ -158,6 +231,7 @@ for mat in "${MATERIALS[@]}"; do
       [ -d "$subfolder" ] || continue
 
       cp -v "$SOURCE_DIR"/* "$subfolder"
+      cp -v "$CONFIG_PATH" "$subfolder/config.json"
 
       run_container "$sim_ntasks" "$subfolder" "$SIM_BIND" "$SIM_CONTAINER" \
         python3 "$subfolder/linearelastic.py" --material "$mat"
