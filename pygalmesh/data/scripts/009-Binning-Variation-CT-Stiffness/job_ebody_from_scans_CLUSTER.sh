@@ -27,6 +27,7 @@ if [[ "$CONFIG_ARG" = /* ]]; then
 else
   CONFIG_PATH="/data/scripts/009-Binning-Variation-CT-Stiffness/$CONFIG_ARG"
 fi
+CONFIG_HOST_PATH="${CONFIG_PATH/#\/data/$HPC_SCRATCH/pygalmesh/data}"
 
 CONTAINER_PATH="$HOME/meshing/Meshing/pygalmesh/pygalmesh.sif"
 BIND_PATHS="$HOME/meshing/Meshing/pygalmesh/data:/home,$HPC_SCRATCH/pygalmesh/data:/data"
@@ -135,7 +136,7 @@ for subfolder in "$base_subvolume_folder"/subvolume_x*_y*/; do
   fi
 
   meshing_npy_file="$npy_file"
-  cuboid_crop_enabled=$(python3 - "$CONFIG_PATH" <<'PY'
+  cuboid_crop_enabled=$(python3 - "$CONFIG_HOST_PATH" <<'PY'
 import json
 import sys
 with open(sys.argv[1], "r") as handle:
@@ -144,7 +145,7 @@ print("1" if config.get("02d_axis_aligned_cuboid_crop", {}).get("enabled", False
 PY
 )
   if [[ "$cuboid_crop_enabled" == "1" ]]; then
-    cuboid_npy_file="$subfolder/$(python3 - "$CONFIG_PATH" <<'PY'
+    cuboid_npy_file="$subfolder/$(python3 - "$CONFIG_HOST_PATH" <<'PY'
 import json
 import sys
 with open(sys.argv[1], "r") as handle:
@@ -152,7 +153,7 @@ with open(sys.argv[1], "r") as handle:
 print(config.get("02d_axis_aligned_cuboid_crop", {}).get("output_filename", "volume_cuboid.npy"))
 PY
 )"
-    cuboid_report_file="$subfolder/$(python3 - "$CONFIG_PATH" <<'PY'
+    cuboid_report_file="$subfolder/$(python3 - "$CONFIG_HOST_PATH" <<'PY'
 import json
 import sys
 with open(sys.argv[1], "r") as handle:
@@ -161,7 +162,7 @@ print(config.get("02d_axis_aligned_cuboid_crop", {}).get("report_filename", "vol
 PY
 )"
     run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH"       python3 "$working_directory/02d_axis_aligned_cuboid_crop.py" --config "$CONFIG_PATH" --npy "$meshing_npy_file" --output "$cuboid_npy_file" --report "$cuboid_report_file"
-    use_cuboid_for_meshing=$(python3 - "$CONFIG_PATH" <<'PY'
+    use_cuboid_for_meshing=$(python3 - "$CONFIG_HOST_PATH" <<'PY'
 import json
 import sys
 with open(sys.argv[1], "r") as handle:
@@ -178,7 +179,7 @@ PY
 
   run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH"     python3 "$working_directory/04_scale_and_translate_mesh_mod.py" --config "$CONFIG_PATH" --mesh "$mesh_output" --center_x "$center_x" --center_y "$center_y"
 
-  tetgen_enabled=$(python3 - "$CONFIG_PATH" <<'PY'
+  tetgen_enabled=$(python3 - "$CONFIG_HOST_PATH" <<'PY'
 import json
 import sys
 with open(sys.argv[1], "r") as handle:
@@ -188,7 +189,7 @@ PY
 )
   if [[ "$tetgen_enabled" == "1" ]]; then
     run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH"       python3 "$working_directory/05_tetgen_postprocess_mesh.py" --config "$CONFIG_PATH" --mesh "$mesh_output"
-    quality_report_enabled=$(python3 - "$CONFIG_PATH" <<'PY'
+    quality_report_enabled=$(python3 - "$CONFIG_HOST_PATH" <<'PY'
 import json
 import sys
 with open(sys.argv[1], "r") as handle:
@@ -201,7 +202,7 @@ PY
     fi
   fi
 
-  topology_audit_enabled=$(python3 - "$CONFIG_PATH" <<'PY'
+  topology_audit_enabled=$(python3 - "$CONFIG_HOST_PATH" <<'PY'
 import json
 import sys
 with open(sys.argv[1], "r") as handle:
@@ -231,7 +232,7 @@ for mat in "${MATERIALS[@]}"; do
       [ -d "$subfolder" ] || continue
 
       cp -v "$SOURCE_DIR"/* "$subfolder"
-      cp -v "$CONFIG_PATH" "$subfolder/config.json"
+      cp -v "$CONFIG_HOST_PATH" "$subfolder/config.json"
 
       run_container "$sim_ntasks" "$subfolder" "$SIM_BIND" "$SIM_CONTAINER" \
         python3 "$subfolder/linearelastic.py" --material "$mat"
@@ -248,7 +249,7 @@ for mat in "${MATERIALS[@]}"; do
     mkdir -p "$final_output_dir"
     cp -rv "$base_subvolume_folder" "$final_output_dir/"
     cp -v "$working_directory/${run_name}_segmented/metadata.json" "$final_output_dir/" || true
-    cp -v "$HPC_SCRATCH/pygalmesh$CONFIG_PATH" "$final_output_dir/" || true
+    cp -v "$CONFIG_HOST_PATH" "$final_output_dir/" || true
   done
 done
 

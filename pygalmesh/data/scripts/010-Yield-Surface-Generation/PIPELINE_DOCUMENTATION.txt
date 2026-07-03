@@ -1,0 +1,262 @@
+010 Yield Surface Generation Pipeline
+=====================================
+
+Purpose
+-------
+This project is a yield-surface / elasto-plastic counterpart to
+009-Binning-Variation-CT-Stiffness. It keeps the same CT preprocessing and
+mesh-generation pipeline that was developed in 009, but replaces the final
+linear-elastic homogenization solve with an elasto-plastic DolfinX solve based
+on 007-Plasticity-From-CT-Scans/00_template/elastoplastic.py.
+
+Project Layout
+--------------
+- config.sh and create_config.sh define/generate the case configs.
+- config-Bin*.json contain the ordinary Bin1/Bin2/Bin4 cases and reduce-factor
+  variants.
+- 00_template/elastoplastic.py is copied from 007 and updated for this project:
+  it supports argparse, config.json, x/y/z loading directions, material sets from
+  the config, and anisotropic boundary-shell Dirichlet conditions.
+- job_yield_surface_LOCAL.sh runs the complete local pipeline, capped by
+  LOCAL_NPROCS, defaulting to 6.
+- job_yield_Bin4_reduce_2_LOCAL.sh is a convenience local entry point for the
+  Bin4 reduce-2 case.
+- job_yield_surface_from_scans_CLUSTER.sh is the generic SLURM/apptainer runner.
+- job_yield_Bin4_reduce_2_CLUSTER.sh is a convenience cluster entry point for
+  the Bin4 reduce-2 case.
+
+Voxel Preparation
+-----------------
+The preprocessing sequence follows 009:
+
+1. 00_dicom_2_npy.py
+   Converts the DICOM stack into .npy slices. The config controls binning,
+   optional script-side reduction, slice limits, and output location.
+
+2. 01_segment_slice_wise.py
+   Segments each slice. The ordinary configs use the same segmentation defaults
+   as 009 unless edited in the config.
+
+3. 02_build3D_segmented_array.py
+   Builds the 3D segmented volume from the segmented slices.
+
+4. 02a_rotate_pic_to_align_with_axis.py
+   Rotates/aligned the CT volume with the coordinate axes and applies configured
+   buffers.
+
+5. 02b_build_subvolume_arrays.py
+   Creates subvolume folders. The current ordinary configs use xy_divisions = 1.
+
+Optional Voxel Topology Check
+-----------------------------
+02c_voxel_topology_cleanup.py is available and enabled in the ordinary configs as
+an audit/report step. By default it does not alter the meshing input unless
+use_cleaned_for_meshing is explicitly set true.
+
+Boundary Shell / Axis-Aligned Block Preparation
+-----------------------------------------------
+02d_axis_aligned_cuboid_crop.py is enabled in the ordinary configs and writes:
+
+- volume_boundary_shell_aniso.npy
+- volume_boundary_shell_aniso.txt
+
+The current boundary shell fills a configurable shell in the voxel data before
+meshing. The default anisotropic shell is:
+
+- x_min/x_max: 3 voxels
+- y_min/y_max: 12 voxels
+- z_min/z_max: 3 voxels
+
+The shell value is 0, matching the 009 convention for the raw segmented data used
+by the meshing step. The shell-prepared volume is used for meshing when
+use_cuboid_for_meshing is true.
+
+Surface and Volume Meshing
+--------------------------
+03_mesh_3D_array_pygalmesh.py uses:
+
+  meshing_method = sdf_pygalmesh
+
+The SDF pipeline is:
+
+volume_boundary_shell_aniso.npy
+  -> binary material mask
+  -> signed distance field
+  -> Gaussian smoothing
+  -> marching-cubes surface
+  -> trimesh cleanup/repair where available
+  -> surface audit
+  -> OFF surface mesh
+  -> pygalmesh.generate_volume_mesh_from_surface_mesh
+  -> mesh.xdmf
+
+The ordinary configs use the 009 best current default:
+
+- sdf_sigma_voxels = 1.0
+- max_element_size_factor = 5.0
+- max_facet_distance_factor = 0.3
+- exude_time_limit = 30
+- perturb = true
+- exude = true
+- lloyd/odt = false
+
+Mesh Postprocessing and Reports
+-------------------------------
+After pygalmesh:
+
+1. 04_scale_and_translate_mesh_mod.py scales/translates the mesh into the CT
+   coordinate convention.
+2. 05_tetgen_postprocess_mesh.py runs the TetGen postprocess/check step when
+   enabled.
+3. 08_mesh_quality_report.py parses the TetGen report into mesh.quality.txt and
+   classifies configured quality metrics as good, acceptable, or bad.
+4. 09_mesh_topology_audit.py writes mesh.topology.txt and checks tetra-volume
+   signs, tiny/degenerate elements, duplicate faces, open boundary edges, and
+   non-manifold boundary edges.
+5. make_mesh_dlfx_compatible_cluster.py converts mesh.xdmf to dlfx_mesh.xdmf for
+   DolfinX.
+
+Elasto-Plastic Simulation
+-------------------------
+The final simulation uses 00_template/elastoplastic.py. It reads config.json from
+the subvolume folder and uses the yield_surface block:
+
+- materials: default ["std"]
+- loading_directions: default ["tensor"]
+- eps_mac_eigenvalues: default [-0.25, 0.0, 0.0]
+- strain_scale_start: default 1e-6
+- strain_scale_rate: default 1.0
+- yielded_volume_fraction: default 0.02
+- alpha_yield_tolerance: default 1e-5
+- time_step: default 0.02
+- total_time: default 1.0e9, used only as a very large solver horizon
+- dt_min: default 1e-11
+- material_sets: am, std, conv plus default fallback
+
+For each material and tensor/loading direction, the runner copies the template
+files and config into each subvolume folder, then runs elastoplastic.py. In the
+standard tensor mode the solver applies a diagonal macroscopic strain tensor with
+eigenvalues
+
+  strain_scale(t) * [eps_1, eps_2, eps_3]
+
+where strain_scale(t) = strain_scale_start + strain_scale_rate * t. The value is
+not capped by total_time; total_time is set very large and is only a solver
+horizon. The intended stop condition is the first timestep where the fraction of
+the reduced material volume with alpha > alpha_yield_tolerance reaches
+yielded_volume_fraction. The reached strain eigenvalues, averaged alpha, yielded
+fraction, reaction force, and averaged stress are written to
+
+  yield_averages_<material>_<direction>.json
+
+The final reached state is also copied into yield_run_<material>_<direction>.json.
+The XDMF output is written at every successful timestep, including the timestep
+that first reaches the target yielded fraction.
+
+Boundary Conditions
+-------------------
+If 02d_axis_aligned_cuboid_crop.boundary_seal.enabled is true, elastoplastic.py
+converts the voxel shell thicknesses into physical shell widths using the solver
+volume shape and mesh bounds. The Dirichlet conditions are then applied across
+the full shell thickness on the min and max faces of the active loading axis.
+This is the same conceptual boundary shell used in 009, now applied to the
+plasticity solve.
+
+If no shell is configured or the shell volume cannot be found, the solver falls
+back to a geometric face tolerance.
+
+Running Locally
+---------------
+Default Bin4 reduce-2 local run:
+
+  scripts/010-Yield-Surface-Generation/job_yield_Bin4_reduce_2_LOCAL.sh
+
+Use a different config:
+
+  CONFIG_PATH=/data/scripts/010-Yield-Surface-Generation/config-Bin2-reduce-4.json     scripts/010-Yield-Surface-Generation/job_yield_surface_LOCAL.sh
+
+Limit local MPI processes:
+
+  LOCAL_NPROCS=4 scripts/010-Yield-Surface-Generation/job_yield_Bin4_reduce_2_LOCAL.sh
+
+Running on the Cluster
+----------------------
+Default Bin4 reduce-2 cluster run:
+
+  sbatch scripts/010-Yield-Surface-Generation/job_yield_Bin4_reduce_2_CLUSTER.sh
+
+Generic cluster runner:
+
+  sbatch scripts/010-Yield-Surface-Generation/job_yield_surface_from_scans_CLUSTER.sh 4 config-Bin4-reduce-2.json
+
+Results
+-------
+Results are archived under:
+
+  00_results/JM-25-74/<BinLabel>/yield_surface/<run_name>-<material>-<direction>/
+
+Each subvolume folder contains the mesh reports, dlfx_mesh.xdmf, plasticity XDMF
+output, reaction-force graph output, Newton log, and yield_run_<material>_<dir>.json.
+
+
+Yield-Surface Sampling Jobs
+---------------------------
+010 now focuses on one selected microstructure case by default: Bin4 reduce-2.
+The generated configs for other binnings/reduce factors were removed from this
+project to avoid accidental parameter sweeps over the old 009 study space.
+
+The yield surface is sampled by choosing directions in eps_1, eps_2, eps_3 space.
+For the default/minimum 6 points, the directions are the Cartesian axes:
+
+  (+eps, 0, 0), (-eps, 0, 0),
+  (0, +eps, 0), (0, -eps, 0),
+  (0, 0, +eps), (0, 0, -eps)
+
+For more than 6 points, setup_yield_surface_jobs.py uses an approximately
+regular full-sphere Fibonacci sampling. Each sampled direction gets its own
+folder under:
+
+  yield_surface_jobs/nNNN/<sample_id>/
+
+Each folder contains a config.json with the sampled eps_mac_eigenvalues and a
+job_<sample_id>_CLUSTER.sh script.
+
+The recommended cluster workflow is:
+
+1. Generate and sync the project/jobs to scratch. Default is 6 points:
+
+     scripts/010-Yield-Surface-Generation/02_create_folders_CLUSTER.sh
+
+   Override the number of points with, for example:
+
+     YIELD_SURFACE_POINTS=20 scripts/010-Yield-Surface-Generation/02_create_folders_CLUSTER.sh
+
+2. On the cluster, prepare the Bin4 reduce-2 mesh once:
+
+     sbatch $HPC_SCRATCH/pygalmesh/data/scripts/010-Yield-Surface-Generation/job_prepare_mesh_Bin4_reduce_2_CLUSTER.sh
+
+3. After the mesh-preparation job finished, submit all sampled tensor jobs:
+
+     bash $HPC_SCRATCH/pygalmesh/data/scripts/010-Yield-Surface-Generation/yield_surface_jobs/n006/submit_all_yield_surface_points.sh
+
+   Replace n006 with the requested sample count, for example n020.
+
+4. After the point jobs finished, collect the reached yield-surface points:
+
+     python3 $HPC_SCRATCH/pygalmesh/data/scripts/010-Yield-Surface-Generation/collect_yield_surface_points.py
+
+   This writes:
+
+     00_results/yield_surface_points.csv
+
+The CSV contains the final eps_1, eps_2, eps_3 at which the configured fraction
+of the reduced material volume first reached alpha > alpha_yield_tolerance.
+
+Known Notes
+-----------
+- This scaffold intentionally keeps pygalmesh as the volume mesher.
+- The SDF/shell preparation is expected to improve boundary-condition robustness,
+  but mesh topology reports should still be checked for every important case.
+- The current yield-surface runner performs uniaxial x/y/z loading paths. More
+  combined stress paths can be added later by extending the yield_surface config
+  and the displacement boundary condition generator.
