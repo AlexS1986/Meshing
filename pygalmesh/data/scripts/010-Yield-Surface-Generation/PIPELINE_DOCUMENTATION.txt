@@ -93,8 +93,8 @@ volume_boundary_shell_aniso.npy
 The ordinary configs use the 009 best current default:
 
 - sdf_sigma_voxels = 1.0
-- max_element_size_factor = 2.32079441681
-- max_facet_distance_factor = 0.139247665008
+- max_element_size_factor = 1.85663553345
+- max_facet_distance_factor = 0.111398132006
 - exude_time_limit = 30
 - perturb = true
 - exude = true
