@@ -93,8 +93,8 @@ volume_boundary_shell_aniso.npy
 The ordinary configs use the 009 best current default:
 
 - sdf_sigma_voxels = 1.0
-- max_element_size_factor = 5.0
-- max_facet_distance_factor = 0.3
+- max_element_size_factor = 2.32079441681
+- max_facet_distance_factor = 0.139247665008
 - exude_time_limit = 30
 - perturb = true
 - exude = true
@@ -128,7 +128,7 @@ the subvolume folder and uses the yield_surface block:
 - strain_scale_rate: default 1.0
 - yielded_volume_fraction: default 0.02
 - alpha_yield_tolerance: default 1e-5
-- time_step: default 0.02
+- time_step: default 0.0001
 - total_time: default 1.0e9, used only as a very large solver horizon
 - dt_min: default 1e-11
 - material_sets: am, std, conv plus default fallback

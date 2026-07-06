@@ -167,10 +167,10 @@ rank = comm.Get_rank()
 with dlfx.io.XDMFFile(comm, os.path.join(script_path, "dlfx_mesh.xdmf"), "r") as mesh_inp:
     domain = mesh_inp.read_mesh()
 
-dt_value = float(yield_config.get("time_step", 0.02))
+dt_value = float(yield_config.get("time_step", 0.0001))
 Tend_value = float(yield_config.get("total_time", 1.0e9))
 dt_global = dlfx.fem.Constant(domain, dt_value)
-dt_max = dlfx.fem.Constant(domain, dt_global.value)
+dt_max = dlfx.fem.Constant(domain, 10*dt_global.value)
 t = dlfx.fem.Constant(domain, 0.0)
 Tend = Tend_value
 dt_min = float(yield_config.get("dt_min", 1e-11))

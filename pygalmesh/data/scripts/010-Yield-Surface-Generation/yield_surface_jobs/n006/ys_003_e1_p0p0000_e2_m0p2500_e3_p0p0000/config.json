@@ -67,8 +67,8 @@
     "meshing_method": "sdf_pygalmesh",
     "mesh_output_path": "/data/scripts/010-Yield-Surface-Generation/JM-25-74_Bin4_reduce-2_segmented/mesh.xdmf",
     "pygalmesh_parameters": {
-      "max_element_size_factor": 5.0,
-      "max_facet_distance_factor": 0.3,
+      "max_element_size_factor": 2.320794416806389,
+      "max_facet_distance_factor": 0.13924766500838334,
       "exude_time_limit": 30,
       "exude_sliver_bound": 0.0,
       "lloyd": false,
@@ -129,8 +129,8 @@
       "surface_decimation_boundary_vertex_deletion": false,
       "min_surface_component_faces": 0,
       "pygalmesh_parameters": {
-        "max_element_size_factor": 5.0,
-        "max_facet_distance_factor": 0.3,
+        "max_element_size_factor": 2.320794416806389,
+        "max_facet_distance_factor": 0.13924766500838334,
         "exude_time_limit": 30,
         "exude_sliver_bound": 0.0,
         "lloyd": false,
@@ -281,7 +281,7 @@
       "tensor"
     ],
     "max_mean_strain": 0.25,
-    "time_step": 0.02,
+    "time_step": 0.0001,
     "total_time": 1000000000.0,
     "dt_min": 1e-11,
     "quadrature_degree": 1,
