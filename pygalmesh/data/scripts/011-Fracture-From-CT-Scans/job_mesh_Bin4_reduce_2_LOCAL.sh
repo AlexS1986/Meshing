@@ -163,6 +163,10 @@ for script in "${PREPROCESS_SCRIPTS[@]}"; do
   run_python "$SCRIPT_DIR/$script" --config "$CONFIG_PATH"
 done
 
+subvolume_list_file="$(mktemp "${TMPDIR:-/tmp}/subvolumes.XXXXXX")"
+trap 'rm -f "$subvolume_list_file"' EXIT
+subvolume_folders > "$subvolume_list_file"
+
 while IFS= read -r subfolder; do
   [[ -n "$subfolder" && -d "$subfolder" ]] || continue
 
@@ -250,6 +254,6 @@ while IFS= read -r subfolder; do
 
   echo "Mesh written: $mesh_output"
   echo "DolfinX mesh written: $subfolder/dlfx_mesh.xdmf"
-done < <(subvolume_folders)
+done < "$subvolume_list_file"
 
 echo "Local mesh generation complete."
