@@ -1,0 +1,172 @@
+011 Fracture From CT Scans Pipeline
+===================================
+
+Purpose
+-------
+011 combines the CT preprocessing and meshing pipeline from
+009-Binning-Variation-CT-Stiffness with the phase-field fracture simulation from
+005-Special-Issue-2025-fracture/00_template/script.py.
+
+Default Case
+------------
+This project is focused on JM-25-74 Bin4 reduce-2 for now:
+
+  config-Bin4-reduce-2.json
+  config.json
+
+Meshing Pipeline
+----------------
+The preprocessing/meshing steps are the same as in 009:
+
+1. 00_dicom_2_npy.py
+2. 01_segment_slice_wise.py
+3. 02_build3D_segmented_array.py
+4. 02a_rotate_pic_to_align_with_axis.py
+5. 02b_build_subvolume_arrays.py
+6. optional 02c_voxel_topology_cleanup.py audit/cleanup
+7. 02d_axis_aligned_cuboid_crop.py boundary shell / cuboid preprocessing
+8. 03_mesh_3D_array_pygalmesh.py using meshing_method = sdf_pygalmesh
+9. 04_scale_and_translate_mesh_mod.py
+10. optional 05_tetgen_postprocess_mesh.py
+11. optional 08_mesh_quality_report.py
+12. optional 09_mesh_topology_audit.py
+13. make_mesh_dlfx_compatible_cluster.py to create dlfx_mesh.xdmf
+
+
+Reference-Scaled Subvolume Cropping
+-----------------------------------
+02b_build_subvolume_arrays.py now supports a config-driven crop before the
+boundary shell and meshing steps. By default it still uses the rotated material
+bounds from 02a. To override that, use the 02b_build_subvolume_arrays block:
+
+  crop_offsets_reference:
+    enabled: true
+    reference_binning_id: 2
+    reference_reduce_factor: 1
+    x_min/x_max/y_min/y_max/z_min/z_max: offsets in reference voxels
+
+The offsets are applied relative to the rotated material bounds. x_min, y_min,
+and z_min move the lower crop face inward; x_max, y_max, and z_max move the
+upper crop face inward. Negative offsets expand outward and are clamped to the
+available volume. The script scales these reference offsets by
+
+  reference_binning_id * reference_reduce_factor / (current_binning_id * current_reduce_factor)
+
+so the intended physical crop is stable when the reduce factor changes.
+
+There is also crop_bounds_reference for absolute reference-coordinate bounds.
+When enabled, it ignores material bounds and directly scales x_min/x_max/etc.
+This is useful only when you already know the exact reference-coordinate box.
+
+The boundary shell in 02d_axis_aligned_cuboid_crop.py is applied after this
+subvolume crop. That means the crop chooses the specimen box; the shell then
+adds the solid boundary-condition layer inside that box.
+
+For the current Bin4 reduce-2 default, crop_offsets_reference is enabled with
+x/z offsets of 24 and y offsets of 96 in the Bin2 reduce-1 reference frame.
+Those scale to x/z offsets of 6 and y offsets of 24 in the Bin4 reduce-2 voxel
+array, i.e. twice the current anisotropic shell thicknesses.
+
+
+Mesh Boundary Projection
+------------------------
+After 04_scale_and_translate_mesh_mod.py, the optional
+10_snap_mesh_to_crop_boundary.py step projects mesh nodes that lie close to the
+crop cuboid boundary onto the exact boundary plane. The default tolerance is
+1 percent of the smallest mesh-box side length:
+
+  10_snap_mesh_to_crop_boundary.tolerance_fraction: 0.01
+
+The step then checks the tetrahedra created by this projection. Tetrahedra with
+duplicate vertices or tiny/zero volume are removed, inverted tetrahedra are
+reoriented by default, and unreferenced points are compacted away. A report is
+written next to the mesh as mesh.snap_boundary.txt.
+
+
+
+Voxel-Space Mirror Route
+------------------------
+As an alternative to mirroring the tetra mesh after pygalmesh,
+02e_mirror_extrude_voxel.py can mirror the cropped voxel volume before surface
+extraction and meshing. This lets pygalmesh mesh the already mirrored geometry.
+
+To use voxel-space mirroring, enable:
+
+  02e_mirror_extrude_voxel.enabled: true
+  02e_mirror_extrude_voxel.use_mirrored_for_meshing: true
+
+and normally disable mesh-space mirroring:
+
+  11_mirror_extrude_mesh.enabled: false
+
+The current active voxel route mirrors along x at the min plane twice and drops
+the duplicate mirror plane at each step, so a volume with Nx voxels becomes
+4*Nx - 3 voxels in x. A report is written next to the volume as
+volume_mirrored_x2.txt.
+
+After voxel mirroring, 02f_add_voxel_shell.py can add an outward material shell
+without overwriting the existing voxel data. This is different from the older
+02d boundary_seal route, which forced boundary bands inside the existing
+volume. The additive shell pads the array and fills only the newly added padding
+region; the active default uses x/z thickness 3 and y thickness 12, then meshes
+volume_mirrored_x2_additive_shell.npy.
+
+Mirror Extrusion
+----------------
+After boundary projection, the optional 11_mirror_extrude_mesh.py step can
+mirror the tetra mesh once and glue it along a crop-boundary plane. The current
+default mirrors in the x direction about the xmin plane:
+
+  11_mirror_extrude_mesh.enabled: true
+  11_mirror_extrude_mesh.axis: x
+  11_mirror_extrude_mesh.plane: xmin
+
+Use plane = xmax to mirror to the other side. Nodes on the mirror plane are
+merged with a configurable tolerance. Mirrored tetrahedra have their orientation
+reversed, then the mesh is checked for collapsed/tiny tetrahedra and unused
+points are compacted away. A report is written next to the mesh as
+mesh.mirror_extrude.txt.
+
+Fracture Simulation
+-------------------
+After mesh conversion, the job copies 00_template into each subvolume folder and
+runs:
+
+  script.py
+
+from the 005 fracture project. The fracture parameters are stored in the config
+under the fracture block:
+
+  mesh_file: dlfx_mesh
+  lam_param: 1.0
+  mue_param: 1.0
+  Gc_param: 1.0
+  eps_factor_param: 20.0
+  element_order: 1
+
+Cluster Workflow
+----------------
+Sync the project to scratch:
+
+  scripts/011-Fracture-From-CT-Scans/02_create_folders_CLUSTER.sh
+
+Generate only the Bin4 reduce-2 mesh locally, without running fracture:
+
+  scripts/011-Fracture-From-CT-Scans/job_mesh_Bin4_reduce_2_LOCAL.sh
+
+Submit the default Bin4 reduce-2 fracture job on the cluster:
+
+  sbatch $HPC_SCRATCH/pygalmesh/data/scripts/011-Fracture-From-CT-Scans/job_fracture_Bin4_reduce_2_CLUSTER.sh
+
+The generic runner is:
+
+  job_fracture_from_scans_CLUSTER.sh config-Bin4-reduce-2.json
+
+Results
+-------
+Results are archived under:
+
+  00_results/JM-25-74/Bin4/fracture/
+
+Each subvolume also contains the simulation_* folder written by 005 script.py,
+including pfmfrac_function.xdmf/h5, graph output, and log output.

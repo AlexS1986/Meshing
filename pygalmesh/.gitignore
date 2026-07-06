@@ -1,0 +1,42 @@
+# macOS/editor noise
+.DS_Store
+__pycache__/
+*.py[cod]
+
+# Generated mesh and volume data
+*.msh
+*.mesh
+*.med
+*.xdmf
+*.h5
+*.hdf5
+*.vtk
+*.vtu
+*.off
+*.stl
+*.npy
+*.raw
+*.vol
+*.leS
+*.gdt
+*.zip
+
+# Generated mesh pipeline reports and metadata
+mesh*.txt
+volume*.txt
+*.quality.txt
+*.topology.txt
+*.snap_boundary.txt
+metadata.json
+
+# Generated outputs from CT/mesh pipeline scripts
+data/scripts/009-*/00_results/
+data/scripts/009-*/dlfx_meshes_for_sending/
+data/scripts/009-*/results/
+data/scripts/010-*/00_results/
+data/scripts/010-*/dlfx_meshes_for_sending/
+data/scripts/010-*/results/
+data/scripts/011-*/00_results/
+data/scripts/011-*/dlfx_meshes_for_sending/
+data/scripts/011-*/results/
+data/scripts/011-*/JM-25-*/

@@ -3,7 +3,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_PATH="${CONFIG_PATH:-$SCRIPT_DIR/config-Bin4-reduce-2.json}"
+CONFIG_PATH="${CONFIG_PATH:-$SCRIPT_DIR/config-Bin4-reduce-2-sdf-pygalmesh-boundary-shell-aniso-sigma1p0.json}"
 SOURCE_DIR="$SCRIPT_DIR/00_template"
 VOLUME_FILENAME="volume.npy"
 MATERIALS=("std")
