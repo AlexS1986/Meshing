@@ -3,7 +3,7 @@
 #SBATCH -J frac-b4-r2-fine
 #SBATCH -A p0023647
 #SBATCH -t 10080
-#SBATCH -n 32
+#SBATCH -n 96
 #SBATCH -N 1
 #SBATCH --mem-per-cpu=9000
 #SBATCH -C i01

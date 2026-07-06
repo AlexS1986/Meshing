@@ -32,7 +32,9 @@ SIM_BIND="$HOME/dolfinx_alex/shared:/home,$HPC_SCRATCH/pygalmesh/data:/data"
 SOURCE_DIR="$working_directory/00_template"
 VOLUME_FILENAME="volume.npy"
 output_directory_variable="fracture"
-sim_ntasks="${SLURM_NTASKS:-96}"
+sim_ntasks="${SLURM_NTASKS:-32}"
+SRUN_TIME="${SRUN_TIME:-10080}"
+SRUN_MEM_PER_CPU="${SRUN_MEM_PER_CPU:-9000}"
 
 PREPROCESS_SCRIPTS=(
   "00_dicom_2_npy.py"
@@ -43,7 +45,7 @@ PREPROCESS_SCRIPTS=(
 )
 
 CONFIG_INFO=$(
-  srun -n 1 apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" \
+  srun -n 1 --time="$SRUN_TIME" --mem-per-cpu="$SRUN_MEM_PER_CPU" apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" \
     python3 - "$CONFIG_PATH" <<'PYINFO'
 import json
 import sys
@@ -94,7 +96,7 @@ run_container() {
   local bind_paths="$3"
   local container="$4"
   shift 4
-  local srun_args=(-n "$ntasks")
+  local srun_args=(-n "$ntasks" --time="$SRUN_TIME" --mem-per-cpu="$SRUN_MEM_PER_CPU")
   if [[ -n "$chdir" ]]; then
     srun_args+=(--chdir="$chdir")
   fi
