@@ -2,7 +2,7 @@
 
 #SBATCH -J fracture-ct
 #SBATCH -A p0023647
-#SBATCH -t 10080
+#SBATCH -t 1440
 #SBATCH -n 32
 #SBATCH -N 1
 #SBATCH --mem-per-cpu=9000
@@ -33,7 +33,7 @@ SOURCE_DIR="$working_directory/00_template"
 VOLUME_FILENAME="volume.npy"
 output_directory_variable="fracture"
 sim_ntasks="${SLURM_NTASKS:-32}"
-SRUN_TIME="${SRUN_TIME:-10080}"
+SRUN_TIME="${SRUN_TIME:-1440}"
 SRUN_MEM_PER_CPU="${SRUN_MEM_PER_CPU:-9000}"
 
 PREPROCESS_SCRIPTS=(
