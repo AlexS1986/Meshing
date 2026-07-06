@@ -15,7 +15,9 @@ BIND_PATHS="$HOME/meshing/Meshing/pygalmesh/data:/home,$HPC_SCRATCH/pygalmesh/da
 SIM_CONTAINER="$HOME/dolfinx_alex/alex-dolfinx.sif"
 SIM_BIND="$HOME/dolfinx_alex/shared:/home,$HPC_SCRATCH/pygalmesh/data:/data"
 SOURCE_DIR="$working_directory/00_template"
-sim_ntasks="${SLURM_NTASKS:-96}"
+sim_ntasks="${SLURM_NTASKS:-32}"
+SRUN_TIME="${SRUN_TIME:-1440}"
+SRUN_MEM_PER_CPU="${SRUN_MEM_PER_CPU:-9000}"
 case_scratch="$working_directory/scratch/yield_point_${SLURM_JOB_ID:-manual}"
 rm -rf "$case_scratch"
 mkdir -p "$case_scratch/tmp"
@@ -26,7 +28,7 @@ run_container() {
   local bind_paths="$3"
   local container="$4"
   shift 4
-  local srun_args=(-n "$ntasks")
+  local srun_args=(-n "$ntasks" --time="$SRUN_TIME" --mem-per-cpu="$SRUN_MEM_PER_CPU")
   if [[ -n "$chdir" ]]; then
     srun_args+=(--chdir="$chdir")
   fi
@@ -41,7 +43,7 @@ run_container() {
   ' bash "$case_scratch" "$bind_paths" "$container" "$@"
 }
 
-CONFIG_INFO=$(srun -n 1 apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" python3 - "$CONFIG_PATH" <<'PYINFO'
+CONFIG_INFO=$(srun -n 1 --time="$SRUN_TIME" --mem-per-cpu="$SRUN_MEM_PER_CPU" apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" python3 - "$CONFIG_PATH" <<'PYINFO'
 import json, sys
 with open(sys.argv[1]) as handle:
     config = json.load(handle)

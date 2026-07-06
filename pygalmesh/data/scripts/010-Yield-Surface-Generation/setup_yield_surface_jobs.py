@@ -65,6 +65,17 @@ def main():
     manifest_rows = []
     submit_lines = [
         "#!/usr/bin/env bash",
+        f"#SBATCH -J ys-submit-n{args.points:03d}",
+        "#SBATCH -A p0023647",
+        "#SBATCH -t 1440",
+        "#SBATCH --mem-per-cpu=9000",
+        "#SBATCH -n 1",
+        "#SBATCH -N 1",
+        f"#SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/010-Yield-Surface-Generation/yield_surface_jobs/n{args.points:03d}/%x.err.%j",
+        f"#SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/010-Yield-Surface-Generation/yield_surface_jobs/n{args.points:03d}/%x.out.%j",
+        "#SBATCH --mail-type=END",
+        "#SBATCH -C i01",
+        "",
         "set -euo pipefail",
         "SCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"",
         "",
@@ -99,11 +110,10 @@ def main():
 #SBATCH -J {sample_id[:48]}
 #SBATCH -A p0023647
 #SBATCH -t 1440
-#SBATCH -p mem
-#SBATCH --nodes=1
-#SBATCH -n 96
-#SBATCH --mem-per-cpu=15000
-#SBATCH -C \"m01&mem1536g\"
+#SBATCH --mem-per-cpu=9000
+#SBATCH -n 32
+#SBATCH -N 1
+#SBATCH -C i01
 #SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/010-Yield-Surface-Generation/yield_surface_jobs/n{args.points:03d}/{sample_id}/%x.err.%j
 #SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/010-Yield-Surface-Generation/yield_surface_jobs/n{args.points:03d}/{sample_id}/%x.out.%j
 #SBATCH --mail-type=END

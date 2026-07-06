@@ -190,7 +190,7 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param, 
     ds_top_tagged = ufl.Measure('ds', domain=domain, subdomain_data=top_surface_tags)
 
     success_timestep_counter = dlfx.fem.Constant(domain, 0.0)
-    postprocessing_interval = dlfx.fem.Constant(domain, 1.0)
+    postprocessing_interval = dlfx.fem.Constant(domain, 100.0)
     Work = dlfx.fem.Constant(domain, 0.0)
     
     S = dlfx.fem.functionspace(domain, Se)

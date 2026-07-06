@@ -3,11 +3,10 @@
 #SBATCH -J ys_001_e1_m0p2500_e2_p0p0000_e3_p0p0000
 #SBATCH -A p0023647
 #SBATCH -t 1440
-#SBATCH -p mem
-#SBATCH --nodes=1
-#SBATCH -n 96
-#SBATCH --mem-per-cpu=15000
-#SBATCH -C "m01&mem1536g"
+#SBATCH -n 32
+#SBATCH -N 1
+#SBATCH --mem-per-cpu=9000
+#SBATCH -C i01
 #SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/010-Yield-Surface-Generation/yield_surface_jobs/n006/ys_001_e1_m0p2500_e2_p0p0000_e3_p0p0000/%x.err.%j
 #SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/010-Yield-Surface-Generation/yield_surface_jobs/n006/ys_001_e1_m0p2500_e2_p0p0000_e3_p0p0000/%x.out.%j
 #SBATCH --mail-type=END

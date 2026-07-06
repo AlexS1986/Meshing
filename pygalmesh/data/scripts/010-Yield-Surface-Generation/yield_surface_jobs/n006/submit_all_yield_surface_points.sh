@@ -1,4 +1,15 @@
 #!/usr/bin/env bash
+#SBATCH -J ys-submit-n006
+#SBATCH -A p0023647
+#SBATCH -t 1440
+#SBATCH --mem-per-cpu=9000
+#SBATCH -n 1
+#SBATCH -N 1
+#SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/010-Yield-Surface-Generation/yield_surface_jobs/n006/%x.err.%j
+#SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/010-Yield-Surface-Generation/yield_surface_jobs/n006/%x.out.%j
+#SBATCH --mail-type=END
+#SBATCH -C i01
+
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
