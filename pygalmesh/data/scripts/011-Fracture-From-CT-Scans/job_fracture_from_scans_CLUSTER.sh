@@ -2,10 +2,10 @@
 
 #SBATCH -J fracture-ct
 #SBATCH -A p0023647
-#SBATCH -t 1440
-#SBATCH -n 32
+#SBATCH -t 10080
+#SBATCH -n 96
 #SBATCH -N 1
-#SBATCH --mem-per-cpu=9000
+#SBATCH --mem-per-cpu=4000
 #SBATCH -C i01
 #SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/011-Fracture-From-CT-Scans/%x.err.%j
 #SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/011-Fracture-From-CT-Scans/%x.out.%j
@@ -32,7 +32,7 @@ SIM_BIND="$HOME/dolfinx_alex/shared:/home,$HPC_SCRATCH/pygalmesh/data:/data"
 SOURCE_DIR="$working_directory/00_template"
 VOLUME_FILENAME="volume.npy"
 output_directory_variable="fracture"
-sim_ntasks="${SLURM_NTASKS:-32}"
+sim_ntasks="${SLURM_NTASKS:-96}"
 SRUN_TIME="${SRUN_TIME:-1440}"
 SRUN_MEM_PER_CPU="${SRUN_MEM_PER_CPU:-9000}"
 

@@ -40,6 +40,7 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param, 
         domain = mesh_inp.read_mesh()
 
     dt = dlfx.fem.Constant(domain, 0.0001)
+    dt_max = dlfx.fem.Constant(domain, 10*dt.value)
     t_global = dlfx.fem.Constant(domain, 0.0)
     Tend = 1000.0 * dt.value
 
@@ -67,7 +68,7 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param, 
     L = (y_max_all - y_min_all)
     K1 = dlfx.fem.Constant(domain, 1.0 * sig_c * math.sqrt(L))
 
-    crack_tip_start_location_x = 0.1*(x_max_all - x_min_all) + x_min_all
+    crack_tip_start_location_x = 0.2*(x_max_all - x_min_all) + x_min_all
     crack_tip_start_location_y = (y_max_all + y_min_all) / 2.0
 
     def crack(x):
@@ -190,7 +191,7 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param, 
     ds_top_tagged = ufl.Measure('ds', domain=domain, subdomain_data=top_surface_tags)
 
     success_timestep_counter = dlfx.fem.Constant(domain, 0.0)
-    postprocessing_interval = dlfx.fem.Constant(domain, 100.0)
+    postprocessing_interval = dlfx.fem.Constant(domain, 5.0)
     Work = dlfx.fem.Constant(domain, 0.0)
     
     S = dlfx.fem.functionspace(domain, Se)
@@ -271,5 +272,6 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param, 
         after_timestep_success_hook=after_timestep_success,
         comm=comm,
         print_bool=True,
-        t=t_global
+        t=t_global,
+        dt_max=dt_max,
     )
