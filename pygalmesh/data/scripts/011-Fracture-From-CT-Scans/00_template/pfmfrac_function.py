@@ -19,6 +19,10 @@ import alex.linearelastic as le
 import alex.phasefield as pf
 
 
+class StopSimulation(Exception):
+    pass
+
+
 def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param, element_order, comm):
 
     script_path = os.path.dirname(__file__)
@@ -43,6 +47,7 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param, 
     dt_max = dlfx.fem.Constant(domain, 10*dt.value)
     t_global = dlfx.fem.Constant(domain, 0.0)
     Tend = 1000.0 * dt.value
+    dt_min = 1e-14
 
     Ve = basix.ufl.element("P", domain.basix_cell(), element_order, shape=(domain.geometry.dim,))
     Se = basix.ufl.element("P", domain.basix_cell(), element_order, shape=())
@@ -100,6 +105,10 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param, 
         pp.write_meshoutputfile(domain, outputfile_xdmf_path, comm)
 
     def before_each_time_step(t, dt):
+        if dt.value < dt_min:
+            if rank == 0:
+                print(f"[STOP] dt too small: {dt.value:.3e} < {dt_min}")
+            raise StopSimulation
         if rank == 0:
             sol.print_time_and_dt(t, dt)
         
@@ -258,20 +267,23 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param, 
             sol.write_runtime_to_newton_logfile(logfile_path, runtime)
             pp.print_graphs_plot(outputfile_graph_path, script_path, legend_labels=["Jx", "Jy", "Jz", "x_tip", "xtip", "Rx", "Ry", "Rz", "dW", "W", "A"])
 
-    sol.solve_with_newton_adaptive_time_stepping(
-        domain,
-        u,
-        Tend,
-        dt,
-        before_first_timestep_hook=before_first_time_step,
-        after_last_timestep_hook=after_last_timestep,
-        before_each_timestep_hook=before_each_time_step,
-        get_residuum_and_gateaux=get_residuum_and_gateaux,
-        get_bcs=get_bcs,
-        after_timestep_restart_hook=after_timestep_restart,
-        after_timestep_success_hook=after_timestep_success,
-        comm=comm,
-        print_bool=True,
-        t=t_global,
-        dt_max=dt_max,
-    )
+    try:
+        sol.solve_with_newton_adaptive_time_stepping(
+            domain,
+            u,
+            Tend,
+            dt,
+            before_first_timestep_hook=before_first_time_step,
+            after_last_timestep_hook=after_last_timestep,
+            before_each_timestep_hook=before_each_time_step,
+            get_residuum_and_gateaux=get_residuum_and_gateaux,
+            get_bcs=get_bcs,
+            after_timestep_restart_hook=after_timestep_restart,
+            after_timestep_success_hook=after_timestep_success,
+            comm=comm,
+            print_bool=True,
+            t=t_global,
+            dt_max=dt_max,
+        )
+    except StopSimulation:
+        after_last_timestep()

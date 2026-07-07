@@ -67,8 +67,8 @@
     "meshing_method": "sdf_pygalmesh",
     "mesh_output_path": "/data/scripts/011-Fracture-From-CT-Scans/JM-25-74_Bin4_reduce-2_segmented_cluster_fine/JM-25-74_Bin4_reduce-2_segmented_cluster_fine_3D/subvolume_x52_y74/mesh.xdmf",
     "pygalmesh_parameters": {
-      "max_element_size_factor": 0.38679906946773155,
-      "max_facet_distance_factor": 0.023207944168063895,
+      "max_element_size_factor": 0.7735981389354631,
+      "max_facet_distance_factor": 0.04641588833612779,
       "exude_time_limit": 30,
       "exude_sliver_bound": 0.0,
       "lloyd": false,
@@ -129,8 +129,8 @@
       "surface_decimation_boundary_vertex_deletion": false,
       "min_surface_component_faces": 0,
       "pygalmesh_parameters": {
-        "max_element_size_factor": 0.38679906946773155,
-        "max_facet_distance_factor": 0.023207944168063895,
+        "max_element_size_factor": 0.7735981389354631,
+        "max_facet_distance_factor": 0.04641588833612779,
         "exude_time_limit": 30,
         "exude_sliver_bound": 0.0,
         "lloyd": false,
