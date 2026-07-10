@@ -62,7 +62,8 @@ print(frac.get("lam_param", 1.0))
 print(frac.get("mue_param", 1.0))
 print(frac.get("Gc_param", 1.0))
 print(frac.get("eps_factor_param", 20.0))
-print(frac.get("element_order", 1))
+print(frac.get("element_order", 2))
+print(frac.get("fracture_toughness", "alsi10mg_as_built"))
 PYINFO
 )
 
@@ -77,6 +78,7 @@ fracture_mue="$(echo "$CONFIG_INFO" | sed -n '8p')"
 fracture_gc="$(echo "$CONFIG_INFO" | sed -n '9p')"
 fracture_eps_factor="$(echo "$CONFIG_INFO" | sed -n '10p')"
 fracture_element_order="$(echo "$CONFIG_INFO" | sed -n '11p')"
+fracture_toughness="$(echo "$CONFIG_INFO" | sed -n '12p')"
 read -r -a MATERIALS <<< "$materials_line"
 read -r -a DIRECTIONS <<< "$directions_line"
 base_subvolume_folder="${base_subvolume_container_path/#\/data/$HPC_SCRATCH/pygalmesh/data}"
@@ -88,7 +90,7 @@ mkdir -p "$case_scratch/tmp"
 echo "Processing fracture case $binning_label"
 echo "Using config: $CONFIG_PATH"
 echo "Case scratch: $case_scratch"
-echo "Fracture params: mesh=$fracture_mesh_file lam=$fracture_lam mue=$fracture_mue Gc=$fracture_gc eps_factor=$fracture_eps_factor order=$fracture_element_order"
+echo "Fracture params: mesh=$fracture_mesh_file material_toughness=$fracture_toughness fallback_lam=$fracture_lam fallback_mue=$fracture_mue fallback_Gc=$fracture_gc eps_factor=$fracture_eps_factor order=$fracture_element_order"
 
 run_container() {
   local ntasks="$1"
@@ -267,6 +269,9 @@ for mat in "${MATERIALS[@]}"; do
       run_container "$sim_ntasks" "$subfolder" "$SIM_BIND" "$SIM_CONTAINER" \
         python3 "$subfolder/script.py" \
           --mesh_file "$fracture_mesh_file" \
+          --material "$mat" \
+          --fracture-toughness "$fracture_toughness" \
+          --config "$subfolder/config.json" \
           --lam_param "$fracture_lam" \
           --mue_param "$fracture_mue" \
           --Gc_param "$fracture_gc" \

@@ -67,8 +67,8 @@
     "meshing_method": "sdf_pygalmesh",
     "mesh_output_path": "/data/scripts/011-Fracture-From-CT-Scans/JM-25-74_Bin4_reduce-2_segmented_cluster_fine/JM-25-74_Bin4_reduce-2_segmented_cluster_fine_3D/subvolume_x52_y74/mesh.xdmf",
     "pygalmesh_parameters": {
-      "max_element_size_factor": 0.7735981389354631,
-      "max_facet_distance_factor": 0.04641588833612779,
+      "max_element_size_factor": 0.9669976736693289,
+      "max_facet_distance_factor": 0.05801986042015974,
       "exude_time_limit": 30,
       "exude_sliver_bound": 0.0,
       "lloyd": false,
@@ -129,8 +129,8 @@
       "surface_decimation_boundary_vertex_deletion": false,
       "min_surface_component_faces": 0,
       "pygalmesh_parameters": {
-        "max_element_size_factor": 0.7735981389354631,
-        "max_facet_distance_factor": 0.04641588833612779,
+        "max_element_size_factor": 0.9669976736693289,
+        "max_facet_distance_factor": 0.05801986042015974,
         "exude_time_limit": 30,
         "exude_sliver_bound": 0.0,
         "lloyd": false,
@@ -307,7 +307,29 @@
     "mue_param": 1.0,
     "Gc_param": 1.0,
     "eps_factor_param": 20.0,
-    "element_order": 1
+    "element_order": 1,
+    "default_material": {
+      "E": 70000.0,
+      "nu": 0.35
+    },
+    "material_sets": {
+      "am": { "E": 73000.0, "nu": 0.36 },
+      "std": { "E": 70000.0, "nu": 0.35 },
+      "conv": { "E": 82000.0, "nu": 0.35 }
+    },
+    "fracture_toughness": "alsi10mg_as_built",
+    "fracture_toughness_sets": {
+      "original": {
+        "Gc": 1.0,
+        "units": "N/mm"
+      },
+      "alsi10mg_as_built": {
+        "Gc": 7.2,
+        "units": "N/mm",
+        "literature_range": [6.0, 8.4],
+        "source_doi": "10.1016/j.ijmecsci.2021.106868"
+      }
+    }
   },
   "10_snap_mesh_to_crop_boundary": {
     "enabled": true,

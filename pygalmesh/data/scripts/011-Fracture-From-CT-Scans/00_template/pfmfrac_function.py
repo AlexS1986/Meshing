@@ -58,11 +58,16 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param, 
 
     x_min_all, x_max_all, y_min_all, y_max_all, z_min_all, z_max_all = pp.compute_bounding_box(comm, domain)
     pp.print_bounding_box(rank, x_min_all, x_max_all, y_min_all, y_max_all, z_min_all, z_max_all)
+    thickness_z = z_max_all - z_min_all
+    if thickness_z <= 0.0:
+        raise ValueError(f"Specimen thickness in z direction must be positive, got {thickness_z}")
+    if rank == 0:
+        print(f"J-integral normalization thickness (z_max-z_min): {thickness_z}")
 
     lam = dlfx.fem.Constant(domain, lam_param)
     mu = dlfx.fem.Constant(domain, mue_param)
 
-    eta = dlfx.fem.Constant(domain, 0.001)
+    eta = dlfx.fem.Constant(domain, 0.005)
     Gc = dlfx.fem.Constant(domain, Gc_param)
     epsilon = dlfx.fem.Constant(domain, (y_max_all - y_min_all) / eps_factor_param)
 
@@ -105,7 +110,7 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param, 
         pp.write_meshoutputfile(domain, outputfile_xdmf_path, comm)
 
     def before_each_time_step(t, dt):
-        if dt.value < dt_min:
+        if dt < dt_min:
             if rank == 0:
                 print(f"[STOP] dt too small: {dt.value:.3e} < {dt_min}")
             raise StopSimulation
@@ -220,9 +225,18 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param, 
         
         eshelby = phaseFieldProblem.getEshelby(w, eta, lam, mu)
         J3D_glob_x, J3D_glob_y, J3D_glob_z = alex.linearelastic.get_J_3D(eshelby, ds=ds(5), n=n, comm=comm)
+        Jx_per_thickness_z = J3D_glob_x / thickness_z
+        Jy_per_thickness_z = J3D_glob_y / thickness_z
+        Jz_per_thickness_z = J3D_glob_z / thickness_z
 
         if rank == 0:
             print(pp.getJString(J3D_glob_x, J3D_glob_y, J3D_glob_z))
+            print(
+                "J normalized by z thickness: "
+                f"Jx/tz={Jx_per_thickness_z}, "
+                f"Jy/tz={Jy_per_thickness_z}, "
+                f"Jz/tz={Jz_per_thickness_z}"
+            )
         
         # s_zero_for_tracking_at_nodes = dlfx.fem.Function(S)
         # c = dlfx.fem.Constant(domain, petsc.ScalarType(1))
@@ -245,7 +259,24 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param, 
         
         if rank == 0:
             print("Crack tip position x: " + str(x_tip))
-            pp.write_to_graphs_output_file(outputfile_graph_path, t, J3D_glob_x, J3D_glob_y, J3D_glob_z, x_tip, xtip[0], Rx_top, Ry_top, Rz_top, dW, Work.value, A)
+            pp.write_to_graphs_output_file(
+                outputfile_graph_path,
+                t,
+                J3D_glob_x,
+                J3D_glob_y,
+                J3D_glob_z,
+                Jx_per_thickness_z,
+                Jy_per_thickness_z,
+                Jz_per_thickness_z,
+                x_tip,
+                xtip[0],
+                Rx_top,
+                Ry_top,
+                Rz_top,
+                dW,
+                Work.value,
+                A,
+            )
         
         wm1.x.array[:] = w.x.array[:]
         wrestart.x.array[:] = w.x.array[:]
@@ -265,7 +296,15 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param, 
             runtime = timer.elapsed()
             sol.print_runtime(runtime)
             sol.write_runtime_to_newton_logfile(logfile_path, runtime)
-            pp.print_graphs_plot(outputfile_graph_path, script_path, legend_labels=["Jx", "Jy", "Jz", "x_tip", "xtip", "Rx", "Ry", "Rz", "dW", "W", "A"])
+            pp.print_graphs_plot(
+                outputfile_graph_path,
+                script_path,
+                legend_labels=[
+                    "Jx", "Jy", "Jz",
+                    "Jx/t_z", "Jy/t_z", "Jz/t_z",
+                    "x_tip", "xtip", "Rx", "Ry", "Rz", "dW", "W", "A",
+                ],
+            )
 
     try:
         sol.solve_with_newton_adaptive_time_stepping(
