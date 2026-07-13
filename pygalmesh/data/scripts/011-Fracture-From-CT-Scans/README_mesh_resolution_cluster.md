@@ -6,20 +6,30 @@ Each task requests 8 processes and has a maximum runtime of 1440 minutes. The
 DOLFINx conversion runs on all 8 MPI ranks; the Pygalmesh generation stage is
 serial in the existing pipeline.
 
-The job does not read the original DICOM files. It reuses the existing
-`volume.npy` from the `011` working tree below `$HPC_SCRATCH`, then runs only
-the voxel transformations, meshing, mesh postprocessing, and DOLFINx
-conversion. By default it searches these sources in order:
+The job runs the same preprocessing and meshing pipeline as
+`job_fracture_Bin4_reduce_2_CLUSTER.sh`: DICOM conversion, segmentation, 3D
+volume and subvolume creation, voxel transformations, Pygalmesh generation,
+mesh postprocessing, and DOLFINx conversion. It stops immediately before the
+fracture simulation.
+
+The JSON configs continue to use this container path:
 
 ```text
-$HPC_SCRATCH/pygalmesh/data/scripts/011-Fracture-From-CT-Scans/JM-25-74_Bin4_reduce-2_segmented/JM-25-74_Bin4_reduce-2_segmented_3D/subvolume_x52_y74/volume.npy
-$HPC_SCRATCH/pygalmesh/data/scripts/011-Fracture-From-CT-Scans/00_results/JM-25-74_Bin4_reduce-2_segmented_cluster_fine/JM-25-74_Bin4_reduce-2_segmented_cluster_fine_3D/subvolume_x52_y74/volume.npy
+/data/resources/B02_Mevert_AlSi10MgSchaum_JM-26-74_Binning_Variation/Binning 4/JM-25-74_6min15_750^C_erodiert_nach Trockenschrank_Bin4/DICOMDIR
 ```
 
-An alternative scratch subvolume can be selected at submission time:
+The cluster script locates the corresponding host resource directory in this
+order and binds it read-only to `/data/resources`:
+
+1. `$HPC_RESOURCE_DIR`, when explicitly set.
+2. `$HPC_SCRATCH/pygalmesh/data/resources`.
+3. `$HPC_SCRATCH/resources`.
+4. `$HOME/meshing/Meshing/pygalmesh/data/resources`.
+
+If the data is stored elsewhere, submit with its resource root:
 
 ```bash
-MESH_SOURCE_SUBVOLUME_DIR=/absolute/scratch/path/subvolume_x52_y74 \
+HPC_RESOURCE_DIR=/absolute/scratch/path/to/resources \
   sbatch job_generate_dlfx_mesh_Bin4_reduce_2_CLUSTER.sh
 ```
 

@@ -25,7 +25,36 @@ fi
 CONFIG_HOST_PATH="${CONFIG_PATH/#\/data/$HPC_SCRATCH/pygalmesh/data}"
 
 CONTAINER_PATH="$HOME/meshing/Meshing/pygalmesh/pygalmesh.sif"
-BIND_PATHS="$HOME/meshing/Meshing/pygalmesh/data:/home,$HPC_SCRATCH/pygalmesh/data:/data"
+RESOURCE_RELATIVE_PATH="B02_Mevert_AlSi10MgSchaum_JM-26-74_Binning_Variation/Binning 4/JM-25-74_6min15_750^C_erodiert_nach Trockenschrank_Bin4"
+resource_candidates=()
+if [[ -n "${HPC_RESOURCE_DIR:-}" ]]; then
+  resource_candidates+=("$HPC_RESOURCE_DIR")
+fi
+resource_candidates+=(
+  "$HPC_SCRATCH/pygalmesh/data/resources"
+  "$HPC_SCRATCH/resources"
+  "$HOME/meshing/Meshing/pygalmesh/data/resources"
+)
+
+RESOURCE_DIR=""
+for candidate in "${resource_candidates[@]}"; do
+  if [[ -f "$candidate/$RESOURCE_RELATIVE_PATH/DICOMDIR" ]]; then
+    RESOURCE_DIR="$candidate"
+    break
+  fi
+done
+
+if [[ -z "$RESOURCE_DIR" ]]; then
+  echo "Could not locate the original Bin4 DICOM data on the cluster." >&2
+  echo "Expected DICOMDIR below one of these resource roots:" >&2
+  printf '  %s\n' "${resource_candidates[@]}" >&2
+  echo "Set HPC_RESOURCE_DIR to the host directory that contains $RESOURCE_RELATIVE_PATH." >&2
+  exit 1
+fi
+
+echo "Cluster resource root: $RESOURCE_DIR"
+echo "Container DICOM path: /data/resources/$RESOURCE_RELATIVE_PATH/DICOMDIR"
+BIND_PATHS="$HOME/meshing/Meshing/pygalmesh/data:/home,$HPC_SCRATCH/pygalmesh/data:/data,$RESOURCE_DIR:/data/resources:ro"
 SIM_CONTAINER="$HOME/dolfinx_alex/alex-dolfinx.sif"
 SIM_BIND="$HOME/dolfinx_alex/shared:/home,$HPC_SCRATCH/pygalmesh/data:/data"
 
@@ -156,33 +185,10 @@ print(sys.argv[3] if value is None else value)
 PYVAL
 }
 
-if [[ "${MESH_ONLY:-0}" == "1" && -n "${MESH_SOURCE_SUBVOLUME_DIR:-}" ]]; then
-  source_subvolume_dir="$MESH_SOURCE_SUBVOLUME_DIR"
-  source_volume="$source_subvolume_dir/$VOLUME_FILENAME"
-  source_metadata="${MESH_SOURCE_METADATA:-$(dirname "$(dirname "$source_subvolume_dir")")/metadata.json}"
-  target_subvolume="$base_subvolume_folder/$(basename "$source_subvolume_dir")"
-  target_metadata="$(dirname "$base_subvolume_folder")/metadata.json"
-
-  if [[ ! -f "$source_volume" ]]; then
-    echo "Source voxel volume not found in HPC scratch: $source_volume" >&2
-    exit 1
-  fi
-  if [[ ! -f "$source_metadata" ]]; then
-    echo "Source voxel metadata not found in HPC scratch: $source_metadata" >&2
-    exit 1
-  fi
-
-  mkdir -p "$target_subvolume" "$(dirname "$target_metadata")"
-  cp -v "$source_volume" "$target_subvolume/$VOLUME_FILENAME"
-  cp -v "$source_metadata" "$target_metadata"
-  echo "Reusing existing HPC-scratch voxel input: $source_volume"
-  echo "Skipping DICOM conversion, segmentation, and subvolume generation."
-else
-  for script in "${PREPROCESS_SCRIPTS[@]}"; do
-    run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH" \
-      python3 "$working_directory/$script" --config "$CONFIG_PATH"
-  done
-fi
+for script in "${PREPROCESS_SCRIPTS[@]}"; do
+  run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH" \
+    python3 "$working_directory/$script" --config "$CONFIG_PATH"
+done
 
 for subfolder in "$base_subvolume_folder"/subvolume_x*_y*/; do
   [ -d "$subfolder" ] || continue
