@@ -33,6 +33,7 @@ SOURCE_DIR="$working_directory/00_template"
 VOLUME_FILENAME="volume.npy"
 output_directory_variable="fracture"
 sim_ntasks="${SLURM_NTASKS:-96}"
+dlfx_convert_ntasks="${DLFX_CONVERT_NTASKS:-1}"
 SRUN_TIME="${SRUN_TIME:-1440}"
 SRUN_MEM_PER_CPU="${SRUN_MEM_PER_CPU:-9000}"
 
@@ -254,10 +255,17 @@ done
 for subfolder in "$base_subvolume_folder"/*/; do
   [ -d "$subfolder" ] || continue
   if [ -f "$subfolder/mesh.xdmf" ]; then
-    run_container 1 "" "$SIM_BIND" "$SIM_CONTAINER" \
+    run_container "$dlfx_convert_ntasks" "" "$SIM_BIND" "$SIM_CONTAINER" \
       python3 "$working_directory/make_mesh_dlfx_compatible_cluster.py" "$subfolder" -f mesh.xdmf
   fi
 done
+
+if [[ "${MESH_ONLY:-0}" == "1" ]]; then
+  rm -rf "$case_scratch"
+  echo "Mesh-only run complete. No fracture simulation was started."
+  echo "DOLFINx meshes are located below: $base_subvolume_folder"
+  exit 0
+fi
 
 for mat in "${MATERIALS[@]}"; do
   for dir in "${DIRECTIONS[@]}"; do

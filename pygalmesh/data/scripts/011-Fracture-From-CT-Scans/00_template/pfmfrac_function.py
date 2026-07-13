@@ -23,6 +23,27 @@ class StopSimulation(Exception):
     pass
 
 
+def assemble_J_3D_from_eshelby_expression(eshelby, n, ds, comm):
+    """Assemble J directly from a UFL Eshelby expression.
+
+    No projection or interpolation into a tensor-valued function space is
+    performed.  Each component of
+
+        J = integral_boundary Eshelby * n ds
+
+    is assembled from the original UFL expression and summed across MPI
+    ranks.
+    """
+    configurational_traction = ufl.dot(eshelby, n)
+    components = []
+    for component in range(3):
+        local_value = dlfx.fem.assemble_scalar(
+            dlfx.fem.form(configurational_traction[component] * ds)
+        )
+        components.append(comm.allreduce(local_value, op=MPI.SUM))
+    return tuple(components)
+
+
 def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param, element_order, comm):
 
     script_path = os.path.dirname(__file__)
@@ -223,8 +244,18 @@ def run_simulation(mesh_file, lam_param, mue_param, Gc_param, eps_factor_param, 
         if rank == 0:
             sol.write_to_newton_logfile(logfile_path, t, dt, iters)
         
+        # Keep the Eshelby tensor as its original UFL expression.  In
+        # particular, do not create an Expression, tensor Function, or DP
+        # interpolation as done in the plasticity example in script 061.
         eshelby = phaseFieldProblem.getEshelby(w, eta, lam, mu)
-        J3D_glob_x, J3D_glob_y, J3D_glob_z = alex.linearelastic.get_J_3D(eshelby, ds=ds(5), n=n, comm=comm)
+        J3D_glob_x, J3D_glob_y, J3D_glob_z = (
+            assemble_J_3D_from_eshelby_expression(
+                eshelby=eshelby,
+                n=n,
+                ds=ds(5),
+                comm=comm,
+            )
+        )
         Jx_per_thickness_z = J3D_glob_x / thickness_z
         Jy_per_thickness_z = J3D_glob_y / thickness_z
         Jz_per_thickness_z = J3D_glob_z / thickness_z
