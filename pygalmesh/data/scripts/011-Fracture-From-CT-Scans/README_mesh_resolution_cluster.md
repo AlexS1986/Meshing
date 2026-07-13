@@ -3,8 +3,9 @@
 The SLURM array job creates the complete meshing pipeline output through
 `dlfx_mesh.xdmf` and then stops. It does not start a fracture simulation.
 Each task requests 8 processes and has a maximum runtime of 1440 minutes. The
-DOLFINx conversion runs on all 8 MPI ranks; the Pygalmesh generation stage is
-serial in the existing pipeline.
+individual preprocessing, meshing, postprocessing, and DOLFINx-conversion
+commands each run with one `srun` task, exactly as in
+`job_fracture_from_scans_CLUSTER.sh`.
 
 Apart from the intentionally reduced runtime and task count, the array uses
 the established fracture-job resources: partition `mem`, one node, 15000 MB

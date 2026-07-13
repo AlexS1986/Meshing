@@ -31,5 +31,5 @@ fi
 config_name="${CONFIGS[$array_index]}"
 echo "Starting mesh-only resolution job for $config_name"
 
-MESH_ONLY=1 DLFX_CONVERT_NTASKS=8 SRUN_TIME=1440 SRUN_MEM_PER_CPU=15000 \
+MESH_ONLY=1 SRUN_TIME=1440 SRUN_MEM_PER_CPU=15000 \
   bash "$SCRIPT_DIR/job_fracture_from_scans_CLUSTER.sh" "$config_name"
