@@ -30,5 +30,28 @@ fi
 config_name="${CONFIGS[$array_index]}"
 echo "Starting mesh-only resolution job for $config_name"
 
-MESH_ONLY=1 DLFX_CONVERT_NTASKS=8 SRUN_TIME=1440 \
+if [[ -z "${MESH_SOURCE_SUBVOLUME_DIR:-}" ]]; then
+  source_candidates=(
+    "$SCRIPT_DIR/JM-25-74_Bin4_reduce-2_segmented/JM-25-74_Bin4_reduce-2_segmented_3D/subvolume_x52_y74"
+    "$SCRIPT_DIR/00_results/JM-25-74_Bin4_reduce-2_segmented_cluster_fine/JM-25-74_Bin4_reduce-2_segmented_cluster_fine_3D/subvolume_x52_y74"
+  )
+  for candidate in "${source_candidates[@]}"; do
+    if [[ -f "$candidate/volume.npy" ]]; then
+      MESH_SOURCE_SUBVOLUME_DIR="$candidate"
+      break
+    fi
+  done
+fi
+
+if [[ -z "${MESH_SOURCE_SUBVOLUME_DIR:-}" ]]; then
+  echo "Could not find the existing volume.npy in HPC scratch." >&2
+  echo "Set MESH_SOURCE_SUBVOLUME_DIR to the subvolume_x*_y* directory." >&2
+  exit 1
+fi
+
+echo "Voxel input from HPC scratch: $MESH_SOURCE_SUBVOLUME_DIR/volume.npy"
+
+MESH_ONLY=1 \
+MESH_SOURCE_SUBVOLUME_DIR="$MESH_SOURCE_SUBVOLUME_DIR" \
+DLFX_CONVERT_NTASKS=8 SRUN_TIME=1440 \
   bash "$SCRIPT_DIR/job_fracture_from_scans_CLUSTER.sh" "$config_name"

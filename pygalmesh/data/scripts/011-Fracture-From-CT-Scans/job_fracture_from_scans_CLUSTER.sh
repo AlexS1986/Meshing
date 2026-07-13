@@ -156,10 +156,33 @@ print(sys.argv[3] if value is None else value)
 PYVAL
 }
 
-for script in "${PREPROCESS_SCRIPTS[@]}"; do
-  run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH" \
-    python3 "$working_directory/$script" --config "$CONFIG_PATH"
-done
+if [[ "${MESH_ONLY:-0}" == "1" && -n "${MESH_SOURCE_SUBVOLUME_DIR:-}" ]]; then
+  source_subvolume_dir="$MESH_SOURCE_SUBVOLUME_DIR"
+  source_volume="$source_subvolume_dir/$VOLUME_FILENAME"
+  source_metadata="${MESH_SOURCE_METADATA:-$(dirname "$(dirname "$source_subvolume_dir")")/metadata.json}"
+  target_subvolume="$base_subvolume_folder/$(basename "$source_subvolume_dir")"
+  target_metadata="$(dirname "$base_subvolume_folder")/metadata.json"
+
+  if [[ ! -f "$source_volume" ]]; then
+    echo "Source voxel volume not found in HPC scratch: $source_volume" >&2
+    exit 1
+  fi
+  if [[ ! -f "$source_metadata" ]]; then
+    echo "Source voxel metadata not found in HPC scratch: $source_metadata" >&2
+    exit 1
+  fi
+
+  mkdir -p "$target_subvolume" "$(dirname "$target_metadata")"
+  cp -v "$source_volume" "$target_subvolume/$VOLUME_FILENAME"
+  cp -v "$source_metadata" "$target_metadata"
+  echo "Reusing existing HPC-scratch voxel input: $source_volume"
+  echo "Skipping DICOM conversion, segmentation, and subvolume generation."
+else
+  for script in "${PREPROCESS_SCRIPTS[@]}"; do
+    run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH" \
+      python3 "$working_directory/$script" --config "$CONFIG_PATH"
+  done
+fi
 
 for subfolder in "$base_subvolume_folder"/subvolume_x*_y*/; do
   [ -d "$subfolder" ] || continue
