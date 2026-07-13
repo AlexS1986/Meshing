@@ -6,6 +6,10 @@ Each task requests 8 processes and has a maximum runtime of 1440 minutes. The
 DOLFINx conversion runs on all 8 MPI ranks; the Pygalmesh generation stage is
 serial in the existing pipeline.
 
+Apart from the intentionally reduced runtime and task count, the array uses
+the established fracture-job resources: partition `mem`, one node, 15000 MB
+per task, and constraint `m01&mem1536g`.
+
 The job runs the same preprocessing and meshing pipeline as
 `job_fracture_Bin4_reduce_2_CLUSTER.sh`: DICOM conversion, segmentation, 3D
 volume and subvolume creation, voxel transformations, Pygalmesh generation,

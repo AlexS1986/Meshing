@@ -3,10 +3,11 @@
 #SBATCH -J mesh-b4-r2
 #SBATCH -A p0023647
 #SBATCH -t 1440
+#SBATCH -p mem
+#SBATCH --nodes=1
 #SBATCH -n 8
-#SBATCH -N 1
-#SBATCH --mem-per-cpu=9000
-#SBATCH -C i01
+#SBATCH --mem-per-cpu=15000
+#SBATCH -C "m01&mem1536g"
 #SBATCH --array=0-2%1
 #SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/011-Fracture-From-CT-Scans/%x.err.%A_%a
 #SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/011-Fracture-From-CT-Scans/%x.out.%A_%a
@@ -30,5 +31,5 @@ fi
 config_name="${CONFIGS[$array_index]}"
 echo "Starting mesh-only resolution job for $config_name"
 
-MESH_ONLY=1 DLFX_CONVERT_NTASKS=8 SRUN_TIME=1440 \
+MESH_ONLY=1 DLFX_CONVERT_NTASKS=8 SRUN_TIME=1440 SRUN_MEM_PER_CPU=15000 \
   bash "$SCRIPT_DIR/job_fracture_from_scans_CLUSTER.sh" "$config_name"
