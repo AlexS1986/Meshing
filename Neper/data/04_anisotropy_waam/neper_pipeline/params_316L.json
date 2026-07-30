@@ -1,0 +1,57 @@
+{
+  "material": "316L",
+  "material_pretty": "WAAM 316L (austenitic, FCC)",
+  "units": "um",
+  "n_grains": 500,
+  "min_points": 10,
+  "size_metric": "width",
+  "morphology": "orthotropic",
+  "phase_area_fraction": {
+    "fcc": 1.0
+  },
+  "transverse": {
+    "width2D_median_um": 110.6,
+    "width2D_lognorm_sigma": 0.571,
+    "width2D_cv": 0.427,
+    "cv_used_for_neper": 0.43,
+    "stereo_factor": 1.2732,
+    "d3D_median_um": 140.8,
+    "d3D_mean_um": 153.3
+  },
+  "elongation": {
+    "vertical": 3.18,
+    "horizontal": 3.41,
+    "deg45": 2.62,
+    "k_measured": 2.9,
+    "k_used": 2.8,
+    "k_build": 3.41,
+    "k_inplane": 3.18,
+    "shape_amp": 1.22,
+    "axes_zxy": "z=build, x=weld, y=wall-normal"
+  },
+  "build_axis_in_vertical_map_deg": 121.9,
+  "build_axis_concentration_R": 0.73,
+  "neper": {
+    "domain_cube_um": 1160.0,
+    "final_rve_um": [
+      3024.1,
+      1160.0,
+      3248.0
+    ],
+    "morpho_cv": 0.43,
+    "morpho": "diameq:lognormal(1,0.43),1-sphericity:lognormal(0.145,0.03)",
+    "transform": "scale(2.607,1.0,2.8)",
+    "scale_xyz": [
+      2.607,
+      1.0,
+      2.8
+    ],
+    "scale_build_frame": [
+      2.8,
+      2.607,
+      1.0
+    ],
+    "scale_product": 7.3,
+    "ori_file": "n500_316L.ori"
+  }
+}

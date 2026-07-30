@@ -1,0 +1,201 @@
+================================================================================
+ WAAM ELASTIC ANISOTROPY PROJECT — WORKING DOCUMENTATION
+ Last updated: 2026-07-28   (keep current when scripts / workflow change)
+================================================================================
+
+PURPOSE
+  Determine the effective elastic anisotropy of WAAM-manufactured steels
+  (316L austenite, 17-4PH martensite) from measured EBSD microstructures:
+    EBSD  ->  statistically-equivalent 3D polycrystal (Neper)  ->  mesh  ->
+    per-grain anisotropic linear-elastic FE homogenization + uniaxial test
+    (dolfinx)  ->  effective stiffness Chom and directional E-modulus.
+
+--------------------------------------------------------------------------------
+1. WHERE THINGS LIVE (two parts, two containers)
+--------------------------------------------------------------------------------
+  PART A — microstructure + meshing (this folder)
+    .../Simulation/Meshing/Neper/data/04_anisotropy_waam/
+      data_c04/                 raw EBSD grain exports (TSL/OIM .txt) + images
+                                (316L Vertical/Horizontal/45; 17-4PH Vertikal/
+                                 Horizontal/45; Uebergangsbereich/ transition)
+      neper_pipeline/           <-- YOU ARE HERE: all scripts + generated meshes
+    Runs in the NEPER/GMSH container (docker compose at the Neper/ root,
+    service "ubuntu_custom"; Neper 4.8.2 + Gmsh).
+
+  PART B — FE computations
+    .../Simulation/dolfinx_alex/shared/scripts/069-waam-polycrystal-anisotropy/
+    Runs in the DOLFINX container (docker compose at dolfinx_alex/, service
+    "alex-dolfinx", image dolfinx/dolfinx:v0.7.3). That compose mounts
+    ./shared -> /home and sets PYTHONPATH=/home/utils, so the shared "alex"
+    package (shared/utils/alex) is importable and this project appears at
+    /home/scripts/069-waam-polycrystal-anisotropy.
+    IMPORTANT: the dolfinx container does NOT mount the Neper folder. Meshes
+    must be copied into 069/inputs/ (prepare_inputs.py) to be visible there.
+
+--------------------------------------------------------------------------------
+2. NEPER PIPELINE — FILES (this folder)
+--------------------------------------------------------------------------------
+  materials.py            central config: per-material EBSD files, phase policy,
+                          min_points, size metric, morphology (columnar/equiaxed),
+                          cv_cap; robust CRLF-safe loader; shared orientation math.
+  01_fit_ebsd.py          --material 316L|17-4PH|trans [--n N]  -> params_<MAT>.json,
+                          n<N>_<MAT>.ori/.meta, fit_ebsd_targets_<MAT>.png
+  02_generate_tess.sh     (MAT=, MORPHOSTOP=) Neper tessellation -> .tess/.stcell,
+                          grain_ori_<MAT>.txt (grain_id phi1 Phi phi2 crystal)
+  03_mesh.sh              (MAT=, RCL=, ORDER=) Neper meshing -> waam_<MAT>_n<N>.msh
+  04_convert_to_xdmf.py   <mesh.msh> -> .xdmf/.h5 with "grain" cell tag (meshio)
+  05_verify_stats.py      <MAT>  tessellation vs EBSD statistics + plot
+  06_fenicsx_example.py   <MAT|combined>  minimal dolfinx loader (per-cell rotated
+                          cubic stiffness) — reference/example only
+  07_tensile_specimens.py (MAT=) directional bars V/H/45deg -> spec_<MAT>_<O>.*
+  08_combined_specimen.py trilayer V bar 316L/transition/17-4PH -> spec_combined_V.*
+  09_homogenization_rve.sh(MAT=, N=, RCL=) finer/more-grains RVE for homogenization
+  run_pipeline.sh         FULL run: RVEs + bars + combined (CLEAN/MATERIALS/N/RCL/
+                          SPECIMENS/COMBINED/FAST). START HERE for a clean build.
+  run_all.sh              simple run: n=200 RVEs + combined (SPECIMENS=1 for bars)
+  recover_and_continue.sh (MAT=) re-mesh from an existing .tess without re-optim.
+  clean_generated.sh      [--dry] remove ALL generated files, keep source scripts
+  README.md               detailed German documentation of the model + assumptions
+
+--------------------------------------------------------------------------------
+3. DOLFINX PROJECT — FILES (069-waam-polycrystal-anisotropy)
+--------------------------------------------------------------------------------
+  waam_crystal.py         shared: read mesh+grain tags+grain_ori, build per-cell
+                          DG0 rotated cubic stiffness (6x6 Bond), aniso stress/avg
+  homogenize_rve.py       --mesh --ori --tag  KUBC homogenization -> Chom_<tag>.json
+  uniaxial_tension.py     --mesh --ori --tag  uniaxial test -> Emodul_<tag>.json
+  config.json             single-crystal cubic C11/C12/C44 per phase (EDIT THESE;
+                          literature placeholders)
+  prepare_inputs.py       HOST-side: copy Neper meshes+ori into ./inputs/
+  run_fem.sh              run all homogenizations + uniaxial cases (HOMOG/UNIAXIAL/
+                          MATERIALS/ORIENTS/N/NP)
+  evaluation.py           post-process results -> report/fig1-3 + summary.csv/.md
+  engineering_constants.py  full orthotropic constants (E_i, nu_ij, G_ij) from
+                          S=Chom^-1 -> report/engineering_constants.md + .csv
+  experimental_comparison.py  numerical vs EXPERIMENTAL (RPTU/WKK) directional
+                          E-modulus (V/H/45deg, both steels) -> report/
+                          fig_exp_vs_num.png + experimental_comparison.md.
+                          KEY FINDING: 17-4PH matches well; 316L anisotropy
+                          DIRECTION is inverted vs experiment -> real 316L is
+                          sharply <100>-textured (V/H soft ~E<100>=94 GPa, 45deg
+                          stiff); modelled texture too weak. Single-crystal
+                          constants are validated; texture is the priority fix.
+  pole_figures.py         {100} pole figures of the raw 316L EBSD sections ->
+                          report/fig_polefigures_316L.png. Shows the scans are
+                          only weakly textured (no sharp <100> cluster).
+  report/                 report.md + WAAM_anisotropy_report.docx + figures
+  inputs/                 staged meshes (created by prepare_inputs.py)
+  Chom_*.json Emodul_*.json   results
+
+--------------------------------------------------------------------------------
+4. HOW TO RUN (end to end)
+--------------------------------------------------------------------------------
+  STEP 1 — meshes (Neper/Gmsh container, from Neper/ on the host)
+    docker compose up -d --build
+    docker compose exec ubuntu_custom bash -c \
+      "CLEAN=1 bash /data/04_anisotropy_waam/neper_pipeline/run_pipeline.sh"
+    (test first with FAST=1; real optimized run takes longer.)
+    Produces: waam_<MAT>_n300.xdmf/.h5, spec_<MAT>_V/H/45deg.*, spec_combined_V.*
+    each with grain_ori_*.txt.
+
+  STEP 2 — stage meshes for dolfinx (HOST; both trees visible)
+    cd .../dolfinx_alex/shared/scripts/069-waam-polycrystal-anisotropy
+    python3 prepare_inputs.py --rve 316L 17-4PH --n 300
+    python3 prepare_inputs.py --specimens 316L 17-4PH
+
+  STEP 3 — edit config.json (single-crystal constants) if needed.
+
+  STEP 4 — FE computations (dolfinx container, from dolfinx_alex/)
+    docker compose up -d --build
+    docker compose exec alex-dolfinx bash -c \
+      "cd /home/scripts/069-waam-polycrystal-anisotropy && bash run_fem.sh"
+    (NP=8 for MPI; HOMOG=0 or UNIAXIAL=0 to run only one set.)
+
+  STEP 5 — evaluation + report
+    python3 evaluation.py                 # figures + summary tables
+    python3 engineering_constants.py      # orthotropic E_i/nu_ij/G_ij (Table 3)
+    (report PDF built from report.md via LaTeX/xelatex:
+       cd report && bash build_report.sh
+       # or: pandoc report.md -o WAAM_anisotropy_report.pdf --pdf-engine=xelatex
+       # figures/tables auto-numbered via {#fig:label}/\label + \ref -> no manual
+       # renumbering. Needs TeXLive(xelatex) + DejaVu fonts. docx is retired.)
+
+--------------------------------------------------------------------------------
+5. KEY MODELING DECISIONS (see README.md + the report for full rationale)
+--------------------------------------------------------------------------------
+  - SECTIONING GEOMETRY (confirmed 2026-07): every EBSD polish plane is a
+    cross-section PERPENDICULAR to the tensile-specimen axis (specimens: V||build,
+    H _|_ build i.e. ||weld, 45deg). Therefore:
+      * V-section _|_ build  -> plane (weld x wall-normal); aspect 3.18 =
+        weld/wall-normal; its NORMAL is the build direction.
+      * H-section _|_ weld   -> plane (build x wall-normal); aspect 3.41 =
+        build/wall-normal.
+    Independent 45deg check: this geometry predicts the 45deg aspect 3.29
+    (measured 2.60); the earlier "V=wall face" assumption predicted 4.60. So the
+    perpendicular-section geometry is data-supported.
+  - 316L: single-phase FCC, ORTHOTROPIC grains. k_build=3.41 (build/wall-normal,
+    from HORIZONTAL section, coherent R=0.87), k_inplane=3.18 (weld/wall-normal,
+    from VERTICAL section, R=0.73). Wall-normal is the base (=1). Grain shape
+    L_z:L_x:L_y ~ 3.4:3.2:1 (plate-like; build~weld, NOT strongly columnar).
+    Transform scale(k_inplane,1,k_build) = scale(3.18,1,3.41); frame x=weld,
+    y=wall-normal, z=build. RVE box ~3690 x 1160 x 3956 um at n=500 (~8
+    grains/direction). TEXTURE FRAME: orientations sampled from the V-section;
+    build = V-section NORMAL -> z, weld = V-section in-plane axis -> x. The section
+    -> axis mapping is configurable in materials.py (k_build_section,
+    k_inplane_section, build_normal_section). Shape applied consistently to RVE
+    (02 scale_xyz), bars (07) and combined bar (08) via
+    params.neper.scale_build_frame = [k_build,k_inplane,1] (rotated by alpha in 07).
+  - 17-4PH: phases pooled (per grain crystal kept), EQUIAXED (k=1) because the
+    grain elongation is directionally incoherent (R=0.08) — a global stretch
+    would fabricate anisotropy. Size via equivalent diameter, min_points=50,
+    and cv_cap=0.8 (measured CV~1.4) for the Neper target distribution only
+    (median preserved; does not affect effective anisotropy).
+  - Transition (combined bar) is a single homogeneous grain (n=1).
+  - Per-grain stiffness: C_sample = M(g) C_crystal M(g)^T (6x6 stress Bond
+    matrix, Voigt order xx,yy,zz,yz,xz,xy, engineering shear).
+  - Homogenization = KUBC (upper/stiff bound). Uniaxial = symmetric BC + free
+    lateral faces (apparent E in load direction).
+  - Units: mesh in um, single-crystal C in GPa -> moduli in GPa.
+
+--------------------------------------------------------------------------------
+6. GOTCHAS
+--------------------------------------------------------------------------------
+  - Two containers, separate mounts: dolfinx sees only shared/; always run
+    prepare_inputs.py after (re)generating meshes.
+  - dolfinx is v0.7.3: use ufl.VectorElement/TensorElement + dlfx.fem.FunctionSpace
+    (NOT the 0.8 functionspace()/("Lagrange",..) tuple API).
+  - Reading grain tags in dolfinx: read_mesh(name="Grid") + read_meshtags(name=
+    "Grid") — works because the meshio XDMF has a single "grain" cell attribute.
+  - Neper -morpho optimization: strict val criteria never terminate here; use
+    val=1e-2||itermax=... (already the defaults). CV cap keeps 17-4PH tractable.
+  - Neper -M can SIGABRT on 3D meshing; 08/07 retry at coarser rcl and (08) fall
+    back to Voronoi. Combined bar auto-regenerates region if the cached grain
+    count no longer matches the fit.
+  - Results (Chom/Emodul) are in GPa and scale with config.json — placeholders!
+  - 17-4PH uniaxial bars are thin/flat -> more statistical scatter than the RVE.
+
+--------------------------------------------------------------------------------
+7. STATUS / RESULTS SNAPSHOT (update on new runs)
+--------------------------------------------------------------------------------
+  CURRENT — corrected perpendicular-section geometry (k_build=3.41,
+  k_inplane=3.18, texture frame build=V-normal; 316L RVE n=500).
+  Effective E [GPa], KUBC RVE:
+    316L   : E_x=214 E_y=197 E_z=216 (orthotropic; stiffest build~weld,
+             softest wall-normal; spread ~9%)
+    17-4PH : E_x=208 E_y=208 E_z=203 (near isotropic; equiaxed, unchanged)
+  Uniaxial bars (V/H/45deg) [GPa]:
+    316L   : 202 / 204 / 171   (V~H, 45deg soft)
+    17-4PH : 199 / 206 / 223
+  NOTE: absolute values depend on the placeholder single-crystal constants.
+  The geometry correction swapped the roles of weld vs wall-normal (weld is now
+  stiff, wall-normal soft); build stays stiffest. 17-4PH unaffected (equiaxed).
+
+--------------------------------------------------------------------------------
+8. MAINTENANCE
+--------------------------------------------------------------------------------
+  This file and AGENTS.md are living documents. Update them whenever:
+   - a script is added/renamed or its interface changes,
+   - the modeling assumptions change (materials.py / config.json),
+   - the run workflow or container setup changes,
+   - new results supersede the snapshot in section 7.
+================================================================================

@@ -9,6 +9,10 @@ else
   CONFIG_PATH="/data/scripts/010-Yield-Surface-Generation/$CONFIG_ARG"
 fi
 CONFIG_HOST_PATH="${CONFIG_PATH/#\/data/$HPC_SCRATCH/pygalmesh/data}"
+if [[ ! -f "$CONFIG_HOST_PATH" ]]; then
+  echo "Config not found on the host: $CONFIG_HOST_PATH" >&2
+  exit 2
+fi
 
 CONTAINER_PATH="$HOME/meshing/Meshing/pygalmesh/pygalmesh.sif"
 BIND_PATHS="$HOME/meshing/Meshing/pygalmesh/data:/home,$HPC_SCRATCH/pygalmesh/data:/data"
@@ -55,6 +59,10 @@ print(" ".join(ys.get("materials", ["std"])))
 print(" ".join(ys.get("loading_directions", ["tensor"])))
 print(ys.get("sample_id", "yield_sample"))
 print(config.get("02d_axis_aligned_cuboid_crop", {}).get("output_filename", "volume_boundary_shell_aniso.npy"))
+dataset_id = config.get("dataset", {}).get("id")
+if not dataset_id:
+    dataset_id = config["01_segment_slice_wise"]["specimen_name"].split("_Bin", 1)[0]
+print(dataset_id)
 PYINFO
 )
 
@@ -65,20 +73,22 @@ materials_line="$(echo "$CONFIG_INFO" | sed -n '4p')"
 directions_line="$(echo "$CONFIG_INFO" | sed -n '5p')"
 sample_id="$(echo "$CONFIG_INFO" | sed -n '6p')"
 shell_volume_filename="$(echo "$CONFIG_INFO" | sed -n '7p')"
+dataset_id="$(echo "$CONFIG_INFO" | sed -n '8p')"
 read -r -a MATERIALS <<< "$materials_line"
 read -r -a DIRECTIONS <<< "$directions_line"
 base_subvolume_folder="${base_subvolume_container_path/#\/data/$HPC_SCRATCH/pygalmesh/data}"
-run_root="$working_directory/yield_surface_runs/$sample_id"
+run_root="$working_directory/yield_surface_runs/$dataset_id/$sample_id"
 mkdir -p "$run_root"
 
 echo "Running yield-surface point: $sample_id"
+echo "Dataset: $dataset_id"
 echo "Using config: $CONFIG_PATH"
 echo "Using prepared mesh folder: $base_subvolume_folder"
 echo "Run root: $run_root"
 
 for mat in "${MATERIALS[@]}"; do
   for direction in "${DIRECTIONS[@]}"; do
-    final_output_dir="$working_directory/00_results/${SPECIMEN_NAME:-JM-25-74}/${binning_label}/yield_surface/${sample_id}-${mat}-${direction}"
+    final_output_dir="$working_directory/00_results/${dataset_id}/${binning_label}/yield_surface/${sample_id}-${mat}-${direction}"
     for subfolder in "$base_subvolume_folder"/*/; do
       [ -d "$subfolder" ] || continue
       if [ ! -f "$subfolder/dlfx_mesh.xdmf" ]; then
@@ -94,13 +104,17 @@ for mat in "${MATERIALS[@]}"; do
       cp -v "$subfolder/$shell_volume_filename" "$target"/ 2>/dev/null || true
       cp -v "$subfolder"/volume*.npy "$target"/ 2>/dev/null || true
       cp -v "$SOURCE_DIR"/* "$target"/
+      cp -v "$working_directory/write_yield_surface_parameters.py" "$target/"
       cp -v "$CONFIG_HOST_PATH" "$target/config.json"
+      run_container 1 "$target" "$SIM_BIND" "$SIM_CONTAINER" \
+        python3 "$target/write_yield_surface_parameters.py" --config "$target/config.json" --output "$target/parameters.txt" --material "$mat" --loading-direction "$direction"
       run_container "$sim_ntasks" "$target" "$SIM_BIND" "$SIM_CONTAINER" \
         python3 "$target/elastoplastic.py" --material "$mat" --loading-direction "$direction" --config "$target/config.json"
     done
     mkdir -p "$final_output_dir"
     cp -rv "$run_root" "$final_output_dir/"
     cp -v "$CONFIG_HOST_PATH" "$final_output_dir/config.json" || true
+    cp -v "$run_root"/*/parameters.txt "$final_output_dir/parameters.txt" 2>/dev/null || true
   done
 done
 

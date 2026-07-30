@@ -1,0 +1,58 @@
+{
+  "material": "17-4PH",
+  "material_pretty": "WAAM 17-4PH (martensitic, mostly BCC + retained FCC)",
+  "units": "um",
+  "n_grains": 300,
+  "min_points": 50,
+  "size_metric": "diameq",
+  "morphology": "equiaxed",
+  "phase_area_fraction": {
+    "bcc": 0.9856,
+    "fcc": 0.0144,
+    "hcp": 0.0
+  },
+  "transverse": {
+    "width2D_median_um": 21.1,
+    "width2D_lognorm_sigma": 1.089,
+    "width2D_cv": 1.396,
+    "cv_used_for_neper": 0.8,
+    "stereo_factor": 1.2732,
+    "d3D_median_um": 26.9,
+    "d3D_mean_um": 34.4
+  },
+  "elongation": {
+    "vertical": 4.4,
+    "horizontal": 5.8,
+    "deg45": 3.92,
+    "k_measured": 4.16,
+    "k_used": 1.0,
+    "k_build": 5.8,
+    "k_inplane": 4.4,
+    "axes_zxy": "z=build, x=weld, y=wall-normal"
+  },
+  "build_axis_in_vertical_map_deg": 75.1,
+  "build_axis_concentration_R": 0.08,
+  "neper": {
+    "domain_cube_um": 300.0,
+    "final_rve_um": [
+      300.0,
+      300.0,
+      300.0
+    ],
+    "morpho_cv": 0.8,
+    "morpho": "diameq:lognormal(1,0.8),1-sphericity:lognormal(0.145,0.03)",
+    "transform": "scale(1.0,1.0,1.0)",
+    "scale_xyz": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "scale_build_frame": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "scale_product": 1.0,
+    "ori_file": "n300_17-4PH.ori"
+  }
+}

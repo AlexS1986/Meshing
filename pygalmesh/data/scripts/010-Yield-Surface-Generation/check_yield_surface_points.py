@@ -25,6 +25,41 @@ def infer_sample_id(path, data):
     return None
 
 
+def dataset_from_config(config):
+    dataset_id = config.get("dataset", {}).get("id")
+    if dataset_id:
+        return dataset_id
+    specimen = config.get("01_segment_slice_wise", {}).get("specimen_name", "")
+    return specimen.split("_Bin", 1)[0] or None
+
+
+def dataset_from_path(path, project_dir):
+    try:
+        relative = path.relative_to(project_dir)
+    except ValueError:
+        return None
+    if len(relative.parts) >= 2 and relative.parts[0] in {"00_results", "yield_surface_runs"}:
+        return relative.parts[1]
+    return None
+
+
+def infer_jobs_dataset(jobs_dir):
+    dataset_ids = set()
+    for config_path in jobs_dir.glob("ys_*/config.json"):
+        try:
+            with config_path.open() as handle:
+                dataset_id = dataset_from_config(json.load(handle))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if dataset_id:
+            dataset_ids.add(dataset_id)
+    if len(dataset_ids) == 1:
+        return dataset_ids.pop()
+    if len(dataset_ids) > 1:
+        raise ValueError(f"Job directory contains multiple datasets: {sorted(dataset_ids)}")
+    return None
+
+
 def expected_from_manifest(jobs_dir):
     manifest = jobs_dir / "manifest.csv"
     if not manifest.is_file():
@@ -46,7 +81,7 @@ def iter_summary_files(project_dir, filename):
     yield from project_dir.glob(f"yield_surface_runs/**/{filename}")
 
 
-def load_summary(path):
+def load_summary(path, project_dir):
     with path.open() as handle:
         data = json.load(handle)
 
@@ -54,6 +89,7 @@ def load_summary(path):
     current_eps = final_state.get("eps_mac_eigenvalues_current") or [None, None, None]
     return {
         "path": path,
+        "dataset_id": dataset_from_path(path, project_dir),
         "sample_id": infer_sample_id(path, data),
         "stop_reason": data.get("stop_reason"),
         "current_eps": current_eps,
@@ -80,6 +116,11 @@ def main():
     parser.add_argument("--material", default="std")
     parser.add_argument("--direction", default="tensor")
     parser.add_argument(
+        "--dataset-id",
+        default=None,
+        help="Dataset to check; defaults to the dataset recorded in the selected job configs.",
+    )
+    parser.add_argument(
         "--require-stop-reason",
         default=None,
         help="Optional required stop_reason, e.g. yielded_volume_fraction_reached.",
@@ -90,6 +131,7 @@ def main():
     project_dir = Path(args.project_dir).resolve()
     jobs_dir = Path(args.jobs_dir).resolve() if args.jobs_dir else project_dir / "yield_surface_jobs" / f"n{args.points:03d}"
     filename = f"yield_run_{args.material}_{args.direction}.json"
+    selected_dataset = args.dataset_id or infer_jobs_dataset(jobs_dir)
 
     expected = expected_from_manifest(jobs_dir)
     expected_source = jobs_dir / "manifest.csv"
@@ -104,8 +146,10 @@ def main():
     summaries_by_sample = defaultdict(list)
     unreadable = []
     for path in sorted(iter_summary_files(project_dir, filename)):
+        if selected_dataset and dataset_from_path(path, project_dir) != selected_dataset:
+            continue
         try:
-            summary = load_summary(path)
+            summary = load_summary(path, project_dir)
         except (OSError, json.JSONDecodeError) as exc:
             unreadable.append((path, exc))
             continue
@@ -138,6 +182,7 @@ def main():
                 reason = f"expected stop_reason={args.require_stop_reason}"
 
         rows.append({
+            "dataset_id": selected_dataset or (best["dataset_id"] if best else ""),
             "sample_id": sample_id,
             "status": status,
             "summary_count": len(summaries),
@@ -162,6 +207,7 @@ def main():
 
     ok_count = sum(1 for row in rows if row["status"] == "ok")
     print(f"Expected points: {len(expected)} from {expected_source}")
+    print(f"Dataset: {selected_dataset or 'all (legacy job set without dataset metadata)'}")
     print(f"Result filename: {filename}")
     print(f"Generated points: {ok_count}/{len(expected)}")
     if args.csv:

@@ -5,6 +5,8 @@ import json
 import math
 from pathlib import Path
 
+from write_yield_surface_parameters import parameter_text
+
 
 def axes_directions():
     return [
@@ -47,7 +49,14 @@ def main():
     parser.add_argument("--points", type=int, default=6, help="Number of directions to sample; minimum/default is 6.")
     parser.add_argument("--base-config", default="config-Bin4-reduce-2.json")
     parser.add_argument("--radius", type=float, default=0.25, help="Magnitude of the target eps eigenvalue vector before strain scaling.")
-    parser.add_argument("--output-dir", default=None, help="Defaults to yield_surface_jobs/nNNN below the project directory.")
+    parser.add_argument(
+        "--output-dir",
+        default=None,
+        help=(
+            "Defaults to yield_surface_jobs/nNNN below the project directory. "
+            "Relative paths are resolved below the project directory."
+        ),
+    )
     parser.add_argument("--project-dir", default=None, help="Defaults to the directory containing this script.")
     args = parser.parse_args()
 
@@ -58,7 +67,17 @@ def main():
     with base_config_path.open() as handle:
         base_config = json.load(handle)
 
-    output_dir = Path(args.output_dir).resolve() if args.output_dir else project_dir / "yield_surface_jobs" / f"n{args.points:03d}"
+    if args.output_dir:
+        output_dir = Path(args.output_dir)
+        if not output_dir.is_absolute():
+            output_dir = project_dir / output_dir
+        output_dir = output_dir.resolve()
+    else:
+        output_dir = project_dir / "yield_surface_jobs" / f"n{args.points:03d}"
+    try:
+        output_dir.relative_to(project_dir)
+    except ValueError as exc:
+        raise ValueError("--output-dir must be inside --project-dir so it is available through /data") from exc
     output_dir.mkdir(parents=True, exist_ok=True)
 
     directions = sample_directions(args.points)
@@ -71,8 +90,6 @@ def main():
         "#SBATCH --mem-per-cpu=9000",
         "#SBATCH -n 1",
         "#SBATCH -N 1",
-        f"#SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/010-Yield-Surface-Generation/yield_surface_jobs/n{args.points:03d}/%x.err.%j",
-        f"#SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/010-Yield-Surface-Generation/yield_surface_jobs/n{args.points:03d}/%x.out.%j",
         "#SBATCH --mail-type=END",
         "#SBATCH -C i01",
         "",
@@ -103,27 +120,34 @@ def main():
         with config_path.open("w") as handle:
             json.dump(cfg, handle, indent=2)
             handle.write("\n")
+        (sample_dir / "parameters.txt").write_text(parameter_text(cfg))
 
         job_path = sample_dir / f"job_{sample_id}_CLUSTER.sh"
+        config_container_path = (
+            f"/data/scripts/010-Yield-Surface-Generation/"
+            f"{config_path.relative_to(project_dir).as_posix()}"
+        )
         job_text = f"""#!/bin/bash
 
 #SBATCH -J {sample_id[:48]}
 #SBATCH -A p0023647
 #SBATCH -t 1440
-#SBATCH --mem-per-cpu=9000
 #SBATCH -n 32
 #SBATCH -N 1
+#SBATCH --mem-per-cpu=9000
 #SBATCH -C i01
-#SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/010-Yield-Surface-Generation/yield_surface_jobs/n{args.points:03d}/{sample_id}/%x.err.%j
-#SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/010-Yield-Surface-Generation/yield_surface_jobs/n{args.points:03d}/{sample_id}/%x.out.%j
 #SBATCH --mail-type=END
 
 SCRIPT_DIR=\"$HPC_SCRATCH/pygalmesh/data/scripts/010-Yield-Surface-Generation\"
-bash \"$SCRIPT_DIR/job_yield_surface_point_CLUSTER.sh\" \"/data/scripts/010-Yield-Surface-Generation/yield_surface_jobs/n{args.points:03d}/{sample_id}/config.json\"
+bash \"$SCRIPT_DIR/job_yield_surface_point_CLUSTER.sh\" \"{config_container_path}\"
 """
         job_path.write_text(job_text)
         job_path.chmod(0o755)
-        submit_lines.append(f"sbatch \"$SCRIPT_DIR/{sample_id}/job_{sample_id}_CLUSTER.sh\"")
+        submit_lines.append(
+            f"sbatch --error=\"$SCRIPT_DIR/{sample_id}/%x.err.%j\" "
+            f"--output=\"$SCRIPT_DIR/{sample_id}/%x.out.%j\" "
+            f"\"$SCRIPT_DIR/{sample_id}/job_{sample_id}_CLUSTER.sh\""
+        )
         manifest_rows.append({
             "sample_id": sample_id,
             "sample_index": index,

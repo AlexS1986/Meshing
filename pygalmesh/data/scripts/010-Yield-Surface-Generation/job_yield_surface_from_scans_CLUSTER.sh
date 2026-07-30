@@ -25,11 +25,15 @@ else
   CONFIG_PATH="/data/scripts/010-Yield-Surface-Generation/$CONFIG_ARG"
 fi
 CONFIG_HOST_PATH="${CONFIG_PATH/#\/data/$HPC_SCRATCH/pygalmesh/data}"
+if [[ ! -f "$CONFIG_HOST_PATH" ]]; then
+  echo "Config not found on the host: $CONFIG_HOST_PATH" >&2
+  exit 2
+fi
 
 CONTAINER_PATH="$HOME/meshing/Meshing/pygalmesh/pygalmesh.sif"
 BIND_PATHS="$HOME/meshing/Meshing/pygalmesh/data:/home,$HPC_SCRATCH/pygalmesh/data:/data"
 SIM_CONTAINER="$HOME/dolfinx_alex/alex-dolfinx.sif"
-SIM_BIND="$HOME/dolfinx_alex/shared:/home"
+SIM_BIND="$HOME/dolfinx_alex/shared:/home,$HPC_SCRATCH/pygalmesh/data:/data"
 
 SOURCE_DIR="$working_directory/00_template"
 VOLUME_FILENAME="volume.npy"
@@ -56,6 +60,11 @@ print(config["01_segment_slice_wise"]["specimen_name"])
 print(config["02b_build_subvolume_arrays"]["subvolume_output_folder"])
 print(" ".join(config.get("yield_surface", {}).get("materials", ["std"])))
 print(" ".join(config.get("yield_surface", {}).get("loading_directions", ["x"])))
+dataset_id = config.get("dataset", {}).get("id")
+if not dataset_id:
+    dataset_id = config["01_segment_slice_wise"]["specimen_name"].split("_Bin", 1)[0]
+print(dataset_id)
+print(config["dicom2npy"]["foldername"])
 PYINFO
 )
 
@@ -64,15 +73,25 @@ run_name="$(echo "$CONFIG_INFO" | sed -n '2p')"
 base_subvolume_container_path="$(echo "$CONFIG_INFO" | sed -n '3p')"
 materials_line="$(echo "$CONFIG_INFO" | sed -n '4p')"
 directions_line="$(echo "$CONFIG_INFO" | sed -n '5p')"
+dataset_id="$(echo "$CONFIG_INFO" | sed -n '6p')"
+resource_container_path="$(echo "$CONFIG_INFO" | sed -n '7p')"
 read -r -a MATERIALS <<< "$materials_line"
 read -r -a DIRECTIONS <<< "$directions_line"
 base_subvolume_folder="${base_subvolume_container_path/#\/data/$HPC_SCRATCH/pygalmesh/data}"
+resource_host_path="${resource_container_path/#\/data/$HPC_SCRATCH/pygalmesh/data}"
+if [[ ! -d "$resource_host_path" ]]; then
+  echo "Scan dataset not found on the host: $resource_host_path" >&2
+  echo "Configured container path: $resource_container_path" >&2
+  exit 2
+fi
 case_scratch="$working_directory/scratch/${run_name}_${SLURM_JOB_ID:-manual}"
 
 rm -rf "$case_scratch"
 mkdir -p "$case_scratch/tmp"
 
 echo "Processing $binning_label for yield-surface generation"
+echo "Dataset: $dataset_id"
+echo "Scan data: $resource_host_path"
 echo "Using config: $CONFIG_PATH"
 echo "Materials: ${MATERIALS[*]}"
 echo "Directions: ${DIRECTIONS[*]}"
@@ -201,11 +220,14 @@ done
 
 for mat in "${MATERIALS[@]}"; do
   for direction in "${DIRECTIONS[@]}"; do
-    final_output_dir="$working_directory/00_results/${SPECIMEN_NAME}/${binning_label}/${output_directory_variable}/${run_name}-${mat}-${direction}"
+    final_output_dir="$working_directory/00_results/${dataset_id}/${binning_label}/${output_directory_variable}/${run_name}-${mat}-${direction}"
     for subfolder in "$base_subvolume_folder"/*/; do
       [ -d "$subfolder" ] || continue
       cp -v "$SOURCE_DIR"/* "$subfolder"
+      cp -v "$working_directory/write_yield_surface_parameters.py" "$subfolder/"
       cp -v "$CONFIG_HOST_PATH" "$subfolder/config.json"
+      run_container 1 "$subfolder" "$SIM_BIND" "$SIM_CONTAINER" \
+        python3 "$subfolder/write_yield_surface_parameters.py" --config "$subfolder/config.json" --output "$subfolder/parameters.txt" --material "$mat" --loading-direction "$direction"
       run_container "$sim_ntasks" "$subfolder" "$SIM_BIND" "$SIM_CONTAINER" \
         python3 "$subfolder/elastoplastic.py" --material "$mat" --loading-direction "$direction" --config "$subfolder/config.json"
     done
@@ -213,6 +235,7 @@ for mat in "${MATERIALS[@]}"; do
     cp -rv "$base_subvolume_folder" "$final_output_dir/"
     cp -v "$working_directory/${run_name}_segmented/metadata.json" "$final_output_dir/" || true
     cp -v "$CONFIG_HOST_PATH" "$final_output_dir/" || true
+    cp -v "$base_subvolume_folder"/*/parameters.txt "$final_output_dir/parameters.txt" 2>/dev/null || true
   done
 done
 

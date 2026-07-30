@@ -15,7 +15,17 @@
 set -euo pipefail
 
 working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/010-Yield-Surface-Generation"
-CONFIG_PATH="/data/scripts/010-Yield-Surface-Generation/config-Bin4-reduce-2.json"
+CONFIG_ARG="${1:-config-Bin4-reduce-2.json}"
+if [[ "$CONFIG_ARG" = /* ]]; then
+  CONFIG_PATH="$CONFIG_ARG"
+else
+  CONFIG_PATH="/data/scripts/010-Yield-Surface-Generation/$CONFIG_ARG"
+fi
+CONFIG_HOST_PATH="${CONFIG_PATH/#\/data/$HPC_SCRATCH/pygalmesh/data}"
+if [[ ! -f "$CONFIG_HOST_PATH" ]]; then
+  echo "Config not found on the host: $CONFIG_HOST_PATH" >&2
+  exit 2
+fi
 CONTAINER_PATH="$HOME/meshing/Meshing/pygalmesh/pygalmesh.sif"
 BIND_PATHS="$HOME/meshing/Meshing/pygalmesh/data:/home,$HPC_SCRATCH/pygalmesh/data:/data"
 SIM_CONTAINER="$HOME/dolfinx_alex/alex-dolfinx.sif"
@@ -77,9 +87,24 @@ import json, sys
 with open(sys.argv[1]) as handle:
     config = json.load(handle)
 print(config["02b_build_subvolume_arrays"]["subvolume_output_folder"])
+print(config.get("dataset", {}).get("id", config["01_segment_slice_wise"]["specimen_name"]))
+print(config["dicom2npy"]["foldername"])
 PYINFO
 )
-base_subvolume_folder="${CONFIG_INFO/#\/data/$HPC_SCRATCH/pygalmesh/data}"
+base_subvolume_container_path="$(echo "$CONFIG_INFO" | sed -n '1p')"
+run_name="$(echo "$CONFIG_INFO" | sed -n '2p')"
+resource_container_path="$(echo "$CONFIG_INFO" | sed -n '3p')"
+base_subvolume_folder="${base_subvolume_container_path/#\/data/$HPC_SCRATCH/pygalmesh/data}"
+resource_host_path="${resource_container_path/#\/data/$HPC_SCRATCH/pygalmesh/data}"
+if [[ ! -d "$resource_host_path" ]]; then
+  echo "Scan dataset not found on the host: $resource_host_path" >&2
+  echo "Configured container path: $resource_container_path" >&2
+  exit 2
+fi
+
+echo "Preparing mesh for dataset: $run_name"
+echo "Using config: $CONFIG_PATH"
+echo "Using scan data: $resource_host_path"
 
 for script in 00_dicom_2_npy.py 01_segment_slice_wise.py 02_build3D_segmented_array.py 02a_rotate_pic_to_align_with_axis.py 02b_build_subvolume_arrays.py; do
   run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH" python3 "$working_directory/$script" --config "$CONFIG_PATH"
@@ -135,4 +160,4 @@ for subfolder in "$base_subvolume_folder"/*/; do
 done
 
 rm -rf "$case_scratch"
-echo "Prepared Bin4 reduce-2 mesh and DolfinX files."
+echo "Prepared mesh and DolfinX files for $run_name."

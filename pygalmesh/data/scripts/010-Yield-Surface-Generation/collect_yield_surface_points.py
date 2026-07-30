@@ -10,7 +10,17 @@ def iter_summary_files(search_root):
     yield from search_root.glob('yield_surface_runs/**/yield_run_*.json')
 
 
-def row_from_summary(path):
+def dataset_from_path(path, project_dir):
+    try:
+        relative = path.relative_to(project_dir)
+    except ValueError:
+        return None
+    if len(relative.parts) >= 2 and relative.parts[0] in {'00_results', 'yield_surface_runs'}:
+        return relative.parts[1]
+    return None
+
+
+def row_from_summary(path, project_dir):
     with path.open() as handle:
         data = json.load(handle)
     final_state = data.get('final_yield_state') or {}
@@ -18,6 +28,7 @@ def row_from_summary(path):
     target = data.get('eps_mac_eigenvalues_target') or [None, None, None]
     return {
         'summary_file': str(path),
+        'dataset_id': dataset_from_path(path, project_dir),
         'material': data.get('material'),
         'loading_direction': data.get('loading_direction'),
         'stop_reason': data.get('stop_reason'),
@@ -43,10 +54,16 @@ def main():
     parser = argparse.ArgumentParser(description='Collect final yield-surface points into a CSV.')
     parser.add_argument('--project-dir', default=Path(__file__).resolve().parent)
     parser.add_argument('--output', default=None)
+    parser.add_argument('--dataset-id', default=None, help='Only collect results for this scan dataset.')
     args = parser.parse_args()
 
     project_dir = Path(args.project_dir).resolve()
-    output = Path(args.output) if args.output else project_dir / '00_results' / 'yield_surface_points.csv'
+    if args.output:
+        output = Path(args.output)
+    elif args.dataset_id:
+        output = project_dir / '00_results' / args.dataset_id / 'yield_surface_points.csv'
+    else:
+        output = project_dir / '00_results' / 'yield_surface_points.csv'
     output.parent.mkdir(parents=True, exist_ok=True)
 
     seen = set()
@@ -55,12 +72,14 @@ def main():
         if path in seen:
             continue
         seen.add(path)
-        row = row_from_summary(path)
+        row = row_from_summary(path, project_dir)
+        if args.dataset_id and row['dataset_id'] != args.dataset_id:
+            continue
         if row['eps_1'] is not None:
             rows.append(row)
 
     fieldnames = [
-        'summary_file', 'material', 'loading_direction', 'stop_reason',
+        'summary_file', 'dataset_id', 'material', 'loading_direction', 'stop_reason',
         'eps_1', 'eps_2', 'eps_3',
         'target_eps_1', 'target_eps_2', 'target_eps_3', 'strain_scale',
         'alpha_avg_reduced_material_volume', 'alpha_avg_reduced_volume',

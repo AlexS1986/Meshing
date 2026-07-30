@@ -1,0 +1,55 @@
+{
+  "material": "trans",
+  "material_pretty": "WAAM 316L<->17-4PH transition (Uebergangsbereich)",
+  "units": "um",
+  "n_grains": 200,
+  "min_points": 10,
+  "size_metric": "width",
+  "morphology": "columnar",
+  "phase_area_fraction": {
+    "bcc": 0.075,
+    "fcc": 0.925
+  },
+  "transverse": {
+    "width2D_median_um": 463.3,
+    "width2D_lognorm_sigma": 1.756,
+    "width2D_cv": 0.857,
+    "cv_used_for_neper": 0.86,
+    "stereo_factor": 1.2732,
+    "d3D_median_um": 589.9,
+    "d3D_mean_um": 778.0
+  },
+  "elongation": {
+    "vertical": 1.99,
+    "k_measured": 1.99,
+    "k_used": 1.99,
+    "k_build": 1.99,
+    "k_inplane": 1.99,
+    "axes_zxy": "z=build, x=weld, y=wall-normal"
+  },
+  "build_axis_in_vertical_map_deg": 8.0,
+  "build_axis_concentration_R": 0.66,
+  "neper": {
+    "domain_cube_um": 6380.0,
+    "final_rve_um": [
+      6380.0,
+      6380.0,
+      12696.2
+    ],
+    "morpho_cv": 0.86,
+    "morpho": "diameq:lognormal(1,0.86),1-sphericity:lognormal(0.145,0.03)",
+    "transform": "scale(1.0,1.0,1.99)",
+    "scale_xyz": [
+      1.0,
+      1.0,
+      1.99
+    ],
+    "scale_build_frame": [
+      1.99,
+      1.0,
+      1.0
+    ],
+    "scale_product": 1.99,
+    "ori_file": "n200_trans.ori"
+  }
+}

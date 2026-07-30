@@ -13,5 +13,5 @@
 #SBATCH --mail-type=END
 
 SCRIPT_DIR="$HPC_SCRATCH/pygalmesh/data/scripts/011-Fracture-From-CT-Scans"
-SRUN_TIME=10080 SRUN_MEM_PER_CPU=15000 \
+SRUN_MEM_PER_CPU=15000 \
   bash "$SCRIPT_DIR/job_fracture_from_scans_CLUSTER.sh" config-Bin4-reduce-2-cluster-fine.json
