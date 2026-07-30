@@ -12,10 +12,15 @@ of one combined job. See "Two-Stage Workflow" below.
 
 Default Case
 ------------
-This project is focused on JM-25-74 Bin4 reduce-2 for now:
+This project is focused on JM-25-74 Bin4 reduce-2 for now. There are four
+configs: one local run and three cluster mesh-resolution tiers (see
+"Two-Stage Workflow" below for the tier table):
 
-  config-Bin4-reduce-2.json
-  config-Bin4-reduce-2-cluster.json
+  config-Bin4-reduce-2-local-coarse.json   (local; also create_config.sh's
+                                             default output filename)
+  config-Bin4-reduce-2-cluster-fine.json   (cluster, coarse tier)
+  config-Bin4-reduce-2-mesh-medium.json    (cluster, medium tier)
+  config-Bin4-reduce-2-mesh-fine.json      (cluster, fine tier)
 
 Meshing Pipeline
 ----------------

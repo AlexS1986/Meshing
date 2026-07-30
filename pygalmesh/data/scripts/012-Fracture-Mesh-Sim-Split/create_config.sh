@@ -337,7 +337,7 @@ if [[ "${1:-}" == "--all" ]]; then
   for binning_id in "${BINNING_IDS[@]}"; do
     write_config_for_binning "$binning_id" "config-Bin${binning_id}.json" "null"
   done
-  write_config_for_binning "$ACTIVE_BINNING_ID" "config-Bin4-reduce-2-cluster.json"
+  write_config_for_binning "$ACTIVE_BINNING_ID" "config-Bin4-reduce-2-local-coarse.json"
 elif [[ "${1:-}" == "--variants" ]]; then
   for binning_id in "${BINNING_IDS[@]}"; do
     for reduce_factor in "${REDUCE_FACTORS[@]}"; do
@@ -345,7 +345,7 @@ elif [[ "${1:-}" == "--variants" ]]; then
     done
   done
 elif [[ -n "${1:-}" ]]; then
-  write_config_for_binning "$1" "config-Bin4-reduce-2-cluster.json" "${2:-$REDUCE_FACTOR}"
+  write_config_for_binning "$1" "config-Bin4-reduce-2-local-coarse.json" "${2:-$REDUCE_FACTOR}"
 else
-  write_config_for_binning "$ACTIVE_BINNING_ID" "config-Bin4-reduce-2-cluster.json"
+  write_config_for_binning "$ACTIVE_BINNING_ID" "config-Bin4-reduce-2-local-coarse.json"
 fi
