@@ -4,8 +4,7 @@
 #SBATCH -A p0023647
 #SBATCH -t 10080
 #SBATCH --mem-per-cpu=4000
-#SBATCH -n 96
-#SBATCH -N 1
+#SBATCH -n 192
 #SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/012-Fracture-Mesh-Sim-Split/%x.err.%j
 #SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/012-Fracture-Mesh-Sim-Split/%x.out.%j
 #SBATCH --mail-type=END
