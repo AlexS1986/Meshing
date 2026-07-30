@@ -489,3 +489,55 @@ pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/preview_slice_*.png
 .venv/
 venv/
 .ipynb_checkpoints/
+
+# --- Added 2026-07-06: guard against large binary/archive accidents ---
+# Additional archive formats not covered above
+*.tar.xz
+*.tar.bz2
+*.tbz
+*.tbz2
+*.tar.zst
+*.zst
+*.xz
+*.bz2
+
+# Additional simulation / mesh / scientific-data formats
+*.hdf5
+# NetCDF
+*.nc
+# MATLAB
+*.mat
+# Python pickle
+*.pkl
+*.pickle
+*.parquet
+*.feather
+# NumPy archives (in addition to *.npy)
+*.npz
+# OpenEXR renders
+*.exr
+*.raw
+*.bin
+*.iso
+*.dmg
+
+# Videos (recordings, screencasts)
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.wmv
+
+# Blanket safety net for any accidentally-committed simulation output tree
+**/results/
+**/simulation_*/
+
+# NOTE: the tmp_pack_* pile-up in .git/objects/pack/ that consumed 81 GB
+# was NOT caused by tracked files — it was orphaned git-gc temp files.
+# To prevent that recurring, run in this repo:
+#   git config gc.autoDetach false      # surface gc failures instead of hiding them
+#   git config gc.pruneExpire now       # prune loose objects immediately
+# and periodically:
+#   git gc --prune=now
+# The root trigger was disk pressure aborting gc mid-run. Keep >5 GB free.
