@@ -15,7 +15,7 @@ Default Case
 This project is focused on JM-25-74 Bin4 reduce-2 for now:
 
   config-Bin4-reduce-2.json
-  config.json
+  config-Bin4-reduce-2-cluster.json
 
 Meshing Pipeline
 ----------------
