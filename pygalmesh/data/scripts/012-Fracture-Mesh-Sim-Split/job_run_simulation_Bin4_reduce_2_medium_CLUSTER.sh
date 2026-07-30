@@ -14,9 +14,9 @@
 # Bin4 reduce-2 medium mesh (max_element_size_factor=2.25,
 # max_facet_distance_factor=0.67). Requires
 # job_generate_mesh_Bin4_reduce_2_CLUSTER.sh (array index 1 /
-# config-Bin4-reduce-2-mesh-medium.json) to have completed first, or
+# config-Bin4-reduce-2-cluster-medium.json) to have completed first, or
 # job_generate_mesh_CLUSTER.sh run directly with the same config.
 
 SCRIPT_DIR="$HPC_SCRATCH/pygalmesh/data/scripts/012-Fracture-Mesh-Sim-Split"
 SRUN_MEM_PER_CPU=4000 \
-  bash "$SCRIPT_DIR/job_run_simulation_CLUSTER.sh" config-Bin4-reduce-2-mesh-medium.json
+  bash "$SCRIPT_DIR/job_run_simulation_CLUSTER.sh" config-Bin4-reduce-2-cluster-medium.json

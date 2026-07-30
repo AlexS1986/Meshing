@@ -16,11 +16,11 @@ This project is focused on JM-25-74 Bin4 reduce-2 for now. There are four
 configs: one local run and three cluster mesh-resolution tiers (see
 "Two-Stage Workflow" below for the tier table):
 
-  config-Bin4-reduce-2-local-coarse.json   (local; also create_config.sh's
-                                             default output filename)
-  config-Bin4-reduce-2-cluster-fine.json   (cluster, coarse tier)
-  config-Bin4-reduce-2-mesh-medium.json    (cluster, medium tier)
-  config-Bin4-reduce-2-mesh-fine.json      (cluster, fine tier)
+  config-Bin4-reduce-2-local-coarse.json    (local; also create_config.sh's
+                                              default output filename)
+  config-Bin4-reduce-2-cluster-coarse.json  (cluster, coarse tier)
+  config-Bin4-reduce-2-cluster-medium.json  (cluster, medium tier)
+  config-Bin4-reduce-2-cluster-fine.json    (cluster, fine tier)
 
 Meshing Pipeline
 ----------------
@@ -175,12 +175,12 @@ Generic runners:
   sbatch job_generate_mesh_CLUSTER.sh [config-file.json]
   sbatch job_run_simulation_CLUSTER.sh [config-file.json]
 
-  (both default to config-Bin4-reduce-2-cluster-fine.json)
+  (both default to config-Bin4-reduce-2-cluster-coarse.json)
 
 Convenience wrappers for the Bin4 reduce-2 case, at three mesh resolutions
 (see README_mesh_resolution_cluster.md for the full max_element_size_factor
 / max_facet_distance_factor table -- coarse=3.0/1.0 is the pre-existing
-baseline config (config-Bin4-reduce-2-cluster-fine.json), used as-is, not
+baseline config (config-Bin4-reduce-2-cluster-coarse.json), used as-is, not
 regenerated; medium=2.25/0.67 and fine=1.5/0.33 are new configs scaled down
 proportionally from it):
 

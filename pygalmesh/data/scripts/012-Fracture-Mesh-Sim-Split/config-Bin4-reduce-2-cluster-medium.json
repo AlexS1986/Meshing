@@ -1,5 +1,5 @@
 {
-  "metadata_output_path": "/data/scripts/012-Fracture-Mesh-Sim-Split/JM-25-74_Bin4_reduce-2_segmented_mesh_fine/metadata.json",
+  "metadata_output_path": "/data/scripts/012-Fracture-Mesh-Sim-Split/JM-25-74_Bin4_reduce-2_segmented_cluster_medium/metadata.json",
   "binning": {
     "id": 4,
     "label": "Bin4",
@@ -32,7 +32,7 @@
   "01_segment_slice_wise": {
     "specimen_name": "JM-25-74_Bin4_reduce-2",
     "input_folder": "/data/scripts/012-Fracture-Mesh-Sim-Split/JM-25-74_Bin4_reduce-2/npy",
-    "output_folder": "/data/scripts/012-Fracture-Mesh-Sim-Split/JM-25-74_Bin4_reduce-2_segmented_mesh_fine",
+    "output_folder": "/data/scripts/012-Fracture-Mesh-Sim-Split/JM-25-74_Bin4_reduce-2_segmented_cluster_medium",
     "preview_slice_index": 100,
     "seg_algorithm": "otsu",
     "gaussian_filter_sigma_factor": 1,
@@ -48,8 +48,8 @@
     "save_visualizations": false
   },
   "02_segmented_3D_array": {
-    "input_folder": "/data/scripts/012-Fracture-Mesh-Sim-Split/JM-25-74_Bin4_reduce-2_segmented_mesh_fine",
-    "output_folder": "/data/scripts/012-Fracture-Mesh-Sim-Split/JM-25-74_Bin4_reduce-2_segmented_mesh_fine/JM-25-74_Bin4_reduce-2_segmented_mesh_fine_3D",
+    "input_folder": "/data/scripts/012-Fracture-Mesh-Sim-Split/JM-25-74_Bin4_reduce-2_segmented_cluster_medium",
+    "output_folder": "/data/scripts/012-Fracture-Mesh-Sim-Split/JM-25-74_Bin4_reduce-2_segmented_cluster_medium/JM-25-74_Bin4_reduce-2_segmented_cluster_medium_3D",
     "desired_width_x": null,
     "desired_height_y": null,
     "center_x": null,
@@ -58,17 +58,17 @@
     "max_z": 143
   },
   "03_mesh_3D_array": {
-    "specimen_name": "JM-25-74_Bin4_reduce-2_segmented_mesh_fine",
-    "input_folder": "/data/scripts/012-Fracture-Mesh-Sim-Split/JM-25-74_Bin4_reduce-2_segmented_mesh_fine/JM-25-74_Bin4_reduce-2_segmented_mesh_fine_3D",
+    "specimen_name": "JM-25-74_Bin4_reduce-2_segmented_cluster_medium",
+    "input_folder": "/data/scripts/012-Fracture-Mesh-Sim-Split/JM-25-74_Bin4_reduce-2_segmented_cluster_medium/JM-25-74_Bin4_reduce-2_segmented_cluster_medium_3D",
     "smoothing_sigma_factor": 1,
     "segmentation_algorithm": "otsu",
     "z_slice": 0,
     "scale_factor": 1.0,
     "meshing_method": "sdf_pygalmesh",
-    "mesh_output_path": "/data/scripts/012-Fracture-Mesh-Sim-Split/JM-25-74_Bin4_reduce-2_segmented_mesh_fine/JM-25-74_Bin4_reduce-2_segmented_mesh_fine_3D/subvolume_x52_y74/mesh.xdmf",
+    "mesh_output_path": "/data/scripts/012-Fracture-Mesh-Sim-Split/JM-25-74_Bin4_reduce-2_segmented_cluster_medium/JM-25-74_Bin4_reduce-2_segmented_cluster_medium_3D/subvolume_x52_y74/mesh.xdmf",
     "pygalmesh_parameters": {
-      "max_element_size_factor": 1.5,
-      "max_facet_distance_factor": 0.33,
+      "max_element_size_factor": 2.25,
+      "max_facet_distance_factor": 0.67,
       "exude_time_limit": 30,
       "exude_sliver_bound": 0.0,
       "lloyd": false,
@@ -129,8 +129,8 @@
       "surface_decimation_boundary_vertex_deletion": false,
       "min_surface_component_faces": 0,
       "pygalmesh_parameters": {
-        "max_element_size_factor": 1.5,
-        "max_facet_distance_factor": 0.33,
+        "max_element_size_factor": 2.25,
+        "max_facet_distance_factor": 0.67,
         "exude_time_limit": 30,
         "exude_sliver_bound": 0.0,
         "lloyd": false,
@@ -164,7 +164,7 @@
   },
   "02b_build_subvolume_arrays": {
     "xy_divisions": 1,
-    "subvolume_output_folder": "/data/scripts/012-Fracture-Mesh-Sim-Split/JM-25-74_Bin4_reduce-2_segmented_mesh_fine/JM-25-74_Bin4_reduce-2_segmented_mesh_fine_3D",
+    "subvolume_output_folder": "/data/scripts/012-Fracture-Mesh-Sim-Split/JM-25-74_Bin4_reduce-2_segmented_cluster_medium/JM-25-74_Bin4_reduce-2_segmented_cluster_medium_3D",
     "crop_offsets_reference": {
       "enabled": true,
       "reference_binning_id": 2,
@@ -387,8 +387,8 @@
     }
   },
   "mesh_resolution": {
-    "name": "fine",
-    "max_element_size_factor": 1.5,
-    "max_facet_distance_factor": 0.33
+    "name": "medium",
+    "max_element_size_factor": 2.25,
+    "max_facet_distance_factor": 0.67
   }
 }

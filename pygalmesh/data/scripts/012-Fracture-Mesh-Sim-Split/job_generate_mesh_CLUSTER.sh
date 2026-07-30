@@ -21,14 +21,14 @@
 # re-running any of the steps below.
 #
 # Usage: sbatch job_generate_mesh_CLUSTER.sh [config-file.json]
-#   (defaults to config-Bin4-reduce-2-cluster-fine.json)
+#   (defaults to config-Bin4-reduce-2-cluster-coarse.json)
 
 set -euo pipefail
 
 working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/012-Fracture-Mesh-Sim-Split"
 source "$working_directory/config.sh"
 
-CONFIG_ARG="${1:-config-Bin4-reduce-2-cluster-fine.json}"
+CONFIG_ARG="${1:-config-Bin4-reduce-2-cluster-coarse.json}"
 if [[ "$CONFIG_ARG" = /* ]]; then
   CONFIG_PATH="$CONFIG_ARG"
 else

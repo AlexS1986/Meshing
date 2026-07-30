@@ -2,7 +2,7 @@
 """Create isolated medium/fine configs for the CT mesh-only jobs.
 
 The "coarse" tier is the pre-existing base config itself
-(config-Bin4-reduce-2-cluster-fine.json, max_element_size_factor=3.0 /
+(config-Bin4-reduce-2-cluster-coarse.json, max_element_size_factor=3.0 /
 max_facet_distance_factor=1.0) -- the mesh you already had before this
 resolution family existed. It is not regenerated here; use it directly.
 This script only produces the two new, finer tiers derived from it.
@@ -52,7 +52,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--base-config",
         type=Path,
-        default=script_dir / "config-Bin4-reduce-2-cluster-fine.json",
+        default=script_dir / "config-Bin4-reduce-2-cluster-coarse.json",
     )
     parser.add_argument("--output-dir", type=Path, default=script_dir)
     return parser.parse_args()
@@ -67,7 +67,7 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     for resolution, (element_size, facet_distance) in RESOLUTIONS.items():
-        case_name = f"JM-25-74_Bin4_reduce-2_segmented_mesh_{resolution}"
+        case_name = f"JM-25-74_Bin4_reduce-2_segmented_cluster_{resolution}"
         config = replace_strings(copy.deepcopy(base_config), old_case_name, case_name)
         set_meshing_parameters(config, element_size, facet_distance)
         config["mesh_resolution"] = {
@@ -76,7 +76,7 @@ def main() -> None:
             "max_facet_distance_factor": facet_distance,
         }
 
-        output_path = args.output_dir / f"config-Bin4-reduce-2-mesh-{resolution}.json"
+        output_path = args.output_dir / f"config-Bin4-reduce-2-cluster-{resolution}.json"
         with output_path.open("w") as handle:
             json.dump(config, handle, indent=2)
             handle.write("\n")

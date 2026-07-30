@@ -26,9 +26,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$HPC_SCRATCH/pygalmesh/data/scripts/012-Fracture-Mesh-Sim-Split"
 CONFIGS=(
+  "config-Bin4-reduce-2-cluster-coarse.json"
+  "config-Bin4-reduce-2-cluster-medium.json"
   "config-Bin4-reduce-2-cluster-fine.json"
-  "config-Bin4-reduce-2-mesh-medium.json"
-  "config-Bin4-reduce-2-mesh-fine.json"
 )
 
 array_index="${SLURM_ARRAY_TASK_ID:-${1:-}}"

@@ -42,7 +42,7 @@ HPC_RESOURCE_DIR=/absolute/scratch/path/to/resources \
   sbatch job_generate_mesh_Bin4_reduce_2_CLUSTER.sh
 ```
 
-The "coarse" tier is `config-Bin4-reduce-2-cluster-fine.json` itself --
+The "coarse" tier is `config-Bin4-reduce-2-cluster-coarse.json` itself --
 the pre-existing baseline (max_element_size_factor=3.0 /
 max_facet_distance_factor=1.0) you already had before this resolution
 family existed. It is used directly, not regenerated. Only "medium" and
@@ -51,9 +51,9 @@ family existed. It is used directly, not regenerated. Only "medium" and
 
 | Resolution | `max_element_size_factor` | `max_facet_distance_factor` | Config file |
 | --- | ---: | ---: | --- |
-| coarse | 3.0 | 1.0 | `config-Bin4-reduce-2-cluster-fine.json` (pre-existing) |
-| medium | 2.25 | 0.67 | `config-Bin4-reduce-2-mesh-medium.json` (generated) |
-| fine | 1.5 | 0.33 | `config-Bin4-reduce-2-mesh-fine.json` (generated) |
+| coarse | 3.0 | 1.0 | `config-Bin4-reduce-2-cluster-coarse.json` (pre-existing) |
+| medium | 2.25 | 0.67 | `config-Bin4-reduce-2-cluster-medium.json` (generated) |
+| fine | 1.5 | 0.33 | `config-Bin4-reduce-2-cluster-fine.json` (generated) |
 
 Both `03_mesh_3D_array.pygalmesh_parameters` and
 `03_mesh_3D_array.sdf_pygalmesh_parameters.pygalmesh_parameters` are set to
@@ -68,7 +68,7 @@ the single place where the medium/fine resolution values are maintained.
 
 Before synchronizing to cluster scratch, regenerate the medium/fine configs
 if the table in the generator was changed (this never touches
-`config-Bin4-reduce-2-cluster-fine.json`, the coarse tier):
+`config-Bin4-reduce-2-cluster-coarse.json`, the coarse tier):
 
 ```bash
 python3 create_mesh_resolution_configs.py
@@ -97,18 +97,14 @@ then archived to `data/resources/generated_meshes/<specimen>/<binning_label>/<ru
 overwrite each other):
 
 ```text
-JM-25-74_Bin4_reduce-2_segmented_cluster_fine/.../dlfx_mesh.xdmf   (coarse)
-JM-25-74_Bin4_reduce-2_segmented_mesh_medium/.../dlfx_mesh.xdmf
-JM-25-74_Bin4_reduce-2_segmented_mesh_fine/.../dlfx_mesh.xdmf
+JM-25-74_Bin4_reduce-2_segmented_cluster_coarse/.../dlfx_mesh.xdmf
+JM-25-74_Bin4_reduce-2_segmented_cluster_medium/.../dlfx_mesh.xdmf
+JM-25-74_Bin4_reduce-2_segmented_cluster_fine/.../dlfx_mesh.xdmf
 
-data/resources/generated_meshes/JM-25-74/Bin4/JM-25-74_Bin4_reduce-2_segmented_cluster_fine/.../dlfx_mesh.xdmf   (coarse)
-data/resources/generated_meshes/JM-25-74/Bin4/JM-25-74_Bin4_reduce-2_segmented_mesh_medium/.../dlfx_mesh.xdmf
-data/resources/generated_meshes/JM-25-74/Bin4/JM-25-74_Bin4_reduce-2_segmented_mesh_fine/.../dlfx_mesh.xdmf
+data/resources/generated_meshes/JM-25-74/Bin4/JM-25-74_Bin4_reduce-2_segmented_cluster_coarse/.../dlfx_mesh.xdmf
+data/resources/generated_meshes/JM-25-74/Bin4/JM-25-74_Bin4_reduce-2_segmented_cluster_medium/.../dlfx_mesh.xdmf
+data/resources/generated_meshes/JM-25-74/Bin4/JM-25-74_Bin4_reduce-2_segmented_cluster_fine/.../dlfx_mesh.xdmf
 ```
-
-The coarse tier's directory name still says "cluster_fine" -- that's the
-original name from before the medium/fine tiers existed, kept as-is so it
-lines up with any mesh you already generated under that config.
 
 Run the matching simulation wrapper against each archived mesh:
 

@@ -20,7 +20,7 @@
 # job_generate_mesh_CLUSTER.sh first with the same config file.
 #
 # Usage: sbatch job_run_simulation_CLUSTER.sh [config-file.json]
-#   (defaults to config-Bin4-reduce-2-cluster-fine.json; must match the
+#   (defaults to config-Bin4-reduce-2-cluster-coarse.json; must match the
 #   config used for mesh generation so specimen/binning/run_name line up)
 
 set -euo pipefail
@@ -28,7 +28,7 @@ set -euo pipefail
 working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/012-Fracture-Mesh-Sim-Split"
 source "$working_directory/config.sh"
 
-CONFIG_ARG="${1:-config-Bin4-reduce-2-cluster-fine.json}"
+CONFIG_ARG="${1:-config-Bin4-reduce-2-cluster-coarse.json}"
 if [[ "$CONFIG_ARG" = /* ]]; then
   CONFIG_PATH="$CONFIG_ARG"
 else
