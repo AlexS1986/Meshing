@@ -146,7 +146,6 @@ for mat in "${MATERIALS[@]}"; do
     done
     mkdir -p "$final_output_dir"
     cp -rv "$base_subvolume_folder" "$final_output_dir/"
-    cp -v "$MESH_ARCHIVE_DIR/metadata.json" "$final_output_dir/" 2>/dev/null || true
     cp -v "$CONFIG_HOST_PATH" "$final_output_dir/" || true
   done
 done
