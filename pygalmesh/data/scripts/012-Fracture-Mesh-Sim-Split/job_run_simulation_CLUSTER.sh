@@ -51,7 +51,11 @@ with open(sys.argv[1], "r") as handle:
     config = json.load(handle)
 frac = config.get("fracture", {})
 print(config["binning"]["label"])
-print(config["01_segment_slice_wise"]["specimen_name"])
+# Must match job_generate_mesh_CLUSTER.sh's run_name derivation exactly, or
+# this script will look for the mesh archive under the wrong path.
+# 01_segment_slice_wise.specimen_name is shared across the coarse/medium/fine
+# configs -- use 03_mesh_3D_array.specimen_name, which is resolution-specific.
+print(config["03_mesh_3D_array"]["specimen_name"])
 print(" ".join(frac.get("materials", ["std"])))
 print(" ".join(frac.get("directions", ["y"])))
 print(frac.get("mesh_file", "dlfx_mesh"))

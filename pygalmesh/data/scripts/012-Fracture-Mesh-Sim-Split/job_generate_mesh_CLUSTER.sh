@@ -89,7 +89,12 @@ import sys
 with open(sys.argv[1], "r") as handle:
     config = json.load(handle)
 print(config["binning"]["label"])
-print(config["01_segment_slice_wise"]["specimen_name"])
+# NOTE: use 03_mesh_3D_array.specimen_name, not
+# 01_segment_slice_wise.specimen_name -- the latter is shared across the
+# coarse/medium/fine mesh-resolution configs (they only override
+# 03_mesh_3D_array.specimen_name), so using it here would make every
+# resolution tier archive to the same path and overwrite the previous one.
+print(config["03_mesh_3D_array"]["specimen_name"])
 print(config["02b_build_subvolume_arrays"]["subvolume_output_folder"])
 print(config.get("metadata_output_path", ""))
 PYINFO
