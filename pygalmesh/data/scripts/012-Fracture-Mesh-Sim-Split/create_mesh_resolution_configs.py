@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Create isolated coarse/medium/fine configs for the CT mesh-only jobs."""
+"""Create isolated medium/fine configs for the CT mesh-only jobs.
+
+The "coarse" tier is the pre-existing base config itself
+(config-Bin4-reduce-2-cluster-fine.json, max_element_size_factor=3.0 /
+max_facet_distance_factor=1.0) -- the mesh you already had before this
+resolution family existed. It is not regenerated here; use it directly.
+This script only produces the two new, finer tiers derived from it.
+"""
 
 from __future__ import annotations
 
@@ -11,7 +18,6 @@ from typing import Any
 
 
 RESOLUTIONS = {
-    "coarse": (3.0, 1.0),
     "medium": (2.25, 0.67),
     "fine": (1.5, 0.33),
 }

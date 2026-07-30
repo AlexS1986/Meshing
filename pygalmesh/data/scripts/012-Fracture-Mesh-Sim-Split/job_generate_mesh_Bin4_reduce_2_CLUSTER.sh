@@ -17,12 +17,16 @@
 # and fine resolution (as a 3-task SLURM array, one at a time) and archives
 # each into data/resources/generated_meshes/. Run job_run_simulation_*
 # afterwards to simulate against a given resolution.
+#
+# "coarse" (index 0) is the pre-existing baseline config -- the mesh you
+# already had before the medium/fine tiers existed -- not a newly generated
+# duplicate.
 
 set -euo pipefail
 
 SCRIPT_DIR="$HPC_SCRATCH/pygalmesh/data/scripts/012-Fracture-Mesh-Sim-Split"
 CONFIGS=(
-  "config-Bin4-reduce-2-mesh-coarse.json"
+  "config-Bin4-reduce-2-cluster-fine.json"
   "config-Bin4-reduce-2-mesh-medium.json"
   "config-Bin4-reduce-2-mesh-fine.json"
 )

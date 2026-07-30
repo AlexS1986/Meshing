@@ -42,19 +42,18 @@ HPC_RESOURCE_DIR=/absolute/scratch/path/to/resources \
   sbatch job_generate_mesh_Bin4_reduce_2_CLUSTER.sh
 ```
 
-The three independent configurations are generated from
-`config-Bin4-reduce-2-cluster-fine.json` by
-`create_mesh_resolution_configs.py`. The "coarse" tier matches the real
-working baseline (max_element_size_factor=3.0 /
-max_facet_distance_factor=1.0, i.e. the same values already used in
-`config-Bin4-reduce-2-cluster-fine.json` / `config.json`); medium and fine
-scale that down proportionally:
+The "coarse" tier is `config-Bin4-reduce-2-cluster-fine.json` itself --
+the pre-existing baseline (max_element_size_factor=3.0 /
+max_facet_distance_factor=1.0) you already had before this resolution
+family existed. It is used directly, not regenerated. Only "medium" and
+"fine" are new configs, generated from that same baseline by
+`create_mesh_resolution_configs.py`, scaling it down proportionally:
 
-| Resolution | `max_element_size_factor` | `max_facet_distance_factor` |
-| --- | ---: | ---: |
-| coarse | 3.0 | 1.0 |
-| medium | 2.25 | 0.67 |
-| fine | 1.5 | 0.33 |
+| Resolution | `max_element_size_factor` | `max_facet_distance_factor` | Config file |
+| --- | ---: | ---: | --- |
+| coarse | 3.0 | 1.0 | `config-Bin4-reduce-2-cluster-fine.json` (pre-existing) |
+| medium | 2.25 | 0.67 | `config-Bin4-reduce-2-mesh-medium.json` (generated) |
+| fine | 1.5 | 0.33 | `config-Bin4-reduce-2-mesh-fine.json` (generated) |
 
 Both `03_mesh_3D_array.pygalmesh_parameters` and
 `03_mesh_3D_array.sdf_pygalmesh_parameters.pygalmesh_parameters` are set to
@@ -64,10 +63,11 @@ sync in case a config ever switches methods.
 
 Separate resolved configs are useful because every resolution gets its own
 specimen/output directory and cannot overwrite another mesh. The generator is
-the single place where the resolution values are maintained.
+the single place where the medium/fine resolution values are maintained.
 
-Before synchronizing to cluster scratch, regenerate the configs if the table
-in the generator was changed:
+Before synchronizing to cluster scratch, regenerate the medium/fine configs
+if the table in the generator was changed (this never touches
+`config-Bin4-reduce-2-cluster-fine.json`, the coarse tier):
 
 ```bash
 python3 create_mesh_resolution_configs.py
@@ -96,14 +96,18 @@ then archived to `data/resources/generated_meshes/<specimen>/<binning_label>/<ru
 overwrite each other):
 
 ```text
-JM-25-74_Bin4_reduce-2_segmented_mesh_coarse/.../dlfx_mesh.xdmf
+JM-25-74_Bin4_reduce-2_segmented_cluster_fine/.../dlfx_mesh.xdmf   (coarse)
 JM-25-74_Bin4_reduce-2_segmented_mesh_medium/.../dlfx_mesh.xdmf
 JM-25-74_Bin4_reduce-2_segmented_mesh_fine/.../dlfx_mesh.xdmf
 
-data/resources/generated_meshes/JM-25-74/Bin4/JM-25-74_Bin4_reduce-2_segmented_mesh_coarse/.../dlfx_mesh.xdmf
+data/resources/generated_meshes/JM-25-74/Bin4/JM-25-74_Bin4_reduce-2_segmented_cluster_fine/.../dlfx_mesh.xdmf   (coarse)
 data/resources/generated_meshes/JM-25-74/Bin4/JM-25-74_Bin4_reduce-2_segmented_mesh_medium/.../dlfx_mesh.xdmf
 data/resources/generated_meshes/JM-25-74/Bin4/JM-25-74_Bin4_reduce-2_segmented_mesh_fine/.../dlfx_mesh.xdmf
 ```
+
+The coarse tier's directory name still says "cluster_fine" -- that's the
+original name from before the medium/fine tiers existed, kept as-is so it
+lines up with any mesh you already generated under that config.
 
 Run the matching simulation wrapper against each archived mesh:
 
