@@ -96,16 +96,13 @@ print(config["binning"]["label"])
 # resolution tier archive to the same path and overwrite the previous one.
 print(config["03_mesh_3D_array"]["specimen_name"])
 print(config["02b_build_subvolume_arrays"]["subvolume_output_folder"])
-print(config.get("metadata_output_path", ""))
 PYINFO
 )
 
 binning_label="$(echo "$CONFIG_INFO" | sed -n '1p')"
 run_name="$(echo "$CONFIG_INFO" | sed -n '2p')"
 base_subvolume_container_path="$(echo "$CONFIG_INFO" | sed -n '3p')"
-metadata_container_path="$(echo "$CONFIG_INFO" | sed -n '4p')"
 base_subvolume_folder="${base_subvolume_container_path/#\/data/$HPC_SCRATCH/pygalmesh/data}"
-metadata_host_path="${metadata_container_path/#\/data/$HPC_SCRATCH/pygalmesh/data}"
 case_scratch="$working_directory/scratch/${run_name}_${SLURM_JOB_ID:-manual}"
 
 rm -rf "$case_scratch"
@@ -283,19 +280,33 @@ done
 
 rm -rf "$case_scratch"
 
-# --- Archive the finished meshes into data/resources so they can be
-# --- referenced by job_run_simulation_CLUSTER.sh without re-meshing.
+# --- Archive only the DOLFINx-ready mesh (dlfx_mesh.xdmf/.h5) into
+# --- data/resources so it can be referenced by job_run_simulation_CLUSTER.sh
+# --- without re-meshing. Intermediate voxel arrays, QA reports, and
+# --- cross-section previews are intentionally NOT archived -- those stay
+# --- (and can be regenerated) under the working directory below.
 MESH_ARCHIVE_ROOT="$HPC_SCRATCH/pygalmesh/data/resources/generated_meshes"
 MESH_ARCHIVE_DIR="$MESH_ARCHIVE_ROOT/${SPECIMEN_NAME}/${binning_label}/${run_name}"
 
 rm -rf "$MESH_ARCHIVE_DIR"
-mkdir -p "$(dirname "$MESH_ARCHIVE_DIR")"
-cp -rv "$base_subvolume_folder" "$MESH_ARCHIVE_DIR"
-if [[ -f "$metadata_host_path" ]]; then
-  cp -v "$metadata_host_path" "$MESH_ARCHIVE_DIR/metadata.json"
+mkdir -p "$MESH_ARCHIVE_DIR"
+
+archived_any=0
+for subfolder in "$base_subvolume_folder"/*/; do
+  [ -d "$subfolder" ] || continue
+  [ -f "$subfolder/dlfx_mesh.xdmf" ] || continue
+  folder_name="$(basename "$subfolder")"
+  mkdir -p "$MESH_ARCHIVE_DIR/$folder_name"
+  cp -v "$subfolder/dlfx_mesh.xdmf" "$MESH_ARCHIVE_DIR/$folder_name/"
+  cp -v "$subfolder/dlfx_mesh.h5" "$MESH_ARCHIVE_DIR/$folder_name/"
+  archived_any=1
+done
+
+if [[ "$archived_any" != "1" ]]; then
+  echo "No dlfx_mesh.xdmf/.h5 found under $base_subvolume_folder -- nothing archived." >&2
+  exit 1
 fi
-cp -v "$CONFIG_HOST_PATH" "$MESH_ARCHIVE_DIR/config.json"
 
 echo "Mesh generation complete."
-echo "Meshes archived to: $MESH_ARCHIVE_DIR"
+echo "Mesh(es) archived to: $MESH_ARCHIVE_DIR (dlfx_mesh.xdmf/.h5 only)"
 echo "Run job_run_simulation_CLUSTER.sh with the same config to simulate against them."

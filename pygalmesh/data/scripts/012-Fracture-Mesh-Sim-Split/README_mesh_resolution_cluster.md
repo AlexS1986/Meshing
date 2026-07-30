@@ -1,8 +1,10 @@
 # Coarse, medium, and fine DOLFINx meshes on the cluster
 
 The SLURM array job creates the complete meshing pipeline output through
-`dlfx_mesh.xdmf`, then archives the result under
-`data/resources/generated_meshes/`. It does not start a fracture simulation
+`dlfx_mesh.xdmf`, then archives only `dlfx_mesh.xdmf`/`.h5` (per subvolume)
+under `data/resources/generated_meshes/` -- intermediate voxel arrays, QA
+reports, and cross-section previews are left under the working directory,
+not archived. It does not start a fracture simulation
 -- that is `job_run_simulation_CLUSTER.sh` (or one of the
 `job_run_simulation_Bin4_reduce_2_{coarse,medium,fine}_CLUSTER.sh` wrappers),
 a separate job, run afterwards against the archived mesh. Each task requests

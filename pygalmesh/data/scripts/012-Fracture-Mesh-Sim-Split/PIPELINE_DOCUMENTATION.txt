@@ -150,9 +150,14 @@ under the fracture block:
 Two-Stage Workflow
 ------------------
 Stage 1 (mesh generation) runs preprocessing, meshing, and DOLFINx mesh
-conversion, then archives the finished per-subvolume mesh(es) under:
+conversion, then archives only the DOLFINx-ready mesh
+(dlfx_mesh.xdmf/.h5, per subvolume) under:
 
-  data/resources/generated_meshes/<specimen>/<binning_label>/<run_name>/
+  data/resources/generated_meshes/<specimen>/<binning_label>/<run_name>/<subvolume>/dlfx_mesh.{xdmf,h5}
+
+Intermediate voxel arrays, QA reports, and cross-section previews are not
+archived -- they stay under the working directory and can be regenerated
+by re-running mesh generation.
 
 Stage 2 (simulation) reads that archive and runs the fracture simulation
 against it. It does not re-run any preprocessing/meshing step, and will
