@@ -128,3 +128,47 @@ ausgeführt — der Nutzer führt es selbst lokal im Container aus.
 - Übergeordnete Arbeitsweise/Ordnerkonventionen: siehe `CLAUDE.md` (liegt in
   diesem Ordner und im Publications-Ordner
   `~/Work/Hypo/Hypo/Publications/Folgepaper Homogenisierung von elasto-plastischen Eigenschaften/`).
+
+## .leS-Pipeline ist jetzt der Default (A01)
+
+Die Cluster-Pipeline kann den Datensatz `JM-25-77*.leS` direkt verwenden.
+Bedienung, Reduktionstabelle und Kommandos: **`LES_PIPELINE.md`**.
+
+Entscheidungen dieser Session:
+
+- **Integration ohne zweites Jobskript:** `job_prepare_mesh_Bin4_reduce_2_CLUSTER.sh`
+  entscheidet anhand von `A01_les_2_npy.enabled` in der Config, ob `A01_les_2_npy.py`
+  oder die DICOM-Kette `00/01/02/02a` läuft. Ab `02b` ist der Ablauf identisch.
+- **02a entfällt im .leS-Pfad**: das Volumen ist bereits segmentiert und
+  achsparallel; A01 schreibt den von `02b` gelesenen Metadateneintrag
+  (`input_path`, `material_value`, `material_bounds`) selbst. Das vermeidet auch
+  die float64-Konvertierung in 02a (beim vollen Volumen ~10 GB).
+- **Default-Configs umgestellt:** `job_prepare_mesh_CLUSTER.sh` und
+  `setup_yield_surface_jobs.sh` verwenden ohne Argument `config-A01-les.json`.
+  Der DICOM-Pfad bleibt über das Config-Argument bzw. `YIELD_SURFACE_BASE_CONFIG`
+  nutzbar.
+- **Auflösung:** Default `reduce = 2` (593x594x443, 33,4 µm). Majority-Vote
+  über die Aluminiumphase; Änderung der relativen Dichte < 0,15 Prozentpunkte.
+  `reduce = 8` (133,6 µm) entspricht der Auflösung der bisherigen
+  `Bin4-reduce-2`-Studie und wäre die vergleichbare Wahl.
+- **Kein zusätzlicher Gauß-Filter auf den Labels.** Der Gauß in `01`/`03` ist mit
+  σ = `sigma_factor × SliceThickness` bei mm-Voxelgrößen wirkungslos (σ ≈ 0,03
+  Voxel); wirksam ist nur `sdf_sigma_voxels = 1.0` in Schritt 03. Optionaler
+  Schalter `reduce.smooth_sigma` (Default 0) für Experimente bei großen
+  Reduktionsfaktoren.
+- **Phasenkonvention:** die .leS-Datei hat 1 = Material, die Pipeline erwartet
+  vor Schritt 03 aber 1 = Pore / 0 = Aluminium. A01 invertiert deshalb per
+  Default (`phase_convention = "pipeline"`). Ohne diese Inversion würde Schritt 03
+  den Porenraum vernetzen.
+
+Neue Dateien in diesem Ordner: `A01_les_2_npy.py`, `A02_preview_voxel_volume.py`,
+`create_les_dataset_config.py`, `create_les_config.sh`, `config-A01-les.json`,
+`LES_PIPELINE.md`, `CLAUDE.md`; geändert: `config.sh` (LES_*-Block),
+`job_prepare_mesh_CLUSTER.sh`, `job_prepare_mesh_Bin4_reduce_2_CLUSTER.sh`,
+`setup_yield_surface_jobs.sh`.
+
+Verifikation: Unit-Tests gegen synthetische .leS-Dateien (Phasenkonvention,
+reduce-Modi, Crop-Kürzung, F-Order, Puffergrößen, Config-Modus, bounds_mode) und
+ein End-to-End-Lauf auf den echten Daten (`A01 -> 02b -> 02d`, reduce=8) mit
+korrekter Randschale. `02c` (scipy) und `03` (nanomesh) sind lokal nicht
+lauffähig und wurden nicht ausgeführt.

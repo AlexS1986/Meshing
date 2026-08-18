@@ -86,27 +86,61 @@ CONFIG_INFO=$(srun -n 1 apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" py
 import json, sys
 with open(sys.argv[1]) as handle:
     config = json.load(handle)
+les = config.get("A01_les_2_npy", {})
 print(config["02b_build_subvolume_arrays"]["subvolume_output_folder"])
 print(config.get("dataset", {}).get("id", config["01_segment_slice_wise"]["specimen_name"]))
-print(config["dicom2npy"]["foldername"])
+if les.get("enabled") is True:
+    print(les.get("input", "/data/resources/A01_segmented"))
+    print("les")
+else:
+    print(config["dicom2npy"]["foldername"])
+    print("dicom")
 PYINFO
 )
 base_subvolume_container_path="$(echo "$CONFIG_INFO" | sed -n '1p')"
 run_name="$(echo "$CONFIG_INFO" | sed -n '2p')"
 resource_container_path="$(echo "$CONFIG_INFO" | sed -n '3p')"
+pipeline_source="$(echo "$CONFIG_INFO" | sed -n '4p')"
 base_subvolume_folder="${base_subvolume_container_path/#\/data/$HPC_SCRATCH/pygalmesh/data}"
 resource_host_path="${resource_container_path/#\/data/$HPC_SCRATCH/pygalmesh/data}"
-if [[ ! -d "$resource_host_path" ]]; then
-  echo "Scan dataset not found on the host: $resource_host_path" >&2
-  echo "Configured container path: $resource_container_path" >&2
-  exit 2
+
+# Vorverarbeitung: entweder der DICOM-Pfad (00/01/02/02a) oder die .leS-Pipeline (A01).
+# A01_les_2_npy.py ersetzt 00/01/02/02a und schreibt segmented_3D_volume.npy sowie
+# die Metadaten, die 02b erwartet.
+if [[ "$pipeline_source" == "les" ]]; then
+  PREPROCESS_SCRIPTS=(A01_les_2_npy.py 02b_build_subvolume_arrays.py)
+  if [[ ! -e "$resource_host_path" ]]; then
+    echo "Segmented .leS input not found on the host: $resource_host_path" >&2
+    echo "Configured container path: $resource_container_path" >&2
+    exit 2
+  fi
+  if [[ -d "$resource_host_path" ]]; then
+    les_file_count="$(find "$resource_host_path" -maxdepth 1 -type f \( -name '*.leS' -o -name '*.les' \) | wc -l)"
+    if [[ "$les_file_count" -eq 0 ]]; then
+      echo "No .leS file inside: $resource_host_path" >&2
+      exit 2
+    fi
+    if [[ "$les_file_count" -gt 1 ]]; then
+      echo "More than one .leS file inside $resource_host_path;" >&2
+      echo "set A01_les_2_npy.input in the config to the exact file." >&2
+      exit 2
+    fi
+  fi
+else
+  PREPROCESS_SCRIPTS=(00_dicom_2_npy.py 01_segment_slice_wise.py 02_build3D_segmented_array.py 02a_rotate_pic_to_align_with_axis.py 02b_build_subvolume_arrays.py)
+  if [[ ! -d "$resource_host_path" ]]; then
+    echo "Scan dataset not found on the host: $resource_host_path" >&2
+    echo "Configured container path: $resource_container_path" >&2
+    exit 2
+  fi
 fi
 
 echo "Preparing mesh for dataset: $run_name"
 echo "Using config: $CONFIG_PATH"
+echo "Pipeline source: $pipeline_source"
 echo "Using scan data: $resource_host_path"
 
-for script in 00_dicom_2_npy.py 01_segment_slice_wise.py 02_build3D_segmented_array.py 02a_rotate_pic_to_align_with_axis.py 02b_build_subvolume_arrays.py; do
+for script in "${PREPROCESS_SCRIPTS[@]}"; do
   run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH" python3 "$working_directory/$script" --config "$CONFIG_PATH"
 done
 

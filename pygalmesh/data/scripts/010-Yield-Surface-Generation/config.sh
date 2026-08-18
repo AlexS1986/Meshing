@@ -97,3 +97,31 @@ YIELD_ALPHA_TOLERANCE=1e-5
 # Yield-surface sampling defaults.
 YIELD_SURFACE_POINTS=6
 YIELD_SURFACE_STRAIN_RADIUS=0.25
+
+# --- .leS-Pipeline (A01) -----------------------------------------------------
+# Standardpfad dieses Projekts: bereits segmentiertes Voxelbild im .leS-Format
+# statt DICOM. A01_les_2_npy.py ersetzt 00/01/02/02a.
+LES_ENABLED=true
+LES_DATASET_ID="JM-25-77_A01_les"
+# Cluster: $HPC_SCRATCH/pygalmesh/data/resources/A01_segmented  ->  /data/resources/A01_segmented
+LES_INPUT="/data/resources/A01_segmented"
+LES_BASE_CONFIG="config-Bin4-reduce-2.json"
+LES_CONFIG_FILENAME="config-A01-les.json"
+# Aufloesung: reduce=N fasst NxNxN Voxel zusammen (Quelle: 16,7 um/Voxel).
+#   1 -> 1187x1188x886 = 1249 MVoxel (16,7 um)   nur mit Crop sinnvoll
+#   2 ->  593x594x443  =  156 MVoxel (33,4 um)   <- Default
+#   4 ->  296x297x221  =   19 MVoxel (66,8 um)
+#   8 ->  148x148x110  =    2 MVoxel (133,6 um)  entspricht Bin4-reduce-2 der DICOM-Studie
+LES_REDUCE_FACTOR=2
+LES_REDUCE_MODE="majority"
+LES_REDUCE_THRESHOLD=0.5
+LES_SMOOTH_SIGMA=0.0
+LES_LINE_ORDER="C"
+LES_MATERIAL_VALUE=1
+LES_BOUNDS_MODE="full"
+LES_VOXEL_SIZE_UNIT="mm"
+LES_XY_DIVISIONS=1
+# Optionaler Ausschnitt im Originalgitter, Format "start ende" (leer = alles)
+LES_X_RANGE=""
+LES_Y_RANGE=""
+LES_Z_RANGE=""
