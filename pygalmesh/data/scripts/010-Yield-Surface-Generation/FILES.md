@@ -13,7 +13,7 @@ aufruft und wo sie dokumentiert sind. Aussortiertes liegt in `_archive/`
 
 ## 1. Netzvorbereitung — die Kette im Prepare-Job
 
-Aufgerufen von `job_prepare_mesh_Bin4_reduce_2_CLUSTER.sh` in dieser Reihenfolge.
+Aufgerufen von `run_prepare_mesh_CLUSTER.sh` in dieser Reihenfolge.
 Schritte 1–4 laufen einmal, Schritte 5–11 je Subvolumen.
 
 | # | Datei | Eingabe → Ausgabe | Config-Abschnitt |
@@ -50,7 +50,7 @@ Prepare-Job ruft das Skript nicht auf — es ist derzeit **inaktiv**.
 | `02_create_folders_CLUSTER.sh` | erzeugt die Punkt-Jobs und synchronisiert `$HOME/meshing/…` → `$HPC_SCRATCH/pygalmesh/…` (Login-Node) |
 | **`submit_les_pipeline_CLUSTER.sh`** | reicht Netzvorbereitung ein und hängt alle Punkt-Jobs mit `--dependency=afterok` daran; Optionen `DEPEND_ON_JOB`, `SKIP_PREPARE`, `DRY_RUN` |
 | `job_prepare_mesh_CLUSTER.sh` | SLURM-Wrapper der Netzvorbereitung; ohne Argument `config-A01-les.json` |
-| `job_prepare_mesh_Bin4_reduce_2_CLUSTER.sh` | die eigentliche Netzvorbereitung (Abschnitt 1); wählt anhand von `A01_les_2_npy.enabled` zwischen `.leS`- und DICOM-Kette. Der Dateiname stammt noch aus der Bin4-Studie, das Skript ist quellenunabhängig. |
+| `run_prepare_mesh_CLUSTER.sh` | die eigentliche Netzvorbereitung (Abschnitt 1); wählt anhand von `A01_les_2_npy.enabled` zwischen `.leS`- und DICOM-Kette. Hieß früher `job_prepare_mesh_Bin4_reduce_2_CLUSTER.sh`. |
 
 ## 4. Configs und ihre Generatoren
 

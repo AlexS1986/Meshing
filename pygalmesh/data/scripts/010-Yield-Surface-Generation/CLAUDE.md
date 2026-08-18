@@ -148,7 +148,7 @@ Steuervariablen: der `LES_*`-Block am Ende von `config.sh`.
 ## 5. Cluster: die .leS-Pipeline ist Default
 
 - `job_prepare_mesh_CLUSTER.sh` ohne Argument verwendet **`config-A01-les.json`**.
-- `job_prepare_mesh_Bin4_reduce_2_CLUSTER.sh` (wird vom Wrapper aufgerufen)
+- `run_prepare_mesh_CLUSTER.sh` (wird vom Wrapper aufgerufen)
   entscheidet anhand von `A01_les_2_npy.enabled` in der Config, ob `A01` oder die
   DICOM-Kette `00/01/02/02a` läuft; ab `02b` ist der Ablauf identisch.
 - `setup_yield_surface_jobs.sh` verwendet ebenfalls `config-A01-les.json` als
@@ -180,6 +180,11 @@ faktisch wirkungslos (σ ≈ 0,03 Voxel); die wirksame Glättung ist
 `sdf_sigma_voxels = 1.0` auf dem Signed-Distance-Field in Schritt 03. Labels zu
 verwaschen würde die relative Dichte verschieben und dünne Stege abschnüren.
 Für Experimente existiert `reduce.smooth_sigma` (Default 0 = aus).
+
+**`sdf_sigma_voxels` nur zusammen mit `pad_width` erhöhen** (gemessen: σ = 1,25
+bei `pad_width = 1` erzeugt 7180 offene Kanten, mit `pad_width = 3` keine).
+`pad_width = 3` ist Default der .leS-Config. Diagnosetabelle für ein
+fehlgeschlagenes Oberflächen-Audit: `LES_PIPELINE.md`, Abschnitt 4.
 
 ---
 

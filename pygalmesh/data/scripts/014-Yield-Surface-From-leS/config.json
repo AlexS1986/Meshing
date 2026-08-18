@@ -1,5 +1,5 @@
 {
-  "metadata_output_path": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les_segmented/metadata.json",
+  "metadata_output_path": "/data/scripts/014-Yield-Surface-From-leS/JM-25-77_A01_les_segmented/metadata.json",
   "binning": {
     "id": 2,
     "label": "leS-reduce-2",
@@ -8,62 +8,19 @@
     "effective_binning_factor": 2,
     "source": "les"
   },
-  "dicom2npy": {
-    "foldername": "/data/resources/A01_segmented",
-    "option": "reduce",
-    "crop": {
-      "x_start": null,
-      "x_end": null,
-      "y_start": null,
-      "y_end": null
-    },
-    "reduce": {
-      "factor": 2
-    },
-    "slice_start": 0,
-    "slice_end": null,
-    "output_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les/npy",
-    "unused_in_les_pipeline": true
-  },
   "01_segment_slice_wise": {
     "specimen_name": "JM-25-77_A01_les",
-    "input_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les/npy",
-    "output_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les_segmented",
-    "preview_slice_index": 100,
-    "seg_algorithm": "otsu",
-    "gaussian_filter_sigma_factor": 1,
-    "gaussian_sigma_pixels": null,
-    "median_filter_size": 0,
-    "threshold_multiplier": 1.0,
-    "threshold_offset": 0.0,
-    "invert_contrast": true,
-    "remove_small_objects_min_size": 0,
-    "remove_small_holes_area_threshold": 0,
-    "binary_opening_radius": 0,
-    "binary_closing_radius": 0,
-    "save_visualizations": false,
-    "unused_in_les_pipeline": true
-  },
-  "02_segmented_3D_array": {
-    "input_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les_segmented",
-    "output_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les_segmented/JM-25-77_A01_les_segmented_3D",
-    "desired_width_x": null,
-    "desired_height_y": null,
-    "center_x": null,
-    "center_y": null,
-    "min_z": 55,
-    "max_z": 143,
-    "unused_in_les_pipeline": true
+    "comment": "nur der Name; gelesen von job_yield_surface_point_CLUSTER.sh"
   },
   "03_mesh_3D_array": {
     "specimen_name": "JM-25-77_A01_les_segmented",
-    "input_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les_segmented/JM-25-77_A01_les_segmented_3D",
+    "input_folder": "/data/scripts/014-Yield-Surface-From-leS/JM-25-77_A01_les_segmented/JM-25-77_A01_les_segmented_3D",
     "smoothing_sigma_factor": 1,
     "segmentation_algorithm": "otsu",
     "z_slice": 0,
     "scale_factor": 1.0,
     "meshing_method": "sdf_pygalmesh",
-    "mesh_output_path": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les_segmented/mesh.xdmf",
+    "mesh_output_path": "/data/scripts/014-Yield-Surface-From-leS/JM-25-77_A01_les_segmented/mesh.xdmf",
     "pygalmesh_parameters": {
       "max_element_size_factor": 1.4853084267560892,
       "max_facet_distance_factor": 0.08911850560536534,
@@ -115,7 +72,7 @@
       "sdf_sigma_voxels": 1.0,
       "level": 0.0,
       "pad_width": 3,
-      "keep_largest_component": false,
+      "keep_largest_component": true,
       "component_connectivity": 6,
       "fill_holes": true,
       "require_watertight_surface": true,
@@ -147,24 +104,11 @@
   "02a_rotate_pic_to_align_with_axis": {
     "material_value": 1,
     "pore_value": 0,
-    "buffer_width": 0,
-    "buffer_width_min_x": 0,
-    "buffer_width_max_x": 0,
-    "buffer_width_min_y": 0,
-    "buffer_width_max_y": 0,
-    "buffer_width_min_z": 0,
-    "buffer_width_max_z": 0,
-    "angles": [
-      0.0,
-      0.0,
-      0.0
-    ],
-    "enabled": false,
-    "comment": "Im .leS-Pfad deaktiviert: das Volumen ist bereits segmentiert und achsparallel. A01_les_2_npy.py schreibt den Metadateneintrag, den 02b erwartet."
+    "comment": "Keine Rotation im .leS-Pfad. A01_les_2_npy.py schreibt mit diesen Werten den Metadateneintrag, den 02b erwartet."
   },
   "02b_build_subvolume_arrays": {
     "xy_divisions": 1,
-    "subvolume_output_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les_segmented/JM-25-77_A01_les_segmented_3D"
+    "subvolume_output_folder": "/data/scripts/014-Yield-Surface-From-leS/JM-25-77_A01_les_segmented/JM-25-77_A01_les_segmented_3D"
   },
   "05_tetgen_postprocess": {
     "enabled": true,
@@ -172,15 +116,6 @@
     "active_ref": 1,
     "all_tets": false,
     "keep_workdir": false
-  },
-  "06_gmsh_postprocess": {
-    "enabled": false,
-    "methods": [
-      "Netgen"
-    ],
-    "active_ref": 1,
-    "all_tets": false,
-    "binary_msh": false
   },
   "08_mesh_quality_report": {
     "enabled": true,
@@ -328,7 +263,7 @@
   "A01_les_2_npy": {
     "enabled": true,
     "input": "/data/resources/A01_segmented",
-    "output_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les_segmented/JM-25-77_A01_les_segmented_3D",
+    "output_folder": "/data/scripts/014-Yield-Surface-From-leS/JM-25-77_A01_les_segmented/JM-25-77_A01_les_segmented_3D",
     "output_filename": "segmented_3D_volume.npy",
     "line_order": "C",
     "les_material_value": 1,

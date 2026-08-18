@@ -121,6 +121,13 @@ LES_MATERIAL_VALUE=1
 LES_BOUNDS_MODE="full"
 LES_VOXEL_SIZE_UNIT="mm"
 LES_XY_DIVISIONS=1
+# Padding vor dem Signed-Distance-Field in Schritt 03. 1 ist grenzwertig und
+# fuehrt zu abgeschnittenen Isoflaechen ("open edges"); 3 ist geprueft.
+LES_SDF_PAD_WIDTH=3
+# true = nur die groesste zusammenhaengende Aluminiumkomponente vernetzen.
+# Im Datensatz JM-25-77 sind das 99,98 % des Aluminiums; der Rest sind
+# freischwebende Inseln (meist <= 10 Voxel), die im FE Starrkoerpermoden geben.
+LES_KEEP_LARGEST_COMPONENT=false
 # Optionaler Ausschnitt im Originalgitter, Format "start ende" (leer = alles)
 LES_X_RANGE=""
 LES_Y_RANGE=""

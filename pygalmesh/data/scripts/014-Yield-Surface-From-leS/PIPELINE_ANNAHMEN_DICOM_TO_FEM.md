@@ -12,16 +12,16 @@ Alle Pfade relativ zum Projekt-Root **`~/Work/Hypo/Hypo/Simulation`**
 
 | Zweck | Pfad |
 |---|---|
-| **Preprocessing + Vernetzung (Hauptpipeline)** | `Meshing/pygalmesh/data/scripts/010-Yield-Surface-Generation/` |
+| **Preprocessing + Vernetzung (Hauptpipeline)** | `Meshing/pygalmesh/data/scripts/014-Yield-Surface-From-leS/` |
 | Frakturvariante derselben Pipeline | `Meshing/pygalmesh/data/scripts/011-Fracture-From-CT-Scans/`, `012-Fracture-Mesh-Sim-Split/` |
 | Vorgängerstudie (linear-elastisch, Binning-Variation) | `Meshing/pygalmesh/data/scripts/009-Binning-Variation-CT-Stiffness/` |
 | Ursprung des Plastizitäts-Solvers | `Meshing/pygalmesh/data/scripts/007-Plasticity-From-CT-Scans/` |
-| **Simulationstemplate (elasto-plastisch)** | `.../010-Yield-Surface-Generation/00_template/elastoplastic.py` |
+| **Simulationstemplate (elasto-plastisch)** | `.../014-Yield-Surface-From-leS/00_template/elastoplastic.py` |
 | **DolfinX-Bibliothek (eigene Module)** | `dolfinx_alex/shared/utils/alex/` (u. a. `plasticity.py`, `homogenization.py`, `boundaryconditions.py`, `materials.py`, `postprocessing.py`, `linearelastic.py`, `imageprocessing.py`) |
 | Fremdmodule | `dolfinx_alex/shared/utils/ronny/` |
 | Container-Definitionen | `Meshing/pygalmesh/{Dockerfile,apptainer.def}`, `dolfinx_alex/{Dockerfile,apptainer.def}` |
 | CT-Rohdaten (DICOM) | `Meshing/pygalmesh/data/resources/B02_Mevert_AlSi10MgSchaum_...` |
-| Ergebnisse | `.../010-Yield-Surface-Generation/00_results/` |
+| Ergebnisse | `.../014-Yield-Surface-From-leS/00_results/` |
 | Bestehende Doku | `README.md`, `FILES.md`, `LES_PIPELINE.md`, `CLAUDE_PROJECT_NOTES.md`, `SCAN_DATASET_WORKFLOW.md`, `_archive/PIPELINE_DOCUMENTATION.txt` (veraltet) (alle im 010-Ordner), `Documentation/Workflows/000-Special-Issue-2025.md` |
 
 Ausführung der Vernetzungskette: `run_prepare_mesh_CLUSTER.sh`

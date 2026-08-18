@@ -1,4 +1,22 @@
-# Projekt-Notizen: 010-Yield-Surface-Generation
+# Projekt-Notizen 014-Yield-Surface-From-leS
+
+Dieser Ordner ist am 18.08.2026 aus `010-Yield-Surface-Generation` abgespalten
+worden: gleicher Stand, aber **ohne den DICOM-Zweig**. Das folgende Protokoll ist
+aus 010 übernommen und enthält deshalb auch die Vorgeschichte des DICOM-Pfads;
+was hier nicht mehr existiert, steht in `FILES.md`, Abschnitt 9.
+
+Unterschiede zu 010 zum Zeitpunkt der Abspaltung:
+
+- kein DICOM-Zweig (`00`, `01`, `02`, `02a`, `create_config.sh`,
+  `create_scan_dataset_config.py`, `config-Bin4-reduce-2.json`,
+  `SCAN_DATASET_WORKFLOW.md`, `01_segmentation_topology_sweep.py`,
+  `06_gmsh_postprocess_mesh.py`) und keine Quellen-Weiche im Prepare-Runner;
+- `sdf_pygalmesh_parameters.keep_largest_component` ist **Default `true`**;
+- neu: `A03_plot_les_structure.py` für schnelle 3D-Bilder direkt aus `.leS`.
+
+---
+
+# Projekt-Notizen: 014-Yield-Surface-From-leS
 
 Diese Datei dokumentiert, was in diesem Ordner verstanden, entschieden und
 gebaut wurde. Sie wird von Claude gepflegt (gelesen und editiert) und liegt
@@ -10,8 +28,8 @@ gefunden wird.
 Projekt-Root: `~/Work/Hypo/Hypo/Simulation` (Container-Bind:
 `Meshing/pygalmesh/data` → `/data`).
 
-- Preprocessing + Vernetzung: `Meshing/pygalmesh/data/scripts/010-Yield-Surface-Generation/`
-- Simulationstemplate: `.../010-Yield-Surface-Generation/00_template/elastoplastic.py`
+- Preprocessing + Vernetzung: `Meshing/pygalmesh/data/scripts/014-Yield-Surface-From-leS/`
+- Simulationstemplate: `.../014-Yield-Surface-From-leS/00_template/elastoplastic.py`
 - DolfinX-Module: `dolfinx_alex/shared/utils/alex/` (`plasticity.py`,
   `homogenization.py`, `boundaryconditions.py`, `materials.py`,
   `postprocessing.py`, `linearelastic.py`, `imageprocessing.py`)
@@ -110,7 +128,7 @@ ausgeführt — der Nutzer führt es selbst lokal im Container aus.
 ## Neue Datenquelle: segmentierte .leS-Voxelbilder (A01)
 
 - Rohdatei `JM-25_77_85p55.leS` (2,5 GB) liegt jetzt unter
-  `A01_segmented/` (Container: `/data/scripts/010-Yield-Surface-Generation/A01_segmented/`).
+  `A01_segmented/` (Container: `/data/scripts/014-Yield-Surface-From-leS/A01_segmented/`).
 - Neues Skript `A01_les_2_npy.py` konvertiert `.leS` → `volume.npy`
   (uint8, Shape `(x, y, z)`, 0 = Pore, 1 = Material) und schreibt eine
   Sidecar-JSON mit Voxelgröße, Labelhistogramm und Porosität.

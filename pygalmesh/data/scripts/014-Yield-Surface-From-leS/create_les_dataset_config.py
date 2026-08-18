@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Erzeugt eine 010-Config für die .leS-Pipeline aus einer bestehenden, validierten Config.
 
-Die .leS-Pipeline ersetzt die DICOM-Schritte 00/01/02/02a durch
-`A01_les_2_npy.py`; alle folgenden Schritte (02b, 02c, 02d, 03, 04, 05, 08, 09)
-bleiben unverändert. Deshalb wird die neue Config aus einer bestehenden
-DICOM-Config abgeleitet — so bleiben Vernetzungs-, Randschalen- und
-Fließflächen-Parameter identisch und vergleichbar.
+Die Config wird aus einer bestehenden, validierten Config abgeleitet (in 014 aus
+`config-A01-les.json` selbst), damit Vernetzungs-, Randschalen- und
+Fließflächen-Parameter erhalten bleiben und nur die bewusst geänderten Werte
+abweichen.
 
 Beispiel (Cluster-Pfade, HPC_SCRATCH wird automatisch auf /data abgebildet):
 
@@ -28,7 +27,7 @@ import json
 import os
 from pathlib import Path
 
-PROJECT_CONTAINER_DIR = "/data/scripts/010-Yield-Surface-Generation"
+PROJECT_CONTAINER_DIR = "/data/scripts/014-Yield-Surface-From-leS"
 
 
 def container_path(value):
@@ -124,37 +123,25 @@ def build_config(base, args):
         ),
     }
 
-    # DICOM-Schritte bleiben strukturell erhalten (andere Skripte lesen einzelne
-    # Schluessel), werden im .leS-Pfad aber nicht ausgefuehrt.
-    config.setdefault("dicom2npy", {})
-    config["dicom2npy"]["foldername"] = les_input
-    config["dicom2npy"]["output_folder"] = f"{PROJECT_CONTAINER_DIR}/{run_name}/npy"
-    config["dicom2npy"]["unused_in_les_pipeline"] = True
+    # Die DICOM-Abschnitte gibt es in 014 nicht mehr. Zwei Reste bleiben, weil sie
+    # von anderen Skripten gelesen werden:
+    #   01_segment_slice_wise.specimen_name -> job_yield_surface_point_CLUSTER.sh
+    #   02a_...material_value/pore_value    -> A01_les_2_npy.py (Metadaten fuer 02b)
+    for dead in ("dicom2npy", "02_segmented_3D_array", "06_gmsh_postprocess"):
+        config.pop(dead, None)
 
-    segment = config.setdefault("01_segment_slice_wise", {})
-    segment["specimen_name"] = run_name
-    segment["input_folder"] = f"{PROJECT_CONTAINER_DIR}/{run_name}/npy"
-    segment["output_folder"] = output_base
-    segment["unused_in_les_pipeline"] = True
-
-    segmented_3d = config.setdefault("02_segmented_3D_array", {})
-    segmented_3d["input_folder"] = output_base
-    segmented_3d["output_folder"] = volume_folder
-    segmented_3d["unused_in_les_pipeline"] = True
-
-    rotate = config.setdefault("02a_rotate_pic_to_align_with_axis", {})
-    rotate["enabled"] = False
-    rotate["angles"] = [0.0, 0.0, 0.0]
-    for key in ("buffer_width", "buffer_width_min_x", "buffer_width_max_x",
-                "buffer_width_min_y", "buffer_width_max_y",
-                "buffer_width_min_z", "buffer_width_max_z"):
-        rotate[key] = 0
-    rotate["material_value"] = 1
-    rotate["pore_value"] = 0
-    rotate["comment"] = (
-        "Im .leS-Pfad deaktiviert: das Volumen ist bereits segmentiert und achsparallel. "
-        "A01_les_2_npy.py schreibt den Metadateneintrag, den 02b erwartet."
-    )
+    config["01_segment_slice_wise"] = {
+        "specimen_name": run_name,
+        "comment": "nur der Name; gelesen von job_yield_surface_point_CLUSTER.sh",
+    }
+    config["02a_rotate_pic_to_align_with_axis"] = {
+        "material_value": 1,
+        "pore_value": 0,
+        "comment": (
+            "Keine Rotation im .leS-Pfad. A01_les_2_npy.py schreibt mit diesen Werten "
+            "den Metadateneintrag, den 02b erwartet."
+        ),
+    }
 
     subvolume = config.setdefault("02b_build_subvolume_arrays", {})
     subvolume["subvolume_output_folder"] = volume_folder
@@ -185,8 +172,8 @@ def build_config(base, args):
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--base-config", default="config-Bin4-reduce-2.json",
-                        help="Bestehende, validierte Config als Vorlage")
+    parser.add_argument("--base-config", default="config-A01-les.json",
+                        help="Bestehende, validierte Config als Vorlage (in 014 die eigene)")
     parser.add_argument("--output", default="config-A01-les.json")
     parser.add_argument("--dataset-id", default="JM-25-77_A01_les")
     parser.add_argument("--les-input", default="/data/resources/A01_segmented",

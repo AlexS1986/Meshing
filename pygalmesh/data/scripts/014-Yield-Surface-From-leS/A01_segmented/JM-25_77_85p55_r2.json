@@ -1,0 +1,91 @@
+{
+  "source_file": "/data/scripts/014-Yield-Surface-From-leS/A01_segmented/JM-25_77_85p55.leS",
+  "output_file": "/data/scripts/014-Yield-Surface-From-leS/A01_segmented/JM-25_77_85p55_r2.npy",
+  "created": "2026-08-18T11:19:21",
+  "les_header": {
+    "nx": 1187,
+    "ny": 1188,
+    "nz": 886,
+    "voxel_size": 1.67e-05
+  },
+  "line_order": "C",
+  "axis_order": "x, y, z",
+  "crop": {
+    "x_range": [
+      300,
+      900
+    ],
+    "y_range": [
+      300,
+      900
+    ],
+    "z_range": [
+      0,
+      886
+    ],
+    "dropped_for_reduce": {}
+  },
+  "reduce": {
+    "factor": 2,
+    "mode": "majority",
+    "threshold": 0.5,
+    "smooth_sigma": 0.0,
+    "smoothing_applied": false
+  },
+  "source_shape": [
+    600,
+    600,
+    886
+  ],
+  "output_shape": [
+    300,
+    300,
+    443
+  ],
+  "dtype": "uint8",
+  "phase_convention": "raw",
+  "les_material_value": 1,
+  "array_material_value": 1,
+  "array_pore_value": 0,
+  "voxel_size_source_m": 1.67e-05,
+  "voxel_size_m": 3.34e-05,
+  "voxel_size_mm": 0.0334,
+  "voxel_size_um": 33.4,
+  "raw_label_counts": {
+    "0": 275600870,
+    "1": 43359130
+  },
+  "material_volume_fraction_source": 0.13593908327062953,
+  "material_volume_fraction_output": 0.13894951091045898,
+  "porosity_output": 0.861050489089541,
+  "material_bounds_material": {
+    "x": [
+      0,
+      299
+    ],
+    "y": [
+      0,
+      299
+    ],
+    "z": [
+      0,
+      442
+    ]
+  },
+  "material_bounds_full": {
+    "x": [
+      0,
+      299
+    ],
+    "y": [
+      0,
+      299
+    ],
+    "z": [
+      0,
+      442
+    ]
+  },
+  "bounds_mode": "full",
+  "runtime_seconds": 36.30526804924011
+}

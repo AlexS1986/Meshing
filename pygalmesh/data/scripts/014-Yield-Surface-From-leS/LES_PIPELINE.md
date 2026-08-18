@@ -1,19 +1,18 @@
-# .leS-Pipeline (A01) — Standardpfad in 010-Yield-Surface-Generation
+# .leS-Pipeline — Bedienung
 
-Alternative zum DICOM-Pfad: statt Rekonstruktion + Segmentierung aus DICOM wird
-ein **bereits segmentiertes** Voxelbild im ASCII-Format `.leS` eingelesen.
-Seit dieser Umstellung ist die .leS-Pipeline der **Default** in diesem Ordner;
-der DICOM-Pfad bleibt über ein Config-Argument vollständig nutzbar.
+Dieses Projekt liest ein **bereits segmentiertes** Voxelbild im ASCII-Format
+`.leS` ein und erzeugt daraus Netz und Fließfläche. Der DICOM-Zweig aus
+`010-Yield-Surface-Generation` ist hier nicht enthalten.
 
 ## 1. Was ersetzt wird
 
-| DICOM-Pfad | .leS-Pfad |
+| Schritt in 010 (DICOM) | hier |
 |---|---|
 | `00_dicom_2_npy.py` | **`A01_les_2_npy.py`** |
 | `01_segment_slice_wise.py` | entfällt (Daten sind segmentiert) |
 | `02_build3D_segmented_array.py` | entfällt |
 | `02a_rotate_pic_to_align_with_axis.py` | entfällt (Volumen ist achsparallel) |
-| `02b`, `02c`, `02d`, `03`, `04`, `05`, `08`, `09` | **unverändert** |
+| `02b`, `02c`, `02d`, `03`, `04`, `05`, `08`, `09` | **unverändert übernommen** |
 
 `A01_les_2_npy.py` schreibt `segmented_3D_volume.npy` und zusätzlich die
 Metadaten, die die Folgeschritte erwarten:
@@ -53,7 +52,7 @@ Das Prepare-Jobskript prüft vor dem Start, dass die Datei auf dem Host existier
 und eindeutig ist.
 
 Lokal (Mac/Container ohne Cluster) liegt derselbe Datensatz unter
-`/data/scripts/010-Yield-Surface-Generation/A01_segmented/` — dieser Pfad wird
+`/data/scripts/014-Yield-Surface-From-leS/A01_segmented/` — dieser Pfad wird
 automatisch als Fallback durchsucht.
 
 ## 4. Auflösung reduzieren
@@ -127,9 +126,9 @@ Zum Datensatz JM-25-77 (gemessen am 300³-Ausschnitt bei reduce=2): das Aluminiu
 besteht aus **228 Komponenten**, die größte enthält **99,978 %** des Materials;
 die 227 Inseln sind meist ≤ 10 Voxel. Dazu kommen **402 eingeschlossene
 Porenkavitäten**. Die Inseln machen die Oberfläche nicht kaputt, erzeugen im FE
-aber Starrkörpermoden — `LES_KEEP_LARGEST_COMPONENT=true` (bzw.
-`sdf_pygalmesh_parameters.keep_largest_component`) entfernt sie und liefert
-weiterhin eine dichte, mannigfaltige Oberfläche.
+aber Starrkörpermoden — In diesem Projekt ist `LES_KEEP_LARGEST_COMPONENT` deshalb **Default `true`**
+(`sdf_pygalmesh_parameters.keep_largest_component`); die Oberfläche bleibt dabei
+dicht und mannigfaltig.
 
 ## 5. Config erzeugen
 
@@ -140,22 +139,23 @@ Welche Datei im Ordner wofür da ist, steht in `FILES.md`.
 Neu erzeugen:
 
 ```bash
-cd "$HPC_SCRATCH/pygalmesh/data/scripts/010-Yield-Surface-Generation"
+cd "$HPC_SCRATCH/pygalmesh/data/scripts/014-Yield-Surface-From-leS"
 
 # Variante A: über die LES_*-Variablen in config.sh
 ./create_les_config.sh
 
 # Variante B: direkt, mit abweichenden Werten
 python3 create_les_dataset_config.py \
-  --base-config config-Bin4-reduce-2.json \
+  --base-config config-A01-les.json \
   --output config-A01-les-r8.json \
   --dataset-id JM-25-77_A01_les_r8 \
   --les-input /data/resources/A01_segmented \
   --reduce 8
 ```
 
-Die Config wird aus einer bestehenden, validierten DICOM-Config **abgeleitet**,
-damit Vernetzungs-, Randschalen- und Fließflächenparameter identisch bleiben.
+Die Config wird aus einer bestehenden, validierten Config **abgeleitet** (hier aus
+`config-A01-les.json` selbst), damit Vernetzungs-, Randschalen- und
+Fließflächenparameter erhalten bleiben.
 Einzelwerte lassen sich überschreiben:
 
 ```bash
@@ -176,20 +176,17 @@ Reduktion und werden automatisch auf Vielfache von `reduce` gekürzt.)
 
 ```bash
 # 1. Daten und Projekt nach $HPC_SCRATCH synchronisieren, dann:
-sbatch "$HPC_SCRATCH/pygalmesh/data/scripts/010-Yield-Surface-Generation/job_prepare_mesh_CLUSTER.sh"
+sbatch "$HPC_SCRATCH/pygalmesh/data/scripts/014-Yield-Surface-From-leS/job_prepare_mesh_CLUSTER.sh"
 #    ^ ohne Argument = config-A01-les.json (neuer Default)
 
 # alternativ explizit:
 sbatch ".../job_prepare_mesh_CLUSTER.sh" config-A01-les-r8.json
 
-# zurück auf den DICOM-Pfad:
-sbatch ".../job_prepare_mesh_CLUSTER.sh" config-Bin4-reduce-2.json
 ```
 
-Das Prepare-Skript (`run_prepare_mesh_CLUSTER.sh`, wird vom
-Wrapper aufgerufen) entscheidet anhand von `A01_les_2_npy.enabled` in der
-Config, ob es `A01_les_2_npy.py` oder die DICOM-Kette `00/01/02/02a` ausführt.
-Danach ist der Ablauf für beide Quellen identisch.
+Das Prepare-Skript (`run_prepare_mesh_CLUSTER.sh`, wird vom Wrapper aufgerufen)
+prüft vorher, dass die `.leS`-Datei auf dem Host existiert und eindeutig ist, und
+läuft dann `A01 → 02b → 02c → 02d → 03 → 04 → 05/08/09 → DolfinX-Netz`.
 
 Fließflächen-Jobs (Default-Basisconfig ist jetzt ebenfalls `config-A01-les.json`):
 
@@ -213,10 +210,10 @@ interaktiv zu tun; scheitert die Vorbereitung, verwirft SLURM die Punkt-Jobs
 ```bash
 # einmalig auf dem Login-Node: Jobs erzeugen + nach $HPC_SCRATCH synchronisieren
 cd "$HOME/meshing/Meshing/pygalmesh"
-YIELD_SURFACE_POINTS=192 data/scripts/010-Yield-Surface-Generation/02_create_folders_CLUSTER.sh
+YIELD_SURFACE_POINTS=192 data/scripts/014-Yield-Surface-From-leS/02_create_folders_CLUSTER.sh
 
 # danach die komplette Kette einreihen
-"$HPC_SCRATCH/pygalmesh/data/scripts/010-Yield-Surface-Generation/submit_les_pipeline_CLUSTER.sh"
+"$HPC_SCRATCH/pygalmesh/data/scripts/014-Yield-Surface-From-leS/submit_les_pipeline_CLUSTER.sh"
 ```
 
 Optionen:
@@ -260,3 +257,20 @@ Erzeugt `*_slices.png` (drei orthogonale Schnitte) und `*_3d.png`
 * Noch offen: `02c` (braucht scipy) und `03` (braucht nanomesh/pygalmesh) sind
   lokal nicht lauffähig und wurden nur über die Konfiguration geprüft, nicht
   ausgeführt.
+
+
+## 9. Schnelle Bilder der .leS-Struktur
+
+```bash
+# Übersicht des ganzen Volumens, wenige Sekunden
+python3 A03_plot_les_structure.py --reduce 8 --slices
+
+# feiner und nur ein Ausschnitt
+python3 A03_plot_les_structure.py --reduce 2 \
+    --x-range 300 900 --y-range 300 900 --z-range 200 800 --keep-npy
+```
+
+`A03_plot_les_structure.py` liest mit `A01_les_2_npy.py` (gleiche Optionen für
+`--reduce`, Ausschnitt und Zeilenordnung) und rendert mit
+`A02_preview_voxel_volume.py`. Ergebnis: `<name>_3d.png`, optional
+`<name>_slices.png` und mit `--keep-npy` das reduzierte Volumen.
