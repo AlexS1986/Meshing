@@ -164,6 +164,37 @@ def build_config(base, args):
     sdf["pad_width"] = args.sdf_pad_width
     sdf["keep_largest_component"] = bool(args.keep_largest_component)
 
+    # Netzfeinheit. Drei Wege, in dieser Reihenfolge ausgewertet:
+    #   1. --max-element-size-um: absolute Zielkantenlaenge; der Faktor wird aus der
+    #      Voxelgroesse (voxel_size * reduce) berechnet. Unabhaengig von reduce.
+    #   2. --current-tets/--target-tets: Elementzahl skaliert mit 1/h^3.
+    #   3. --mesh-size-scale: direkter Faktor.
+    scale = float(args.mesh_size_scale)
+    voxel_um = (args.voxel_size if args.voxel_size else 1.67e-05) * 1e6 * args.reduce
+    pygal_blocks = [b for b in (mesh.get("pygalmesh_parameters"),
+                                sdf.get("pygalmesh_parameters")) if isinstance(b, dict)]
+    if args.max_element_size_um:
+        reference = pygal_blocks[-1].get("max_element_size_factor", 1.4853084267560892)
+        scale = (float(args.max_element_size_um) / voxel_um) / float(reference)
+    elif args.current_tets and args.target_tets:
+        scale = (float(args.current_tets) / float(args.target_tets)) ** (1.0 / 3.0)
+    if abs(scale - 1.0) > 1e-9:
+        for block in pygal_blocks:
+            for key in ("max_element_size_factor", "max_facet_distance_factor"):
+                if key in block and block[key]:
+                    block[key] = float(block[key]) * scale
+        mesh["mesh_size_scale_applied"] = scale
+        mesh["max_element_size_um"] = pygal_blocks[-1]["max_element_size_factor"] * voxel_um
+
+    # Randschale (02d): muss vom Netz aufloesbar bleiben, sonst traegt sie die
+    # Dirichlet-Raender nicht. Faustregel: mindestens drei Elemente Dicke.
+    seal = config.setdefault("02d_axis_aligned_cuboid_crop", {}).setdefault("boundary_seal", {})
+    thick = seal.setdefault("thicknesses", {})
+    if args.boundary_shell_xz:
+        thick["x_min"] = thick["x_max"] = thick["z_min"] = thick["z_max"] = args.boundary_shell_xz
+    if args.boundary_shell_y:
+        thick["y_min"] = thick["y_max"] = args.boundary_shell_y
+
     for assignment in args.set or []:
         set_dotted(config, assignment)
     return config
@@ -201,6 +232,21 @@ def build_parser():
     parser.add_argument("--sdf-pad-width", type=int, default=3,
                         help="Padding vor dem Signed-Distance-Field (Schutz gegen "
                              "abgeschnittene Isoflaechen am Domaenenrand)")
+    parser.add_argument("--max-element-size-um", type=float, default=None,
+                        help="Zielkantenlaenge der Elemente in um (max_cell_circumradius). "
+                             "Setzt die Groessenfaktoren passend zur Voxelgroesse; hat Vorrang.")
+    parser.add_argument("--boundary-shell-xz", type=int, default=None,
+                        help="Dicke der Randschale in x und z (Voxel)")
+    parser.add_argument("--boundary-shell-y", type=int, default=None,
+                        help="Dicke der Randschale in y (Voxel)")
+    parser.add_argument("--mesh-size-scale", type=float, default=1.0,
+                        help="Skaliert max_element_size_factor und max_facet_distance_factor; "
+                             ">1 = groebere Elemente (Elementzahl ~ 1/scale^3)")
+    parser.add_argument("--current-tets", type=float, default=None,
+                        help="Tetraederzahl des bisherigen Netzes (aus mesh.quality.txt)")
+    parser.add_argument("--target-tets", type=float, default=None,
+                        help="gewuenschte Tetraederzahl; zusammen mit --current-tets wird "
+                             "--mesh-size-scale daraus berechnet")
     parser.add_argument("--keep-largest-component", action="store_true",
                         help="nur die groesste zusammenhaengende Aluminiumkomponente vernetzen "
                              "(entfernt freischwebende Inseln und damit Starrkoerpermoden)")
@@ -240,6 +286,16 @@ def main():
     sdf_params = config["03_mesh_3D_array"]["sdf_pygalmesh_parameters"]
     print(f"  sdf pad_width      : {sdf_params['pad_width']}")
     print(f"  keep_largest_comp. : {sdf_params['keep_largest_component']}")
+    pg = sdf_params.get("pygalmesh_parameters", {})
+    print(f"  max_element_size   : {pg.get('max_element_size_factor')} x dx")
+    print(f"  max_facet_distance : {pg.get('max_facet_distance_factor')} x dx")
+    if "mesh_size_scale_applied" in config["03_mesh_3D_array"]:
+        f = config["03_mesh_3D_array"]["mesh_size_scale_applied"]
+        h = config["03_mesh_3D_array"]["max_element_size_um"]
+        print(f"  Netzfeinheit       : Faktor {f:.4f} grober -> Elementzahl ~ 1/{f**3:.2f}")
+        print(f"  Elementgroesse     : {h:.1f} um (max_cell_circumradius)")
+    t = config["02d_axis_aligned_cuboid_crop"]["boundary_seal"]["thicknesses"]
+    print(f"  Randschale (Voxel) : x/z = {t['x_min']}, y = {t['y_min']}")
     print(f"  metadata_output_path: {config['metadata_output_path']}")
 
 

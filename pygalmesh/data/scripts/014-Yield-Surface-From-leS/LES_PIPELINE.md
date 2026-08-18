@@ -259,6 +259,65 @@ Erzeugt `*_slices.png` (drei orthogonale Schnitte) und `*_3d.png`
   ausgeführt.
 
 
+## 8a. Netzfeinheit (Default)
+
+Die Elementgröße wird **absolut** vorgegeben, nicht als Faktor auf die
+Voxelgröße — damit bleibt sie beim Ändern von `LES_REDUCE_FACTOR` gleich:
+
+```bash
+LES_MAX_ELEMENT_SIZE_UM=75     # Default in config.sh
+```
+
+Daraus rechnet der Generator `max_element_size_factor` und, im selben
+Verhältnis, `max_facet_distance_factor`. Bei reduce=2 (33,4 µm Voxel) ergibt
+das den Faktor 2,2455 statt 1,4853, also **75 µm statt 49,6 µm** Elementgröße —
+Faktor 1,51 gröber, Elementzahl rund **1/3,5**.
+
+| Elementgröße | Herkunft | erwartete Tetraeder |
+|---:|---|---:|
+| 49,6 µm | Faktor 1,4853 aus der Bin4-Studie, angewandt auf 33,4 µm Voxel | zu viele (erster Lauf) |
+| **75 µm** | **Default in 014** | **≈ 4–6 Mio.** |
+| 199 µm | Elementgröße der alten Bin4-reduce-2-Studie | ≈ 0,3 Mio. |
+
+Die erwartete Elementzahl ist eine Abschätzung. Sobald der erste Lauf durch ist,
+lässt sie sich exakt nachziehen:
+
+```bash
+grep mesh_tetrahedra .../subvolume_x0_y0/mesh.quality.txt
+LES_MAX_ELEMENT_SIZE_UM= LES_CURRENT_TETS=<ist> LES_TARGET_TETS=6000000 ./create_les_config.sh
+```
+
+**Randschale mitgeführt:** `LES_BOUNDARY_SHELL_XZ=8` (statt 3). Bei 75 µm
+Elementen sind 3 Voxel nur 100 µm ≈ 1,3 Elemente — zu dünn, um die
+Dirichlet-Ränder zu tragen. 8 Voxel = 267 µm ≈ 3,5 Elemente; das liegt auch
+näher an den 400 µm der alten Studie als die 100 µm. `LES_BOUNDARY_SHELL_Y`
+bleibt bei 12 Voxeln.
+
+Alle `LES_*`- und `YIELD_JOB_*`-Variablen lassen sich für einen einzelnen Aufruf
+über die Umgebung überschreiben, ohne `config.sh` zu editieren:
+
+```bash
+LES_REDUCE_FACTOR=8 ./create_les_config.sh --output config-A01-les-r8.json
+```
+
+## 8b. Ressourcen der Jobs
+
+| Job | Wo eingestellt | Default | Begründung |
+|---|---|---:|---|
+| Netzvorbereitung | SBATCH-Header in `job_prepare_mesh_CLUSTER.sh` und `run_prepare_mesh_CLUSTER.sh` | `-n 32`, `--mem-per-cpu=45000`, `--nodes=1` | Es arbeitet nur **ein** Task (`run_container 1` = `srun -n 1`); die Zuteilung dient dem Speicher. 32 × 45 GB = 1,44 TB — genauso viel wie beim erfolgreichen Lauf mit 96 × 15 GB, nur ohne 64 brachliegende Kerne. |
+| Fließflächen-Punkte | `YIELD_JOB_*` in `config.sh` | `-n 96`, kein `-N`, `--mem-per-cpu=9000`, `-C i01` | Der elasto-plastische Solve ist der rechenintensive Teil. `job_yield_surface_point_CLUSTER.sh` liest die Taskzahl über `SLURM_NTASKS`, es genügt also, den Header zu ändern. `YIELD_JOB_NODES=0` lässt `-N` weg, damit SLURM die Tasks über mehrere Knoten verteilen darf. |
+
+Die Werte greifen beim nächsten `setup_yield_surface_jobs.sh` bzw.
+`02_create_folders_CLUSTER.sh`; bereits erzeugte Punkt-Jobs behalten ihren
+alten Header.
+
+**Richtige Größe finden:** Der Speicherbedarf der Netzvorbereitung lässt sich
+nach einem Lauf messen und dann passend setzen:
+
+```bash
+sacct -j <prep-jobid> --format=JobID,JobName,AllocCPUS,MaxRSS,Elapsed
+```
+
 ## 9. Schnelle Bilder der .leS-Struktur
 
 ```bash

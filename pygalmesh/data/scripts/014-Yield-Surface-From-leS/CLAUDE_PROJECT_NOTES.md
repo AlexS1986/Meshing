@@ -300,3 +300,40 @@ Flächen im Sternbereich der betroffenen Knoten entfernen und die Löcher schlie
 Die Reparatur wird verworfen, wenn sie das Ergebnis verschlechtert oder mehr als
 `repair_nonmanifold_max_faces` Flächen beträfe. Getestet an synthetischen Fällen
 (kantenberührende Würfel, Doppelflächen) und als No-Op an einer sauberen Kugel.
+
+### Ressourcen der Jobs angepasst
+
+- **Netzvorbereitung: `-n 96` -> `-n 32`, `--mem-per-cpu=15000` -> `45000`.**
+  Der Runner startet jeden Schritt mit `run_container 1`, also `srun -n 1`;
+  es rechnet nur ein Task. Die 96 Tasks dienten faktisch nur der
+  Speicherzuteilung. 32 x 45 GB = 1,44 TB ist derselbe Gesamtspeicher wie
+  vorher, belegt aber 64 Kerne weniger.
+- **Punkt-Jobs: `-n 32` -> `-n 96`, `-N 1` entfaellt.** Der elasto-plastische
+  Solve ist der teure Teil; `job_yield_surface_point_CLUSTER.sh` uebernimmt die
+  Taskzahl aus `SLURM_NTASKS`. Ohne `-N` darf SLURM die Tasks ueber mehrere
+  Knoten verteilen.
+- Beides ist jetzt konfigurierbar: `YIELD_JOB_NTASKS`, `YIELD_JOB_NODES`,
+  `YIELD_JOB_MEM_PER_CPU`, `YIELD_JOB_CONSTRAINT`, `YIELD_JOB_TIME` in
+  `config.sh`, durchgereicht von `setup_yield_surface_jobs.sh` an den Generator.
+  Der SBATCH-Header der Netzvorbereitung steht weiterhin fest in
+  `job_prepare_mesh_CLUSTER.sh` und `run_prepare_mesh_CLUSTER.sh`.
+- Neu ausserdem: `LES_MESH_SIZE_SCALE` bzw. `LES_CURRENT_TETS`/`LES_TARGET_TETS`
+  in `config.sh` — skaliert `max_element_size_factor` und
+  `max_facet_distance_factor` gemeinsam, Elementzahl ~ 1/scale^3.
+
+### Netzfeinheit als Default festgelegt
+
+- **`LES_MAX_ELEMENT_SIZE_UM=75`** ist jetzt der Default in `config.sh`. Die
+  Elementgroesse wird absolut vorgegeben; der Generator rechnet daraus
+  `max_element_size_factor` (2,2455 bei reduce=2) und skaliert
+  `max_facet_distance_factor` im selben Verhaeltnis. Vorteil: die Elementgroesse
+  bleibt konstant, wenn `LES_REDUCE_FACTOR` geaendert wird.
+- Gegenueber dem ersten Lauf (49,6 um) ist das Faktor 1,51 groeber, also rund
+  1/3,5 der Elementzahl -> erwartet 4-6 Mio. Tetraeder. Gegenueber der alten
+  Bin4-reduce-2-Studie (199 um) ist es weiterhin etwa dreimal feiner.
+- **`LES_BOUNDARY_SHELL_XZ=8`** statt 3 Voxel: bei 75 um Elementen waeren
+  3 Voxel = 100 um nur 1,3 Elemente dick. 8 Voxel = 267 um ~ 3,5 Elemente und
+  liegen naeher an den 400 um der alten Studie. `y` bleibt bei 12 Voxeln.
+- Alle `LES_*`/`YIELD_JOB_*`-Variablen in `config.sh` sind jetzt als
+  `VAR="${VAR:-wert}"` geschrieben und damit fuer einen einzelnen Aufruf ueber
+  die Umgebung ueberschreibbar (vorher hat `source config.sh` sie ueberschrieben).

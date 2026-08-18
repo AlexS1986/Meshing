@@ -22,8 +22,8 @@
     "meshing_method": "sdf_pygalmesh",
     "mesh_output_path": "/data/scripts/014-Yield-Surface-From-leS/JM-25-77_A01_les_segmented/mesh.xdmf",
     "pygalmesh_parameters": {
-      "max_element_size_factor": 1.4853084267560892,
-      "max_facet_distance_factor": 0.08911850560536534,
+      "max_element_size_factor": 2.245508982035928,
+      "max_facet_distance_factor": 0.13473053892215567,
       "exude_time_limit": 30,
       "exude_sliver_bound": 0.0,
       "lloyd": false,
@@ -84,8 +84,8 @@
       "surface_decimation_boundary_vertex_deletion": false,
       "min_surface_component_faces": 0,
       "pygalmesh_parameters": {
-        "max_element_size_factor": 1.4853084267560892,
-        "max_facet_distance_factor": 0.08911850560536534,
+        "max_element_size_factor": 2.245508982035928,
+        "max_facet_distance_factor": 0.13473053892215567,
         "exude_time_limit": 30,
         "exude_sliver_bound": 0.0,
         "lloyd": false,
@@ -99,7 +99,9 @@
         "seed": 0,
         "verbose": true
       }
-    }
+    },
+    "mesh_size_scale_applied": 1.5118132648988705,
+    "max_element_size_um": 75.0
   },
   "02a_rotate_pic_to_align_with_axis": {
     "material_value": 1,
@@ -199,12 +201,12 @@
       "value": 0,
       "thickness": 3,
       "thicknesses": {
-        "x_min": 3,
-        "x_max": 3,
+        "x_min": 8,
+        "x_max": 8,
         "y_min": 12,
         "y_max": 12,
-        "z_min": 3,
-        "z_max": 3
+        "z_min": 8,
+        "z_max": 8
       }
     }
   },

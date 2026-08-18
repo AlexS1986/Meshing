@@ -58,6 +58,14 @@ def main():
         ),
     )
     parser.add_argument("--project-dir", default=None, help="Defaults to the directory containing this script.")
+    parser.add_argument("--job-ntasks", type=int, default=96,
+                        help="MPI-Tasks je Punkt-Job (SBATCH -n)")
+    parser.add_argument("--job-nodes", type=int, default=0,
+                        help="SBATCH -N; 0 = weglassen, dann verteilt SLURM frei")
+    parser.add_argument("--job-mem-per-cpu", type=int, default=9000)
+    parser.add_argument("--job-constraint", default="i01", help="SBATCH -C; leer = weglassen")
+    parser.add_argument("--job-time", type=int, default=1440, help="SBATCH -t in Minuten")
+    parser.add_argument("--job-account", default="p0023647")
     args = parser.parse_args()
 
     project_dir = Path(args.project_dir).resolve() if args.project_dir else Path(__file__).resolve().parent
@@ -127,16 +135,23 @@ def main():
             f"/data/scripts/014-Yield-Surface-From-leS/"
             f"{config_path.relative_to(project_dir).as_posix()}"
         )
+        sbatch_lines = [
+            f"#SBATCH -J {sample_id[:48]}",
+            f"#SBATCH -A {args.job_account}",
+            f"#SBATCH -t {args.job_time}",
+            f"#SBATCH -n {args.job_ntasks}",
+        ]
+        if args.job_nodes:
+            sbatch_lines.append(f"#SBATCH -N {args.job_nodes}")
+        sbatch_lines.append(f"#SBATCH --mem-per-cpu={args.job_mem_per_cpu}")
+        if args.job_constraint:
+            sbatch_lines.append(f"#SBATCH -C {args.job_constraint}")
+        sbatch_lines.append("#SBATCH --mail-type=END")
+        sbatch_header = "\n".join(sbatch_lines)
+
         job_text = f"""#!/bin/bash
 
-#SBATCH -J {sample_id[:48]}
-#SBATCH -A p0023647
-#SBATCH -t 1440
-#SBATCH -n 32
-#SBATCH -N 1
-#SBATCH --mem-per-cpu=9000
-#SBATCH -C i01
-#SBATCH --mail-type=END
+{sbatch_header}
 
 SCRIPT_DIR=\"$HPC_SCRATCH/pygalmesh/data/scripts/014-Yield-Surface-From-leS\"
 bash \"$SCRIPT_DIR/job_yield_surface_point_CLUSTER.sh\" \"{config_container_path}\"

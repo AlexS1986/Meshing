@@ -14,4 +14,11 @@ SETUP_ARGS=(
 if [[ -n "${YIELD_SURFACE_OUTPUT_DIR:-}" ]]; then
   SETUP_ARGS+=(--output-dir "$YIELD_SURFACE_OUTPUT_DIR")
 fi
+SETUP_ARGS+=(
+  --job-ntasks "${YIELD_JOB_NTASKS:-96}"
+  --job-nodes "${YIELD_JOB_NODES:-0}"
+  --job-mem-per-cpu "${YIELD_JOB_MEM_PER_CPU:-9000}"
+  --job-constraint "${YIELD_JOB_CONSTRAINT:-i01}"
+  --job-time "${YIELD_JOB_TIME:-1440}"
+)
 python3 "$SCRIPT_DIR/setup_yield_surface_jobs.py" "${SETUP_ARGS[@]}"

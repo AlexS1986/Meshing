@@ -22,7 +22,18 @@ ARGS=(
   --voxel-size-unit "${LES_VOXEL_SIZE_UNIT:-mm}"
   --xy-divisions "${LES_XY_DIVISIONS:-1}"
   --sdf-pad-width "${LES_SDF_PAD_WIDTH:-3}"
+  --mesh-size-scale "${LES_MESH_SIZE_SCALE:-1.0}"
+  --boundary-shell-xz "${LES_BOUNDARY_SHELL_XZ:-8}"
+  --boundary-shell-y "${LES_BOUNDARY_SHELL_Y:-12}"
 )
+
+if [[ -n "${LES_MAX_ELEMENT_SIZE_UM:-}" ]]; then
+  ARGS+=(--max-element-size-um "$LES_MAX_ELEMENT_SIZE_UM")
+fi
+
+if [[ -n "${LES_CURRENT_TETS:-}" && -n "${LES_TARGET_TETS:-}" ]]; then
+  ARGS+=(--current-tets "$LES_CURRENT_TETS" --target-tets "$LES_TARGET_TETS")
+fi
 
 if [[ "${LES_KEEP_LARGEST_COMPONENT:-false}" == "true" ]]; then ARGS+=(--keep-largest-component); fi
 
