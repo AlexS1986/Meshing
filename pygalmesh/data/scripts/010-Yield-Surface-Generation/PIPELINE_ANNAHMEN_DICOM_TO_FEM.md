@@ -22,7 +22,7 @@ Alle Pfade relativ zum Projekt-Root **`~/Work/Hypo/Hypo/Simulation`**
 | Container-Definitionen | `Meshing/pygalmesh/{Dockerfile,apptainer.def}`, `dolfinx_alex/{Dockerfile,apptainer.def}` |
 | CT-Rohdaten (DICOM) | `Meshing/pygalmesh/data/resources/B02_Mevert_AlSi10MgSchaum_...` |
 | Ergebnisse | `.../010-Yield-Surface-Generation/00_results/` |
-| Bestehende Doku | `README.md`, `PIPELINE_DOCUMENTATION.txt`, `CLAUDE_PROJECT_NOTES.md`, `SCAN_DATASET_WORKFLOW.md` (alle im 010-Ordner), `Documentation/Workflows/000-Special-Issue-2025.md` |
+| Bestehende Doku | `README.md`, `FILES.md`, `LES_PIPELINE.md`, `CLAUDE_PROJECT_NOTES.md`, `SCAN_DATASET_WORKFLOW.md`, `_archive/PIPELINE_DOCUMENTATION.txt` (veraltet) (alle im 010-Ordner), `Documentation/Workflows/000-Special-Issue-2025.md` |
 
 Ausführung der Vernetzungskette: `job_prepare_mesh_Bin4_reduce_2_CLUSTER.sh`
 (SLURM + Apptainer) bzw. `job_prepare_mesh_CLUSTER.sh <config>`; lokal

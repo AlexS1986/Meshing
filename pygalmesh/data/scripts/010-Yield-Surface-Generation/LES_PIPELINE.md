@@ -90,7 +90,11 @@ Für Experimente bei großen reduce-Faktoren gibt es `reduce.smooth_sigma`
 
 ## 5. Config erzeugen
 
-Die Default-Config `config-A01-les.json` ist eingecheckt. Neu erzeugen:
+Die Default-Config `config-A01-les.json` ist eingecheckt; `config.json` ist eine
+Kopie davon und greift, wenn ein Skript ohne `--config` aufgerufen wird.
+Welche Datei im Ordner wofür da ist, steht in `FILES.md`.
+
+Neu erzeugen:
 
 ```bash
 cd "$HPC_SCRATCH/pygalmesh/data/scripts/010-Yield-Surface-Generation"

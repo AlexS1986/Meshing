@@ -1,5 +1,10 @@
 # Yield-surface generation on the cluster
 
+> Einstieg: `FILES.md` listet alle Dateien dieses Ordners mit Zweck und
+> Aufrufer. Der aktive Standardpfad geht von einem segmentierten `.leS`-Volumen
+> aus und ist in `LES_PIPELINE.md` beschrieben; `submit_les_pipeline_CLUSTER.sh`
+> reicht Netzvorbereitung und alle Punkt-Jobs in einem Aufruf ein.
+
 This directory contains the preprocessing, simulation, result collection, and
 ParaView export tools for generating a yield surface from CT-derived meshes.
 The example below prepares 192 approximately uniform loading directions in the

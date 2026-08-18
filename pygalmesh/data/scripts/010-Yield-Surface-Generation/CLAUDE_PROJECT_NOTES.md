@@ -187,3 +187,25 @@ lauffähig und wurden nicht ausgeführt.
   ebenfalls auf `config-A01-les.json` gesetzt (vorher `config-Bin4-reduce-2.json`),
   damit ein direktes `sbatch` auf dieses Skript nicht stillschweigend den
   DICOM-Pfad laeuft. README Abschnitt 4 verweist jetzt auf den Wrapper.
+
+### Aufräumen des Ordners (Inventar)
+
+- Neu: **`FILES.md`** — vollständiges Dateiverzeichnis mit Zweck, Aufrufer und
+  Config-Abschnitt je Datei, inklusive der Kette im Prepare-Job in Reihenfolge.
+- `_archive/` (nicht mehr aufgerufen, per Referenzsuche geprüft):
+  `job_yield_surface_LOCAL.sh`, `job_yield_Bin4_reduce_2_LOCAL.sh`,
+  `job_yield_surface_from_scans_CLUSTER.sh`, `job_yield_Bin4_reduce_2_CLUSTER.sh`,
+  `create_yield_surface_n192.sh`, `package_yield_run_jsons.py`,
+  `package_yield_run_std_tensor_CLUSTER.sh`, `04_scale_and_translate_mesh.py`,
+  `make_mesh_dlfx_compatible.py`, `02a_rotate_pic_to_align_with_axis_bu.py`,
+  `PIPELINE_DOCUMENTATION.txt`.
+- `config.json` ist jetzt eine Kopie von `config-A01-les.json` (vorher identisch
+  mit `config-Bin4-reduce-2.json`). Damit trifft ein Aufruf ohne `--config` den
+  aktiven Standardpfad; DICOM braucht explizit
+  `--config config-Bin4-reduce-2.json`.
+- Behalten wurden der komplette DICOM-Zweig (00/01/02/02a + Generatoren; die
+  Bin4-Config ist zugleich die Vorlage der .leS-Config) und die
+  Analyse-/Sweep-Werkzeuge (`01_segmentation_topology_sweep.py`,
+  `07_pygalmesh_parameter_sweep.py`, `evaluate_pore_size_distribution.py`).
+- `06_gmsh_postprocess_mesh.py` ist im Cluster-Pfad **inaktiv** (nur der jetzt
+  archivierte LOCAL-Weg rief es auf, Config-Abschnitt steht auf `enabled: false`).

@@ -41,6 +41,8 @@ unaufgelöstes `$HPC_SCRATCH`. Die Cluster-Skripte rechnen `/data` per
 - `PIPELINE_ANNAHMEN_DICOM_TO_FEM.md` — vollständige Beschreibung DICOM →
   segmentiertes Array → FEM-Netz inkl. aller Algorithmen und Annahmen.
 - **`LES_PIPELINE.md`** — Bedienung der .leS-Pipeline (Default-Pfad, Cluster).
+- **`FILES.md`** — Dateiverzeichnis: jede Datei mit Zweck, Aufrufer und
+  Config-Abschnitt; listet auch, was in `_archive/` liegt und warum.
 - `README.md` — Yield-Surface-Jobs auf dem Cluster (SLURM).
 - `SCAN_DATASET_WORKFLOW.md` — DICOM-Workflow für weitere Scans.
 
@@ -57,7 +59,10 @@ unaufgelöstes `$HPC_SCRATCH`. Die Cluster-Skripte rechnen `/data` per
 3. **Nummerierung der Skripte** spiegelt die Pipeline-Reihenfolge wider.
    Der .leS-Zweig verwendet das Präfix `A0x`.
 4. **Konfiguration über JSON-Configs** im Pipeline-Ordner; Skripte akzeptieren
-   `--config` und meist zusätzlich explizite Pfad-Argumente. Neue Configs werden
+   `--config` und meist zusätzlich explizite Pfad-Argumente. `config.json` ist
+   die Default-Config ohne `--config` und ist eine Kopie von
+   `config-A01-les.json`; der DICOM-Pfad braucht explizit
+   `--config config-Bin4-reduce-2.json`. Neue Configs werden
    aus einer bestehenden, validierten Config **abgeleitet**
    (`create_les_dataset_config.py`, `create_scan_dataset_config.py`), nicht von
    Hand geschrieben.

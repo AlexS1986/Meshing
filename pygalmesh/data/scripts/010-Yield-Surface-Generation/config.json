@@ -1,20 +1,15 @@
 {
-  "metadata_output_path": "/data/scripts/010-Yield-Surface-Generation/JM-25-74_Bin4_reduce-2_segmented/metadata.json",
+  "metadata_output_path": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les_segmented/metadata.json",
   "binning": {
-    "id": 4,
-    "label": "Bin4",
-    "resource_folder": "/data/resources/B02_Mevert_AlSi10MgSchaum_JM-26-74_Binning_Variation/Binning 4/JM-25-74_6min15_750^C_erodiert_nach Trockenschrank_Bin4",
+    "id": 2,
+    "label": "leS-reduce-2",
+    "resource_folder": "/data/resources/A01_segmented",
     "script_reduce_factor": 2,
-    "effective_binning_factor": 8,
-    "region_reference": {
-      "binning_id": 2,
-      "reduce_factor": 1,
-      "min_z": 220,
-      "max_z": 570
-    }
+    "effective_binning_factor": 2,
+    "source": "les"
   },
   "dicom2npy": {
-    "foldername": "/data/resources/B02_Mevert_AlSi10MgSchaum_JM-26-74_Binning_Variation/Binning 4/JM-25-74_6min15_750^C_erodiert_nach Trockenschrank_Bin4",
+    "foldername": "/data/resources/A01_segmented",
     "option": "reduce",
     "crop": {
       "x_start": null,
@@ -27,12 +22,13 @@
     },
     "slice_start": 0,
     "slice_end": null,
-    "output_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-74_Bin4_reduce-2/npy"
+    "output_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les/npy",
+    "unused_in_les_pipeline": true
   },
   "01_segment_slice_wise": {
-    "specimen_name": "JM-25-74_Bin4_reduce-2",
-    "input_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-74_Bin4_reduce-2/npy",
-    "output_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-74_Bin4_reduce-2_segmented",
+    "specimen_name": "JM-25-77_A01_les",
+    "input_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les/npy",
+    "output_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les_segmented",
     "preview_slice_index": 100,
     "seg_algorithm": "otsu",
     "gaussian_filter_sigma_factor": 1,
@@ -45,27 +41,29 @@
     "remove_small_holes_area_threshold": 0,
     "binary_opening_radius": 0,
     "binary_closing_radius": 0,
-    "save_visualizations": false
+    "save_visualizations": false,
+    "unused_in_les_pipeline": true
   },
   "02_segmented_3D_array": {
-    "input_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-74_Bin4_reduce-2_segmented",
-    "output_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-74_Bin4_reduce-2_segmented/JM-25-74_Bin4_reduce-2_segmented_3D",
+    "input_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les_segmented",
+    "output_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les_segmented/JM-25-77_A01_les_segmented_3D",
     "desired_width_x": null,
     "desired_height_y": null,
     "center_x": null,
     "center_y": null,
     "min_z": 55,
-    "max_z": 143
+    "max_z": 143,
+    "unused_in_les_pipeline": true
   },
   "03_mesh_3D_array": {
-    "specimen_name": "JM-25-74_Bin4_reduce-2_segmented",
-    "input_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-74_Bin4_reduce-2_segmented/JM-25-74_Bin4_reduce-2_segmented_3D",
+    "specimen_name": "JM-25-77_A01_les_segmented",
+    "input_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les_segmented/JM-25-77_A01_les_segmented_3D",
     "smoothing_sigma_factor": 1,
     "segmentation_algorithm": "otsu",
     "z_slice": 0,
     "scale_factor": 1.0,
     "meshing_method": "sdf_pygalmesh",
-    "mesh_output_path": "/data/scripts/010-Yield-Surface-Generation/JM-25-74_Bin4_reduce-2_segmented/mesh.xdmf",
+    "mesh_output_path": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les_segmented/mesh.xdmf",
     "pygalmesh_parameters": {
       "max_element_size_factor": 1.4853084267560892,
       "max_facet_distance_factor": 0.08911850560536534,
@@ -149,22 +147,24 @@
   "02a_rotate_pic_to_align_with_axis": {
     "material_value": 1,
     "pore_value": 0,
-    "buffer_width": 15,
-    "buffer_width_min_x": 40,
-    "buffer_width_max_x": 40,
-    "buffer_width_min_y": 40,
-    "buffer_width_max_y": 40,
-    "buffer_width_min_z": 6,
-    "buffer_width_max_z": 6,
+    "buffer_width": 0,
+    "buffer_width_min_x": 0,
+    "buffer_width_max_x": 0,
+    "buffer_width_min_y": 0,
+    "buffer_width_max_y": 0,
+    "buffer_width_min_z": 0,
+    "buffer_width_max_z": 0,
     "angles": [
-      -3.05,
-      -2.9,
-      -5.0
-    ]
+      0.0,
+      0.0,
+      0.0
+    ],
+    "enabled": false,
+    "comment": "Im .leS-Pfad deaktiviert: das Volumen ist bereits segmentiert und achsparallel. A01_les_2_npy.py schreibt den Metadateneintrag, den 02b erwartet."
   },
   "02b_build_subvolume_arrays": {
     "xy_divisions": 1,
-    "subvolume_output_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-74_Bin4_reduce-2_segmented/JM-25-74_Bin4_reduce-2_segmented_3D"
+    "subvolume_output_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les_segmented/JM-25-77_A01_les_segmented_3D"
   },
   "05_tetgen_postprocess": {
     "enabled": true,
@@ -320,5 +320,33 @@
     "yielded_volume_fraction": 0.02,
     "alpha_yield_tolerance": 1e-05,
     "strain_scale_rate": 1.0
+  },
+  "dataset": {
+    "id": "JM-25-77_A01_les",
+    "resource_folder": "/data/resources/A01_segmented"
+  },
+  "A01_les_2_npy": {
+    "enabled": true,
+    "input": "/data/resources/A01_segmented",
+    "output_folder": "/data/scripts/010-Yield-Surface-Generation/JM-25-77_A01_les_segmented/JM-25-77_A01_les_segmented_3D",
+    "output_filename": "segmented_3D_volume.npy",
+    "line_order": "C",
+    "les_material_value": 1,
+    "phase_convention": "pipeline",
+    "bounds_mode": "full",
+    "voxel_size": null,
+    "voxel_size_unit": "mm",
+    "crop": {
+      "x_range": null,
+      "y_range": null,
+      "z_range": null
+    },
+    "reduce": {
+      "factor": 2,
+      "mode": "majority",
+      "threshold": 0.5,
+      "smooth_sigma": 0.0
+    },
+    "comment": "Ersetzt 00_dicom_2_npy, 01_segment_slice_wise, 02_build3D_segmented_array und 02a_rotate_pic_to_align_with_axis. Schreibt segmented_3D_volume.npy in der Pipeline-Phasenkonvention (0 = Aluminium, 1 = Pore) sowie die von 02b benoetigten Metadaten."
   }
 }

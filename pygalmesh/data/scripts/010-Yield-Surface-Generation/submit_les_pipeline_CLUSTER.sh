@@ -16,6 +16,8 @@
 #     $2 / YIELD_SURFACE_POINTS   Anzahl Richtungen (Default: 192)
 #     YIELD_SURFACE_JOBS_DIR      Job-Ordner explizit setzen
 #                                 (Default: yield_surface_jobs/nNNN)
+#     DEPEND_ON_JOB=<jobid>       Netzvorbereitung laeuft bereits: nur die
+#                                 Punkt-Jobs einreihen, abhaengig von dieser ID
 #     SKIP_PREPARE=1              Netzvorbereitung überspringen (Netz existiert
 #                                 bereits) und die Punkt-Jobs sofort einreihen
 #     DRY_RUN=1                   nur anzeigen, was eingereicht würde
@@ -56,15 +58,37 @@ echo "Projekt   : $SCRIPT_DIR"
 echo "Config    : $CONFIG_HOST_PATH"
 echo "Punkt-Jobs: ${#POINT_JOBS[@]} in $YS_DIR"
 
+# sbatch schreibt auf manchen Clustern zusaetzliche Plugin-Meldungen auf stdout
+# ("sbatch: slurm_job_submit: [I] LUA ..."). Deshalb wird aus der Ausgabe die
+# letzte rein numerische Zeile als Job-ID herausgefiltert.
+extract_job_id() {
+  printf '%s\n' "$1" | tr -d '\r' | sed 's/;.*//' | grep -E '^[0-9]+$' | tail -n 1
+}
+
 DEPENDENCY_ARGS=()
-if [[ "${SKIP_PREPARE:-0}" == "1" ]]; then
-  echo "Netzvorbereitung wird übersprungen (SKIP_PREPARE=1)."
+PREP_JOB_ID=""
+if [[ -n "${DEPEND_ON_JOB:-}" ]]; then
+  PREP_JOB_ID="$DEPEND_ON_JOB"
+  if ! [[ "$PREP_JOB_ID" =~ ^[0-9]+$ ]]; then
+    echo "DEPEND_ON_JOB ist keine Job-ID: $PREP_JOB_ID" >&2
+    exit 2
+  fi
+  echo "Nutze bereits laufende Netzvorbereitung: Job $PREP_JOB_ID"
+  DEPENDENCY_ARGS=(--dependency="afterok:$PREP_JOB_ID" --kill-on-invalid-dep=yes)
+elif [[ "${SKIP_PREPARE:-0}" == "1" ]]; then
+  echo "Netzvorbereitung wird übersprungen (SKIP_PREPARE=1), keine Abhängigkeit."
 else
   if [[ "${DRY_RUN:-0}" == "1" ]]; then
     echo "[dry-run] sbatch --parsable $SCRIPT_DIR/job_prepare_mesh_CLUSTER.sh $CONFIG"
-    PREP_JOB_ID="<prep-id>"
+    PREP_JOB_ID="000000"
   else
-    PREP_JOB_ID="$(sbatch --parsable "$SCRIPT_DIR/job_prepare_mesh_CLUSTER.sh" "$CONFIG")"
+    prep_output="$(sbatch --parsable "$SCRIPT_DIR/job_prepare_mesh_CLUSTER.sh" "$CONFIG")"
+    PREP_JOB_ID="$(extract_job_id "$prep_output")"
+    if [[ -z "$PREP_JOB_ID" ]]; then
+      echo "Konnte die Job-ID der Netzvorbereitung nicht aus der sbatch-Ausgabe lesen:" >&2
+      printf '%s\n' "$prep_output" >&2
+      exit 2
+    fi
   fi
   echo "Netzvorbereitung eingereicht: Job $PREP_JOB_ID"
   DEPENDENCY_ARGS=(--dependency="afterok:$PREP_JOB_ID" --kill-on-invalid-dep=yes)
@@ -85,7 +109,7 @@ for job in "${POINT_JOBS[@]}"; do
 done
 
 echo "Punkt-Jobs eingereicht: $submitted"
-if [[ "${SKIP_PREPARE:-0}" != "1" ]]; then
+if [[ -n "$PREP_JOB_ID" ]]; then
   echo "Sie starten automatisch nach erfolgreicher Netzvorbereitung (afterok:$PREP_JOB_ID)."
   echo "Scheitert die Vorbereitung, werden sie von SLURM verworfen (--kill-on-invalid-dep)."
 fi
