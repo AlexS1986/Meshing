@@ -96,94 +96,6 @@ def extract_sdf_surface(mask, voxel_dim, params):
     return verts, faces
 
 
-def surface_edge_counts(faces):
-    faces = np.asarray(faces, dtype=np.int64)
-    edges = np.sort(np.vstack((faces[:, [0, 1]], faces[:, [1, 2]], faces[:, [2, 0]])), axis=1)
-    uniq, inverse, counts = np.unique(edges, axis=0, return_inverse=True, return_counts=True)
-    return uniq, np.asarray(inverse).ravel(), counts
-
-
-def repair_nonmanifold_surface(mesh, params):
-    """
-    Entfernt doppelte Flaechen und loest nicht-mannigfaltige Kanten auf, indem die
-    dort anliegenden Flaechen entfernt und die entstehenden Loecher geschlossen
-    werden. Greift nur, wenn es solche Defekte gibt.
-    """
-    import trimesh
-
-    info = {
-        "surface_repair_enabled": bool(params.get("repair_nonmanifold", True)),
-        "surface_repair_duplicate_faces_removed": 0,
-        "surface_repair_faces_removed": 0,
-        "surface_repair_iterations": 0,
-    }
-    if not info["surface_repair_enabled"]:
-        return mesh, info
-    max_iterations = int(params.get("repair_nonmanifold_iterations", 5) or 0)
-
-    def verdict(m):
-        _, _, c = surface_edge_counts(m.faces)
-        return (int((c == 1).sum()), int((c > 2).sum()))
-
-    before = verdict(mesh)
-    original = mesh.copy()
-
-    faces = np.asarray(mesh.faces, dtype=np.int64)
-    _, first_index, counts = np.unique(np.sort(faces, axis=1), axis=0,
-                                       return_index=True, return_counts=True)
-    if counts.max(initial=1) > 1:
-        keep = np.zeros(len(faces), dtype=bool)
-        keep[first_index] = True
-        info["surface_repair_duplicate_faces_removed"] = int((~keep).sum())
-        mesh.update_faces(keep)
-
-    for iteration in range(max_iterations):
-        faces = np.asarray(mesh.faces, dtype=np.int64)
-        if len(faces) == 0:
-            break
-        _, inverse, counts = surface_edge_counts(faces)
-        bad_edges = np.flatnonzero(counts > 2)
-        if bad_edges.size == 0:
-            break
-        bad_rows = np.flatnonzero(np.isin(inverse, bad_edges))
-        bad_faces = np.unique(bad_rows % len(faces))
-        if iteration > 0 or bool(params.get("repair_nonmanifold_one_ring", True)):
-            # Ganzer Sternbereich der beteiligten Knoten: sonst bleibt am Pinch
-            # eine Acht-foermige Lochberandung stehen, die fill_holes nicht schliesst.
-            bad_vertices = np.unique(faces[bad_faces].ravel())
-            bad_faces = np.unique(np.flatnonzero(np.isin(faces, bad_vertices).any(axis=1)))
-        keep = np.ones(len(faces), dtype=bool)
-        keep[bad_faces] = False
-        info["surface_repair_faces_removed"] += int(bad_faces.size)
-        info["surface_repair_iterations"] = iteration + 1
-        mesh.update_faces(keep)
-        mesh.remove_unreferenced_vertices()
-        if params.get("fill_holes", True):
-            trimesh.repair.fill_holes(mesh)
-        trimesh.repair.fix_winding(mesh)
-        trimesh.repair.fix_normals(mesh)
-        mesh.merge_vertices()
-
-    max_faces = int(params.get("repair_nonmanifold_max_faces", 0) or 0)
-    if max_faces <= 0:
-        max_faces = max(1000, int(0.001 * len(original.faces)))
-    if info["surface_repair_faces_removed"] > max_faces:
-        info["surface_repair_reverted"] = True
-        info["surface_repair_abort_reason"] = (
-            f"mehr als {max_faces} Flaechen betroffen — Defekt ist nicht lokal")
-        return original, info
-
-    after = verdict(mesh)
-    info["surface_repair_open_edges_before"], info["surface_repair_nonmanifold_before"] = before
-    info["surface_repair_open_edges_after"], info["surface_repair_nonmanifold_after"] = after
-    # Nur uebernehmen, wenn die Reparatur die Oberflaeche nicht verschlechtert hat.
-    if sum(after) > sum(before):
-        info["surface_repair_reverted"] = True
-        return original, info
-    info["surface_repair_reverted"] = False
-    return mesh, info
-
-
 def repair_surface(vertices, faces, params):
     import trimesh
 
@@ -193,19 +105,6 @@ def repair_surface(vertices, faces, params):
     trimesh.repair.fix_winding(mesh)
     trimesh.repair.fix_normals(mesh)
     mesh.merge_vertices()
-
-    mesh, nonmanifold_info = repair_nonmanifold_surface(mesh, params)
-    if nonmanifold_info.get("surface_repair_faces_removed") or \
-       nonmanifold_info.get("surface_repair_duplicate_faces_removed"):
-        print("🩹 Oberflaechenreparatur: "
-              f"{nonmanifold_info['surface_repair_duplicate_faces_removed']} doppelte Flaechen, "
-              f"{nonmanifold_info['surface_repair_faces_removed']} Flaechen an nicht-mannigfaltigen "
-              f"Kanten entfernt (nicht-mannigfaltig "
-              f"{nonmanifold_info['surface_repair_nonmanifold_before']} -> "
-              f"{nonmanifold_info['surface_repair_nonmanifold_after']}, offen "
-              f"{nonmanifold_info['surface_repair_open_edges_before']} -> "
-              f"{nonmanifold_info['surface_repair_open_edges_after']}"
-              + (", VERWORFEN" if nonmanifold_info.get("surface_repair_reverted") else "") + ")")
 
     component_filter_info = filter_surface_components(mesh, params)
     mesh = component_filter_info.pop("mesh")
@@ -244,7 +143,6 @@ def repair_surface(vertices, faces, params):
         "surface_winding_consistent": bool(mesh.is_winding_consistent),
         "surface_euler_number": int(mesh.euler_number),
         "surface_components": int(len(mesh.split(only_watertight=False))),
-        **nonmanifold_info,
         **component_filter_info,
         **decimation_info,
     }

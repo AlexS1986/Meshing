@@ -92,7 +92,7 @@ for mat in "${MATERIALS[@]}"; do
     for subfolder in "$base_subvolume_folder"/*/; do
       [ -d "$subfolder" ] || continue
       if [ ! -f "$subfolder/dlfx_mesh.xdmf" ]; then
-        echo "Missing $subfolder/dlfx_mesh.xdmf. Run run_prepare_mesh_CLUSTER.sh first." >&2
+        echo "Missing $subfolder/dlfx_mesh.xdmf. Run job_prepare_mesh_Bin4_reduce_2_CLUSTER.sh first." >&2
         exit 1
       fi
       target="$run_root/$(basename "$subfolder")"

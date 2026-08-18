@@ -15,5 +15,5 @@
 set -euo pipefail
 
 SCRIPT_DIR="$HPC_SCRATCH/pygalmesh/data/scripts/010-Yield-Surface-Generation"
-bash "$SCRIPT_DIR/run_prepare_mesh_CLUSTER.sh" \
-  "${1:-${PREPARE_MESH_CONFIG:-config-A01-les.json}}"
+bash "$SCRIPT_DIR/job_prepare_mesh_Bin4_reduce_2_CLUSTER.sh" \
+  "${1:-config-Bin4-reduce-2.json}"

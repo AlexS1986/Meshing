@@ -41,7 +41,7 @@ Ablauf:
    eps_1/eps_2/eps_3-Raum (bei N>6 per Fibonacci-Sphere-Sampling) unter
    `yield_surface_jobs/nNNN/`, je Richtung ein eigener Job-Ordner mit
    `config.json` + SLURM-Skript.
-2. Mesh-Vorbereitung einmalig (`run_prepare_mesh_CLUSTER.sh`).
+2. Mesh-Vorbereitung einmalig (`job_prepare_mesh_Bin4_reduce_2_CLUSTER.sh`).
 3. Alle N Punkt-Jobs werden unabhängig submittet
    (`submit_all_yield_surface_points.sh`).
 4. Jeder Job steigert eine diagonale Makro-Dehnung
