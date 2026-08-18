@@ -67,6 +67,14 @@ einmal, 5–10 je Subvolumen.
 | `07_pygalmesh_parameter_sweep.py` | Sweep über die Vernetzungsparameter; hat `max_element_size_factor` und `max_facet_distance_factor` bestimmt |
 | `evaluate_pore_size_distribution.py` | Porengrößenverteilung eines Voxelvolumens |
 
+## 6b. Einmal-Werkzeug: Rueckbau von 010
+
+`restore_010_pre_leS.sh` setzt den Nachbarordner
+`010-Yield-Surface-Generation` auf den Stand vor der .leS-Session zurueck
+(Datei fuer Datei, weil ein pauschales `git checkout` auch aeltere,
+erst heute mitcommittete Vorarbeit verwerfen wuerde). Laeuft von jedem
+Verzeichnis aus, aendert nur den 010-Pfad und committet nichts.
+
 ## 7. Dokumentation
 
 | Datei | Inhalt |
