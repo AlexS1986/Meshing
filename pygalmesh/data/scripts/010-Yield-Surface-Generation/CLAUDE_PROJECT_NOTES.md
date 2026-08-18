@@ -172,3 +172,18 @@ reduce-Modi, Crop-Kürzung, F-Order, Puffergrößen, Config-Modus, bounds_mode) 
 ein End-to-End-Lauf auf den echten Daten (`A01 -> 02b -> 02d`, reduce=8) mit
 korrekter Randschale. `02c` (scipy) und `03` (nanomesh) sind lokal nicht
 lauffähig und wurden nicht ausgeführt.
+
+### Nachtrag: Einreichen als Jobkette
+
+- `submit_les_pipeline_CLUSTER.sh` (neu) reicht `job_prepare_mesh_CLUSTER.sh` ein
+  und haengt alle Punkt-Jobs per `--dependency=afterok:<prep-id>` daran
+  (`--kill-on-invalid-dep=yes`). Damit ist nach `02_create_folders_CLUSTER.sh`
+  nur noch ein Aufruf noetig. Optionen: `SKIP_PREPARE=1`, `DRY_RUN=1`,
+  Argumente `<config> <punkte>`.
+- Das mitgenerierte `submit_all_yield_surface_points.sh` bleibt nutzbar, muss
+  aber mit `bash` gestartet werden: es leitet seinen Pfad aus `BASH_SOURCE` ab,
+  was unter `sbatch` auf das SLURM-Spool-Verzeichnis zeigen wuerde.
+- Der Default des inneren `job_prepare_mesh_Bin4_reduce_2_CLUSTER.sh` wurde
+  ebenfalls auf `config-A01-les.json` gesetzt (vorher `config-Bin4-reduce-2.json`),
+  damit ein direktes `sbatch` auf dieses Skript nicht stillschweigend den
+  DICOM-Pfad laeuft. README Abschnitt 4 verweist jetzt auf den Wrapper.

@@ -127,13 +127,15 @@ find "$YS_DIR" -name parameters.txt -print -quit | xargs cat
 
 ## 4. Prepare the mesh once
 
-All yield-point jobs reuse the prepared Bin4 reduce-2 mesh. Submit its
-preparation job once:
+All yield-point jobs reuse one prepared mesh. Submit its preparation job once.
+Without a config argument the **.leS pipeline** (`config-A01-les.json`) is used;
+see `LES_PIPELINE.md`. Pass `config-Bin4-reduce-2.json` as the first argument to
+run the DICOM path instead.
 
 ```bash
 PREP_JOB_ID=$(
   sbatch --parsable \
-    "$SCRIPT_DIR/job_prepare_mesh_Bin4_reduce_2_CLUSTER.sh"
+    "$SCRIPT_DIR/job_prepare_mesh_CLUSTER.sh"
 )
 
 echo "$PREP_JOB_ID"

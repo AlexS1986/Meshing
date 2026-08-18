@@ -156,6 +156,35 @@ YIELD_SURFACE_OUTPUT_DIR=yield_surface_jobs/JM-25-77_A01_les_r8/n192 \
 bash yield_surface_jobs/n192/submit_all_yield_surface_points.sh
 ```
 
+### Alles als Jobs einreihen (empfohlen)
+
+`submit_les_pipeline_CLUSTER.sh` reicht die Netzvorbereitung ein und haengt alle
+Punkt-Jobs mit `--dependency=afterok:<prep-id>` daran. Danach ist nichts mehr
+interaktiv zu tun; scheitert die Vorbereitung, verwirft SLURM die Punkt-Jobs
+(`--kill-on-invalid-dep`).
+
+```bash
+# einmalig auf dem Login-Node: Jobs erzeugen + nach $HPC_SCRATCH synchronisieren
+cd "$HOME/meshing/Meshing/pygalmesh"
+YIELD_SURFACE_POINTS=192 data/scripts/010-Yield-Surface-Generation/02_create_folders_CLUSTER.sh
+
+# danach die komplette Kette einreihen
+"$HPC_SCRATCH/pygalmesh/data/scripts/010-Yield-Surface-Generation/submit_les_pipeline_CLUSTER.sh"
+```
+
+Optionen:
+
+```bash
+# andere Punktzahl / andere Config (z.B. zurueck auf DICOM)
+submit_les_pipeline_CLUSTER.sh config-Bin4-reduce-2.json 6
+
+# Netz existiert bereits, nur die Punkt-Jobs einreihen
+SKIP_PREPARE=1 submit_les_pipeline_CLUSTER.sh
+
+# nur anzeigen, was eingereicht wuerde
+DRY_RUN=1 submit_les_pipeline_CLUSTER.sh
+```
+
 ## 7. Sichtprüfung
 
 ```bash

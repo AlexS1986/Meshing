@@ -15,7 +15,7 @@
 set -euo pipefail
 
 working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/010-Yield-Surface-Generation"
-CONFIG_ARG="${1:-config-Bin4-reduce-2.json}"
+CONFIG_ARG="${1:-${PREPARE_MESH_CONFIG:-config-A01-les.json}}"
 if [[ "$CONFIG_ARG" = /* ]]; then
   CONFIG_PATH="$CONFIG_ARG"
 else
