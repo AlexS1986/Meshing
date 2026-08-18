@@ -62,7 +62,6 @@ SOURCE_DIR="$working_directory/00_template"
 VOLUME_FILENAME="volume.npy"
 output_directory_variable="fracture"
 sim_ntasks="${SLURM_NTASKS:-96}"
-SRUN_TIME="${SRUN_TIME:-1440}"
 SRUN_MEM_PER_CPU="${SRUN_MEM_PER_CPU:-9000}"
 
 PREPROCESS_SCRIPTS=(
@@ -74,7 +73,7 @@ PREPROCESS_SCRIPTS=(
 )
 
 CONFIG_INFO=$(
-  srun -n 1 --time="$SRUN_TIME" --mem-per-cpu="$SRUN_MEM_PER_CPU" apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" \
+  srun -n 1 --mem-per-cpu="$SRUN_MEM_PER_CPU" apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" \
     python3 - "$CONFIG_PATH" <<'PYINFO'
 import json
 import sys
@@ -91,7 +90,7 @@ print(frac.get("lam_param", 1.0))
 print(frac.get("mue_param", 1.0))
 print(frac.get("Gc_param", 1.0))
 print(frac.get("eps_factor_param", 20.0))
-print(frac.get("element_order", 2))
+print(frac.get("element_order", 1))
 print(frac.get("fracture_toughness", "alsi10mg_as_built"))
 PYINFO
 )
@@ -127,7 +126,7 @@ run_container() {
   local bind_paths="$3"
   local container="$4"
   shift 4
-  local srun_args=(-n "$ntasks" --time="$SRUN_TIME" --mem-per-cpu="$SRUN_MEM_PER_CPU")
+  local srun_args=(-n "$ntasks" --mem-per-cpu="$SRUN_MEM_PER_CPU")
   if [[ -n "$chdir" ]]; then
     srun_args+=(--chdir="$chdir")
   fi

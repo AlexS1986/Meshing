@@ -1,0 +1,259 @@
+{
+  "_phase_convention": "Array value 0 = aluminium = the meshed phase. Array value 1 = pore/air. Set by 01_segment_slice_wise.py, relied on by 02d (shell value 0) and 03 (meshed_phase_array_value 0). Do not change one without the others.",
+
+  "metadata_output_path": "/data/scripts/013-Clean-CT-To-Yield-Surface/JM-25-74_Bin4_reduce-2_segmented/metadata.json",
+
+  "binning": {
+    "id": 4,
+    "label": "Bin4",
+    "resource_folder": "/data/resources/B02_Mevert_AlSi10MgSchaum_JM-26-74_Binning_Variation/Binning 4/JM-25-74_6min15_750^C_erodiert_nach Trockenschrank_Bin4",
+    "script_reduce_factor": 2,
+    "effective_binning_factor": 8,
+    "region_reference": {
+      "binning_id": 2,
+      "reduce_factor": 1,
+      "min_z": 220,
+      "max_z": 570
+    }
+  },
+
+  "dicom2npy": {
+    "foldername": "/data/resources/B02_Mevert_AlSi10MgSchaum_JM-26-74_Binning_Variation/Binning 4/JM-25-74_6min15_750^C_erodiert_nach Trockenschrank_Bin4",
+    "option": "reduce",
+    "reduce": {
+      "factor": 2
+    },
+    "slice_start": 0,
+    "slice_end": null,
+    "output_folder": "/data/scripts/013-Clean-CT-To-Yield-Surface/JM-25-74_Bin4_reduce-2/npy"
+  },
+
+  "01_segment_slice_wise": {
+    "input_folder": "/data/scripts/013-Clean-CT-To-Yield-Surface/JM-25-74_Bin4_reduce-2/npy",
+    "output_folder": "/data/scripts/013-Clean-CT-To-Yield-Surface/JM-25-74_Bin4_reduce-2_segmented",
+    "preview_slice_index": 100,
+    "smoothing_mode": "3d",
+    "gaussian_sigma_voxels": 1.0,
+    "seg_algorithm": "otsu",
+    "threshold_scope": "slice",
+    "threshold_multiplier": 1.0,
+    "threshold_offset": 0.0,
+    "invert_contrast": true
+  },
+
+  "02_segmented_3D_array": {
+    "input_folder": "/data/scripts/013-Clean-CT-To-Yield-Surface/JM-25-74_Bin4_reduce-2_segmented",
+    "output_folder": "/data/scripts/013-Clean-CT-To-Yield-Surface/JM-25-74_Bin4_reduce-2_segmented/JM-25-74_Bin4_reduce-2_segmented_3D",
+    "desired_width_x": null,
+    "desired_height_y": null,
+    "center_x": null,
+    "center_y": null,
+    "min_z": 55,
+    "max_z": 143
+  },
+
+  "02a_rotate_pic_to_align_with_axis": {
+    "material_value": 1,
+    "pore_value": 0,
+    "buffer_width": 15,
+    "buffer_width_min_x": 40,
+    "buffer_width_max_x": 40,
+    "buffer_width_min_y": 40,
+    "buffer_width_max_y": 40,
+    "buffer_width_min_z": 6,
+    "buffer_width_max_z": 6,
+    "angles": [
+      -3.05,
+      -2.9,
+      -5.0
+    ],
+    "_note": "material_value here is the ARRAY label 1, i.e. the pore phase. Rotation artefacts at the border are therefore filled with air, and material_bounds is the bounding box of array value 0 = aluminium. Kept numerically identical to 010."
+  },
+
+  "02b_build_subvolume_arrays": {
+    "xy_divisions": 1,
+    "subvolume_output_folder": "/data/scripts/013-Clean-CT-To-Yield-Surface/JM-25-74_Bin4_reduce-2_segmented/JM-25-74_Bin4_reduce-2_segmented_3D"
+  },
+
+  "02c_voxel_topology_cleanup": {
+    "enabled": true,
+    "material_value": 0,
+    "pore_value": 1,
+    "output_filename": "volume_topology_cleaned.npy",
+    "report_filename": "volume_topology.txt",
+    "use_cleaned_for_meshing": false,
+    "connectivity": {
+      "material": 6,
+      "pore": 6
+    },
+    "cleanup": {
+      "enabled": false,
+      "keep_largest_material_component": false,
+      "min_material_component_voxels": 0,
+      "fill_pore_cavities_max_voxels": 0,
+      "binary_opening_iterations": 0,
+      "binary_closing_iterations": 0
+    }
+  },
+
+  "02d_axis_aligned_cuboid_crop": {
+    "enabled": true,
+    "output_filename": "volume_boundary_shell_aniso.npy",
+    "report_filename": "volume_boundary_shell_aniso.txt",
+    "use_cuboid_for_meshing": true,
+    "crop": {
+      "enabled": false,
+      "value": 0,
+      "margin": 0
+    },
+    "boundary_seal": {
+      "enabled": true,
+      "value": 0,
+      "thickness": 3,
+      "thicknesses": {
+        "x_min": 3,
+        "x_max": 3,
+        "y_min": 12,
+        "y_max": 12,
+        "z_min": 3,
+        "z_max": 3
+      }
+    },
+    "_note": "Shell value 0 = aluminium, so the outer bands become a solid shell that carries the Dirichlet boundary conditions."
+  },
+
+  "03_mesh_3D_array": {
+    "input_folder": "/data/scripts/013-Clean-CT-To-Yield-Surface/JM-25-74_Bin4_reduce-2_segmented/JM-25-74_Bin4_reduce-2_segmented_3D",
+    "mesh_output_path": "/data/scripts/013-Clean-CT-To-Yield-Surface/JM-25-74_Bin4_reduce-2_segmented/mesh.xdmf",
+    "sdf_pygalmesh_parameters": {
+      "meshed_phase_array_value": 0,
+      "sdf_sigma_voxels": 1.0,
+      "level": 0.0,
+      "pad_width": 1,
+      "marching_cubes_step_size": 1,
+      "fill_holes": true,
+      "keep_largest_component": false,
+      "component_connectivity": 6,
+      "require_watertight_surface": true,
+      "reorient": false,
+      "pygalmesh_parameters": {
+        "max_element_size_factor": 1.4853084267560892,
+        "max_facet_distance_factor": 0.08911850560536534,
+        "lloyd": false,
+        "odt": false,
+        "perturb": true,
+        "exude": true,
+        "exude_time_limit": 30,
+        "seed": 0,
+        "verbose": true
+      }
+    }
+  },
+
+  "05_tetgen_postprocess": {
+    "enabled": true,
+    "switches": "-rO2CV",
+    "active_ref": 1,
+    "all_tets": false,
+    "keep_workdir": false
+  },
+
+  "08_mesh_quality_report": {
+    "enabled": true,
+    "thresholds": {
+      "largest_aspect_ratio": {
+        "good": 20.0,
+        "acceptable": 50.0,
+        "direction": "max"
+      },
+      "smallest_dihedral": {
+        "good": 10.0,
+        "acceptable": 5.0,
+        "direction": "min"
+      },
+      "dihedral_0_5_fraction": {
+        "good": 0.0,
+        "acceptable": 0.001,
+        "direction": "max"
+      },
+      "dihedral_5_10_fraction": {
+        "good": 0.01,
+        "acceptable": 0.05,
+        "direction": "max"
+      },
+      "smallest_facet_angle": {
+        "good": 5.0,
+        "acceptable": 2.0,
+        "direction": "min"
+      }
+    }
+  },
+
+  "09_mesh_topology_audit": {
+    "enabled": true,
+    "active_ref": 1,
+    "all_tets": false,
+    "volume_tolerance": 1e-14,
+    "tiny_volume_absolute": 1e-12,
+    "tiny_volume_relative_to_median": 1e-08,
+    "face_area_tolerance": 1e-14,
+    "write_boundary_surface": false,
+    "repair": {
+      "enabled": false,
+      "drop_duplicate_tets": true,
+      "drop_degenerate_tets": true,
+      "drop_tiny_tets": false,
+      "orient_tets_positive": true,
+      "output_mesh_path": null
+    }
+  },
+
+  "yield_surface": {
+    "materials": [
+      "std"
+    ],
+    "loading_directions": [
+      "tensor"
+    ],
+    "max_mean_strain": 0.25,
+    "time_step": 0.0001,
+    "total_time": 1000000000.0,
+    "dt_min": 1e-11,
+    "quadrature_degree": 1,
+    "default_material": {
+      "E": 2.5,
+      "nu": 0.25,
+      "sig_y": 1.0,
+      "hard": 0.01
+    },
+    "material_sets": {
+      "am": {
+        "E": 73000.0,
+        "nu": 0.36,
+        "sig_y": 140.0,
+        "hard": 0.0
+      },
+      "std": {
+        "E": 70000.0,
+        "nu": 0.35,
+        "sig_y": 140.0,
+        "hard": 0.0
+      },
+      "conv": {
+        "E": 82000.0,
+        "nu": 0.35,
+        "sig_y": 110.0,
+        "hard": 0.0
+      }
+    },
+    "eps_mac_eigenvalues": [
+      -0.25,
+      0.0,
+      0.0
+    ],
+    "strain_scale_start": 1e-06,
+    "strain_scale_rate": 1.0,
+    "yielded_volume_fraction": 0.02,
+    "alpha_yield_tolerance": 1e-05
+  }
+}

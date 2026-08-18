@@ -8,18 +8,18 @@
 #SBATCH -n 96
 #SBATCH --mem-per-cpu=15000
 #SBATCH -C "m01&mem1536g"
-#SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/010-Yield-Surface-Generation/%x.err.%j
-#SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/010-Yield-Surface-Generation/%x.out.%j
+#SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/013-Clean-CT-To-Yield-Surface/%x.err.%j
+#SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/013-Clean-CT-To-Yield-Surface/%x.out.%j
 #SBATCH --mail-type=END
 
 set -euo pipefail
 
-working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/010-Yield-Surface-Generation"
-CONFIG_ARG="${1:-config-Bin4-reduce-2.json}"
+working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/013-Clean-CT-To-Yield-Surface"
+CONFIG_ARG="${1:-config.json}"
 if [[ "$CONFIG_ARG" = /* ]]; then
   CONFIG_PATH="$CONFIG_ARG"
 else
-  CONFIG_PATH="/data/scripts/010-Yield-Surface-Generation/$CONFIG_ARG"
+  CONFIG_PATH="/data/scripts/013-Clean-CT-To-Yield-Surface/$CONFIG_ARG"
 fi
 CONFIG_HOST_PATH="${CONFIG_PATH/#\/data/$HPC_SCRATCH/pygalmesh/data}"
 if [[ ! -f "$CONFIG_HOST_PATH" ]]; then
@@ -140,7 +140,7 @@ for subfolder in "$base_subvolume_folder"/subvolume_x*_y*/; do
     fi
   fi
   run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH" python3 "$working_directory/03_mesh_3D_array_pygalmesh.py" --config "$CONFIG_PATH" --npy "$meshing_npy_file" --mesh "$mesh_output"
-  run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH" python3 "$working_directory/04_scale_and_translate_mesh_mod.py" --config "$CONFIG_PATH" --mesh "$mesh_output" --center_x "$center_x" --center_y "$center_y"
+  run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH" python3 "$working_directory/04_scale_and_translate_mesh.py" --config "$CONFIG_PATH" --mesh "$mesh_output" --center_x "$center_x" --center_y "$center_y"
   if [[ "$(config_bool 05_tetgen_postprocess.enabled)" == "1" ]]; then
     run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH" python3 "$working_directory/05_tetgen_postprocess_mesh.py" --config "$CONFIG_PATH" --mesh "$mesh_output"
     if [[ "$(config_bool 08_mesh_quality_report.enabled)" == "1" ]]; then
@@ -155,7 +155,7 @@ done
 for subfolder in "$base_subvolume_folder"/*/; do
   [ -d "$subfolder" ] || continue
   if [ -f "$subfolder/mesh.xdmf" ]; then
-    run_container 1 "" "$SIM_BIND" "$SIM_CONTAINER" python3 "$working_directory/make_mesh_dlfx_compatible_cluster.py" "$subfolder" -f mesh.xdmf
+    run_container 1 "" "$SIM_BIND" "$SIM_CONTAINER" python3 "$working_directory/make_mesh_dlfx_compatible.py" "$subfolder" -f mesh.xdmf
   fi
 done
 

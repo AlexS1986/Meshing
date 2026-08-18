@@ -1,0 +1,94 @@
+{
+  "source_file": "/sessions/rcw-016usjdwfnxawogkvs1wujfs/mnt/010-Yield-Surface-Generation/A01_segmented/JM-25_77_85p55.leS",
+  "output_file": "/sessions/rcw-016usjdwfnxawogkvs1wujfs/mnt/010-Yield-Surface-Generation/A01_segmented/preview/volume_r4_raw.npy",
+  "created": "2026-08-18T07:20:32",
+  "les_header": {
+    "nx": 1187,
+    "ny": 1188,
+    "nz": 886,
+    "voxel_size": 1.67e-05
+  },
+  "line_order": "C",
+  "axis_order": "x, y, z",
+  "crop": {
+    "x_range": [
+      0,
+      1184
+    ],
+    "y_range": [
+      0,
+      1188
+    ],
+    "z_range": [
+      0,
+      884
+    ],
+    "dropped_for_reduce": {
+      "x": 3,
+      "z": 2
+    }
+  },
+  "reduce": {
+    "factor": 4,
+    "mode": "majority",
+    "threshold": 0.5,
+    "smooth_sigma": 0.0,
+    "smoothing_applied": false
+  },
+  "source_shape": [
+    1184,
+    1188,
+    884
+  ],
+  "output_shape": [
+    296,
+    297,
+    221
+  ],
+  "dtype": "uint8",
+  "phase_convention": "raw",
+  "les_material_value": 1,
+  "array_material_value": 1,
+  "array_pore_value": 0,
+  "voxel_size_source_m": 1.67e-05,
+  "voxel_size_m": 6.68e-05,
+  "voxel_size_mm": 0.0668,
+  "voxel_size_um": 66.8,
+  "raw_label_counts": {
+    "0": 1063696055,
+    "1": 179731273
+  },
+  "material_volume_fraction_source": 0.14454505619487237,
+  "material_volume_fraction_output": 0.1454544322191381,
+  "porosity_output": 0.8545455677808619,
+  "material_bounds_material": {
+    "x": [
+      0,
+      295
+    ],
+    "y": [
+      0,
+      296
+    ],
+    "z": [
+      0,
+      220
+    ]
+  },
+  "material_bounds_full": {
+    "x": [
+      0,
+      295
+    ],
+    "y": [
+      0,
+      296
+    ],
+    "z": [
+      0,
+      220
+    ]
+  },
+  "bounds_mode": "full",
+  "runtime_seconds": 9.47187876701355
+}

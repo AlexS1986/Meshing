@@ -2,7 +2,6 @@ import dolfinx as dlfx
 import dolfinx.io
 from mpi4py import MPI
 import meshio
-import numpy as np
 import os
 import ufl
 import copy
@@ -13,37 +12,24 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 # --- Parse CLI arguments ---
-parser = argparse.ArgumentParser(description="Convert mesh files to DolfinX format.")
-parser.add_argument("input_path", type=str, help="Path to the base directory containing mesh folders")
+parser = argparse.ArgumentParser(description="Convert mesh files to DolfinX format in-place.")
+parser.add_argument("input_path", type=str, help="Path to the directory containing mesh files")
 parser.add_argument(
     "--mesh-filenames", "-f", nargs="+", default=["mesh_output.xdmf"],
     help="Name(s) of the mesh file(s) to process (default: mesh_output.xdmf)"
 )
-parser.add_argument(
-    "--output-folder", "-o", type=str, default="meshes",
-    help="Output folder relative to script directory (default: meshes)"
-)
 args = parser.parse_args()
 
-input_base_folder = args.input_path
+input_folder = args.input_path
 target_mesh_filenames = set(args.mesh_filenames)
 
-# --- Setup output path ---
-script_path = os.path.dirname(os.path.abspath(__file__))
-output_base_path = os.path.join(script_path, args.output_folder)
-os.makedirs(output_base_path, exist_ok=True)
-
-# --- Find target mesh files ---
+# --- Find mesh files in input folder ---
 mesh_files = []
-for root, dirs, files in os.walk(input_base_folder):
-    for file in files:
-        if file in target_mesh_filenames:
-            input_file = os.path.join(root, file)
-            rel_subfolder = os.path.relpath(root, input_base_folder)
-            output_dir = os.path.join(output_base_path, rel_subfolder)
-            os.makedirs(output_dir, exist_ok=True)
-            output_file = os.path.join(output_dir, "dlfx_mesh.xdmf")
-            mesh_files.append((input_file, output_file))
+for file in os.listdir(input_folder):
+    if file in target_mesh_filenames:
+        input_file = os.path.join(input_folder, file)
+        output_file = os.path.join(input_folder, "dlfx_mesh.xdmf")
+        mesh_files.append((input_file, output_file))
 
 # --- Process mesh files ---
 for input_file, output_file in mesh_files:
@@ -90,5 +76,6 @@ for input_file, output_file in mesh_files:
         print(f"Writing converted mesh to: {output_file}")
     with dlfx.io.XDMFFile(comm, output_file, "w") as xdmf:
         xdmf.write_mesh(domain)
+
 
 

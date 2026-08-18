@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/config.sh"
 POINTS="${1:-${YIELD_SURFACE_POINTS:-6}}"
 RADIUS="${YIELD_SURFACE_STRAIN_RADIUS:-0.25}"
-BASE_CONFIG="${YIELD_SURFACE_BASE_CONFIG:-config-Bin4-reduce-2.json}"
+BASE_CONFIG="${YIELD_SURFACE_BASE_CONFIG:-config.json}"
 SETUP_ARGS=(
   --points "$POINTS"
   --radius "$RADIUS"

@@ -1,12 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/010-Yield-Surface-Generation"
+working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/013-Clean-CT-To-Yield-Surface"
 CONFIG_ARG="${1:?Usage: job_yield_surface_point_CLUSTER.sh /data/path/to/sample/config.json}"
 if [[ "$CONFIG_ARG" = /* ]]; then
   CONFIG_PATH="$CONFIG_ARG"
 else
-  CONFIG_PATH="/data/scripts/010-Yield-Surface-Generation/$CONFIG_ARG"
+  CONFIG_PATH="/data/scripts/013-Clean-CT-To-Yield-Surface/$CONFIG_ARG"
 fi
 CONFIG_HOST_PATH="${CONFIG_PATH/#\/data/$HPC_SCRATCH/pygalmesh/data}"
 if [[ ! -f "$CONFIG_HOST_PATH" ]]; then

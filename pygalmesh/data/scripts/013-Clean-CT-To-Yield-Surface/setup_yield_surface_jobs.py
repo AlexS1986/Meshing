@@ -47,7 +47,7 @@ def sanitize_component(value):
 def main():
     parser = argparse.ArgumentParser(description="Create per-direction yield-surface configs and SLURM jobs.")
     parser.add_argument("--points", type=int, default=6, help="Number of directions to sample; minimum/default is 6.")
-    parser.add_argument("--base-config", default="config-Bin4-reduce-2.json")
+    parser.add_argument("--base-config", default="config.json")
     parser.add_argument("--radius", type=float, default=0.25, help="Magnitude of the target eps eigenvalue vector before strain scaling.")
     parser.add_argument(
         "--output-dir",
@@ -124,7 +124,7 @@ def main():
 
         job_path = sample_dir / f"job_{sample_id}_CLUSTER.sh"
         config_container_path = (
-            f"/data/scripts/010-Yield-Surface-Generation/"
+            f"/data/scripts/013-Clean-CT-To-Yield-Surface/"
             f"{config_path.relative_to(project_dir).as_posix()}"
         )
         job_text = f"""#!/bin/bash
@@ -138,7 +138,7 @@ def main():
 #SBATCH -C i01
 #SBATCH --mail-type=END
 
-SCRIPT_DIR=\"$HPC_SCRATCH/pygalmesh/data/scripts/010-Yield-Surface-Generation\"
+SCRIPT_DIR=\"$HPC_SCRATCH/pygalmesh/data/scripts/013-Clean-CT-To-Yield-Surface\"
 bash \"$SCRIPT_DIR/job_yield_surface_point_CLUSTER.sh\" \"{config_container_path}\"
 """
         job_path.write_text(job_text)
