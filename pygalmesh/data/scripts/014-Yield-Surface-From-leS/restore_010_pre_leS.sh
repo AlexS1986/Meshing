@@ -49,9 +49,9 @@ echo "== 0. Aufraeumen: verwaiste index.lock =="
 run rm -f .git/index.lock
 
 echo "== 1. Von mir geaenderte Dateien auf die Version vor meiner Aenderung =="
-# nur unversionierte Aenderungen von heute Nachmittag
-run git checkout HEAD -- "$P/03_mesh_3D_array_pygalmesh.py" \
-                          "$P/job_yield_surface_point_CLUSTER.sh"
+# ACHTUNG: "git checkout HEAD" taugt hier nicht, sobald meine Aenderungen
+# einmal mitcommittet wurden — dann ist HEAD bereits mein Stand. Deshalb
+# durchgaengig explizite Commits.
 # meine Aenderung steckt in 1425e9b -> Version davor nehmen
 run git checkout 75123e8 -- "$P/config.json" \
                              "$P/PIPELINE_ANNAHMEN_DICOM_TO_FEM.md"
@@ -61,6 +61,9 @@ run git checkout 13ae749 -- "$P/config.sh" \
                         "$P/setup_yield_surface_jobs.py" \
                         "$P/setup_yield_surface_jobs.sh" \
                         "$P/job_prepare_mesh_Bin4_reduce_2_CLUSTER.sh" \
+                        "$P/job_prepare_mesh_CLUSTER.sh" \
+                        "$P/job_yield_surface_point_CLUSTER.sh" \
+                        "$P/03_mesh_3D_array_pygalmesh.py" \
                         "$P/README.md"
 
 echo "== 2. Meine Anhaenge in CLAUDE_PROJECT_NOTES.md abschneiden =="
@@ -78,6 +81,22 @@ elif dry:
 else:
     open(path, "w").write(text[:text.index(marker)].rstrip() + "\n")
     print("   Anhaenge entfernt.")
+PYEOF
+
+echo "== 2b. Umbenennung im Fliesstext von CLAUDE_PROJECT_NOTES.md zuruecknehmen =="
+python3 - "$P/CLAUDE_PROJECT_NOTES.md" "$DRY" <<'PYEOF'
+import sys
+path, dry = sys.argv[1], sys.argv[2] == "1"
+text = open(path).read()
+n = text.count("run_prepare_mesh_CLUSTER.sh")
+if not n:
+    print("   nichts zu tun.")
+elif dry:
+    print(f"   [dry-run] wuerde {n} Erwaehnung(en) zurueckbenennen")
+else:
+    open(path, "w").write(text.replace("run_prepare_mesh_CLUSTER.sh",
+                                       "job_prepare_mesh_Bin4_reduce_2_CLUSTER.sh"))
+    print(f"   {n} Erwaehnung(en) zurueckbenannt.")
 PYEOF
 
 echo "== 3. Archivierte Originale zurueck an ihren Platz =="
