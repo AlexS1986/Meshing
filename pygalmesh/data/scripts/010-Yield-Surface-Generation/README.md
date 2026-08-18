@@ -1,10 +1,5 @@
 # Yield-surface generation on the cluster
 
-> Einstieg: `FILES.md` listet alle Dateien dieses Ordners mit Zweck und
-> Aufrufer. Der aktive Standardpfad geht von einem segmentierten `.leS`-Volumen
-> aus und ist in `LES_PIPELINE.md` beschrieben; `submit_les_pipeline_CLUSTER.sh`
-> reicht Netzvorbereitung und alle Punkt-Jobs in einem Aufruf ein.
-
 This directory contains the preprocessing, simulation, result collection, and
 ParaView export tools for generating a yield surface from CT-derived meshes.
 The example below prepares 192 approximately uniform loading directions in the
@@ -132,15 +127,13 @@ find "$YS_DIR" -name parameters.txt -print -quit | xargs cat
 
 ## 4. Prepare the mesh once
 
-All yield-point jobs reuse one prepared mesh. Submit its preparation job once.
-Without a config argument the **.leS pipeline** (`config-A01-les.json`) is used;
-see `LES_PIPELINE.md`. Pass `config-Bin4-reduce-2.json` as the first argument to
-run the DICOM path instead.
+All yield-point jobs reuse the prepared Bin4 reduce-2 mesh. Submit its
+preparation job once:
 
 ```bash
 PREP_JOB_ID=$(
   sbatch --parsable \
-    "$SCRIPT_DIR/job_prepare_mesh_CLUSTER.sh"
+    "$SCRIPT_DIR/job_prepare_mesh_Bin4_reduce_2_CLUSTER.sh"
 )
 
 echo "$PREP_JOB_ID"

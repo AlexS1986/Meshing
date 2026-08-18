@@ -47,7 +47,7 @@ def sanitize_component(value):
 def main():
     parser = argparse.ArgumentParser(description="Create per-direction yield-surface configs and SLURM jobs.")
     parser.add_argument("--points", type=int, default=6, help="Number of directions to sample; minimum/default is 6.")
-    parser.add_argument("--base-config", default="config-A01-les.json")
+    parser.add_argument("--base-config", default="config-Bin4-reduce-2.json")
     parser.add_argument("--radius", type=float, default=0.25, help="Magnitude of the target eps eigenvalue vector before strain scaling.")
     parser.add_argument(
         "--output-dir",
