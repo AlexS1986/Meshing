@@ -318,6 +318,66 @@ nach einem Lauf messen und dann passend setzen:
 sacct -j <prep-jobid> --format=JobID,JobName,AllocCPUS,MaxRSS,Elapsed
 ```
 
+## 8c. Fließkriterien und Ergebnis-JSON
+
+`sig_y = 100 MPa` (Materialsatz `std`, in `config.sh` über `YIELD_SIG_Y`).
+
+Der Solver zeichnet je Zeitschritt **drei plastische Dehnungsmaße** auf und
+bricht erst ab, wenn **alle drei** ihre Schwelle überschritten haben. Jedes
+liefert einen eigenen Fließflächenpunkt — den Zustand beim **erstmaligen**
+Überschreiten, mit vollständigem Dehnungs- und Spannungszustand.
+
+| Name | Größe | Schwelle |
+|---|---|---|
+| `eps_p_eq_macroscopic` | √(2/3 · E_p:E_p), E_p = Volumenmittel des plastischen Dehnungstensors über das reduzierte RVE-Volumen (Poren = 0) — **Rp0,2-Analogon** | 0,002 |
+| `alpha_avg_material` | ⟨α⟩ über die Materialphase — akkumulierte äquivalente plastische Dehnung | 0,002 |
+| `yielded_fraction_material` | Anteil des **Materialvolumens** mit α > `alpha_yield_tolerance` — Fließbeginn | 0,002 |
+
+Alle drei Schwellen stehen auf 0,2 %: die ersten beiden über
+`YIELD_PLASTIC_STRAIN_THRESHOLD=0.002`, die dritte über
+`YIELD_YIELDED_VOLUME_FRACTION=0.002`. Die bisherige 192-Punkte-Studie
+verwendete für das dritte Kriterium 0,02 — dieses Maß spricht jetzt also
+deutlich früher an und ist mit der alten Fließfläche nicht mehr direkt
+vergleichbar. Für einen Vergleichslauf genügt
+`YIELD_YIELDED_VOLUME_FRACTION=0.02 ./create_les_config.sh`.
+
+Das Bezugsvolumen des dritten Kriteriums ist die **Materialphase**
+(`YIELD_YIELDED_VOLUME_REFERENCE=material`), also porositätsunabhängig. Der
+RVE-bezogene Wert wird ohnehin mitgeschrieben; beide unterscheiden sich um die
+relative Dichte (hier ≈ 0,148).
+
+Zusätzlich wird `eps_p_eq_avg_reduced_material_volume` = ⟨√(2/3 · e_p:e_p)⟩ über
+die Materialphase je Zeitschritt mitgeschrieben, ist aber **kein** Kriterium.
+
+**Rp0,2:** die Spannung bei 0,2 % bleibender Dehnung — im Zugversuch der
+Schnittpunkt mit einer Parallelen zur elastischen Geraden durch ε = 0,002,
+kontinuumsmechanisch ε_p^eq = 0,002. Für ein RVE ist der saubere Kennwert das
+Volumenmittel des plastischen Dehnungstensors über das gesamte RVE, nicht das
+Mittel des Betrags über die Materialphase — deshalb ist
+`eps_p_eq_macroscopic` das `primary_criterion`, das `final_yield_state` füllt
+(und damit die bestehende Auswertung über `collect_yield_surface_points.py` und
+`create_yield_surface_paraview.py` speist).
+
+In `yield_run_<material>_<direction>.json` steht jetzt zusätzlich:
+
+```json
+"yield_criteria":   [ ... Definition der vier Maße ... ],
+"primary_criterion":"eps_p_eq_macroscopic",
+"yield_states":     { "<name>": { vollständiger Zustand beim Erstschreiten }, ... },
+"criteria_reached": [ ... ],
+"criteria_missed":  [ ... ],
+"final_yield_state": { ... }
+```
+
+Jeder Zustand enthält `eps_mac_eigenvalues_current`, `sigma_avg_reduced_volume`,
+`sig_vm_avg_reduced_volume`, `e_p_avg_reduced_volume`, die drei Dehnungsmaße,
+`strain_scale`, `t` und die Reaktionskräfte. Für drei Fließflächen also einfach
+`yield_states.<name>` statt `final_yield_state` auswerten.
+
+**Achtung:** `setup_yield_surface_jobs.py` legt in jeden `ys_*`-Ordner eine
+Kopie der Config. Nach jeder Änderung an Kriterien, `sig_y` oder Randschale
+müssen die Punkt-Jobs neu erzeugt werden (`02_create_folders_CLUSTER.sh`).
+
 ## 9. Schnelle Bilder der .leS-Struktur
 
 ```bash

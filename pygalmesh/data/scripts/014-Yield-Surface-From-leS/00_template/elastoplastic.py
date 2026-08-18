@@ -326,6 +326,32 @@ sigma_vm_interpolated = dlfx.fem.Function(S0)
 averaged_history = []
 final_yield_state = None
 stop_reason = None
+yield_states = {}
+
+# Kriterien fuer den Fliessbeginn. Jedes Kriterium liefert einen eigenen
+# Fliessflaechenpunkt (Zustand beim erstmaligen Ueberschreiten). Der Lauf endet,
+# wenn alle Kriterien mit "blocking": true erreicht sind.
+#   eps_p_eq_macroscopic  = sqrt(2/3 E_p:E_p), E_p = Volumenmittel des plastischen
+#                           Dehnungstensors ueber das reduzierte RVE-Volumen
+#                           (Poren zaehlen als 0) -> Rp0,2-Analogon
+#   alpha_avg_material    = <alpha> ueber die Materialphase
+DEFAULT_YIELD_CRITERIA = [
+    {"name": "eps_p_eq_macroscopic", "quantity": "eps_p_eq_macroscopic",
+     "threshold": 0.002, "blocking": True},
+    {"name": "alpha_avg_material", "quantity": "alpha_avg_reduced_material_volume",
+     "threshold": 0.002, "blocking": True},
+    {"name": "yielded_fraction_material", "quantity": "yielded_fraction_reduced_material_volume",
+     "threshold": 0.002, "blocking": True},
+]
+yield_criteria = yield_config.get("criteria") or DEFAULT_YIELD_CRITERIA
+primary_criterion = yield_config.get("primary_criterion", "eps_p_eq_macroscopic")
+blocking_criteria = [c["name"] for c in yield_criteria if c.get("blocking", True)]
+if rank == 0:
+    print("[YIELD] Kriterien:")
+    for c in yield_criteria:
+        flag = "Abbruch" if c.get("blocking", True) else "nur aufzeichnen"
+        print(f"   {c['name']:26s} {c['quantity']:42s} >= {c['threshold']:g}  ({flag})")
+    print(f"[YIELD] final_yield_state kommt von: {primary_criterion}")
 
 
 def before_first_time_step():
@@ -430,6 +456,16 @@ def after_timestep_success(t, dt, iters):
         ds=ds_front_tagged(front_surface_tag),
         comm=comm
     )
+    # Plastische Dehnung: deviatorischer Anteil (bei J2 ohnehin spurfrei)
+    e_p_dev = ufl.dev(e_p_n)
+    eps_p_eq = ufl.sqrt(2.0 / 3.0 * ufl.inner(e_p_dev, e_p_dev))
+    e_p_avg = averaged_tensor_over_reduced_volume(e_p_dev, dx_hom_cells, tag_value_hom_cells, vol, comm)
+    eps_p_eq_macroscopic = float(np.sqrt(2.0 / 3.0 * np.tensordot(e_p_avg, e_p_avg)))
+    eps_p_eq_avg_material = averaged_scalar_over_reduced_volume(
+        eps_p_eq, dx_hom_cells, tag_value_hom_cells, vol_material, comm)
+    eps_p_eq_avg_box = averaged_scalar_over_reduced_volume(
+        eps_p_eq, dx_hom_cells, tag_value_hom_cells, vol, comm)
+
     sigma_avg = averaged_tensor_over_reduced_volume(sigma, dx_hom_cells, tag_value_hom_cells, vol, comm)
     sig_vm_avg = averaged_scalar_over_reduced_volume(sig_vm, dx_hom_cells, tag_value_hom_cells, vol, comm)
     alpha_avg = averaged_scalar_over_reduced_volume(alpha_n, dx_hom_cells, tag_value_hom_cells, vol_material, comm)
@@ -440,24 +476,32 @@ def after_timestep_success(t, dt, iters):
     eps_diag = current_eps_mac_diagonal(t)
     scale = current_strain_scale(t)
 
+    # Der Zustand wird auf ALLEN Raengen gebaut: die Kriterienpruefung unten muss
+    # auf allen Raengen dasselbe Ergebnis liefern, sonst haengt StopSimulation.
+    state = {
+        "t": float(t.value if hasattr(t, "value") else t),
+        "dt": float(dt.value if hasattr(dt, "value") else dt),
+        "iterations": int(iters),
+        "reaction_force": [float(Rx), float(Ry), float(Rz)],
+        "strain_scale": float(scale),
+        "eps_mac_eigenvalues_current": eps_diag.tolist(),
+        "sigma_avg_reduced_volume": sigma_avg.tolist(),
+        "sig_vm_avg_reduced_volume": float(sig_vm_avg),
+        "e_p_avg_reduced_volume": e_p_avg.tolist(),
+        "eps_p_eq_macroscopic": float(eps_p_eq_macroscopic),
+        "eps_p_eq_avg_reduced_material_volume": float(eps_p_eq_avg_material),
+        "eps_p_eq_avg_reduced_volume": float(eps_p_eq_avg_box),
+        "alpha_avg_reduced_material_volume": float(alpha_avg),
+        "alpha_avg_reduced_volume": float(alpha_avg_box),
+        "yielded_volume_alpha_gt_tol": float(yielded_volume),
+        "yielded_fraction_reduced_material_volume": float(yielded_fraction_material),
+        "yielded_fraction_reduced_volume": float(yielded_fraction_box),
+    }
+
     if rank == 0:
         sol.write_to_newton_logfile(logfile_path, t, dt, iters)
         pp.write_to_graphs_output_file(outputfile_graph_path, t, Rx, Ry, Rz)
-        averaged_history.append({
-            "t": float(t.value if hasattr(t, "value") else t),
-            "dt": float(dt.value if hasattr(dt, "value") else dt),
-            "iterations": int(iters),
-            "reaction_force": [float(Rx), float(Ry), float(Rz)],
-            "strain_scale": float(scale),
-            "eps_mac_eigenvalues_current": eps_diag.tolist(),
-            "sigma_avg_reduced_volume": sigma_avg.tolist(),
-            "sig_vm_avg_reduced_volume": float(sig_vm_avg),
-            "alpha_avg_reduced_material_volume": float(alpha_avg),
-            "alpha_avg_reduced_volume": float(alpha_avg_box),
-            "yielded_volume_alpha_gt_tol": float(yielded_volume),
-            "yielded_fraction_reduced_material_volume": float(yielded_fraction_material),
-            "yielded_fraction_reduced_volume": float(yielded_fraction_box),
-        })
+        averaged_history.append(state)
 
     pp.write_tensor_fields(domain, comm, [sigma_interpolated], ["sigma"], outputfile_xdmf_path, t)
     pp.write_scalar_fields(domain, comm, [sigma_vm_interpolated], ["sig_vm"], outputfile_xdmf_path, t)
@@ -470,19 +514,29 @@ def after_timestep_success(t, dt, iters):
     urestart.x.array[:] = u_fun.x.array[:]
 
     global final_yield_state, stop_reason
-    if yielded_fraction_material >= yielded_volume_fraction_target:
-        final_yield_state = averaged_history[-1] if rank == 0 and averaged_history else {
-            "strain_scale": float(scale),
-            "eps_mac_eigenvalues_current": eps_diag.tolist(),
-            "alpha_avg_reduced_material_volume": float(alpha_avg),
-            "yielded_fraction_reduced_material_volume": float(yielded_fraction_material),
-        }
-        stop_reason = "yielded_volume_fraction_reached"
+    for criterion in yield_criteria:
+        name = criterion["name"]
+        if name in yield_states:
+            continue
+        value = state.get(criterion["quantity"])
+        if value is None or value < float(criterion["threshold"]):
+            continue
+        first = dict(state)
+        first["criterion"] = name
+        first["quantity"] = criterion["quantity"]
+        first["threshold"] = float(criterion["threshold"])
+        first["value"] = float(value)
+        yield_states[name] = first
         if rank == 0:
-            print(
-                f"[STOP] yielded fraction {yielded_fraction_material:.6g} "
-                f">= target {yielded_volume_fraction_target:.6g}"
-            )
+            print(f"[YIELD] '{name}' erstmals erreicht: {criterion['quantity']} = "
+                  f"{value:.6g} >= {float(criterion['threshold']):.6g} "
+                  f"(t = {state['t']:.6g}, strain_scale = {state['strain_scale']:.6g})")
+
+    if blocking_criteria and all(name in yield_states for name in blocking_criteria):
+        final_yield_state = yield_states.get(primary_criterion) or yield_states[blocking_criteria[-1]]
+        stop_reason = "all_blocking_criteria_reached"
+        if rank == 0:
+            print(f"[STOP] alle Abbruchkriterien erreicht: {', '.join(blocking_criteria)}")
         raise StopSimulation
 
 
@@ -511,6 +565,11 @@ def after_last_timestep():
                 "strain_scale_rate": strain_scale_rate,
                 "yielded_volume_fraction_target": yielded_volume_fraction_target,
                 "alpha_yield_tolerance": alpha_yield_tolerance,
+                "yield_criteria": yield_criteria,
+                "primary_criterion": primary_criterion,
+                "yield_states": yield_states,
+                "criteria_reached": sorted(yield_states.keys()),
+                "criteria_missed": [c["name"] for c in yield_criteria if c["name"] not in yield_states],
                 "final_yield_state": final_yield_state,
                 "stop_reason": stop_reason,
                 "time_step": dt_value,

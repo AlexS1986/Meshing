@@ -195,6 +195,38 @@ def build_config(base, args):
     if args.boundary_shell_y:
         thick["y_min"] = thick["y_max"] = args.boundary_shell_y
 
+    # --- Fliessgrenze und Fliesskriterien -------------------------------------
+    ys = config.setdefault("yield_surface", {})
+    if args.sig_y:
+        for name in (args.sig_y_materials or ["std"]):
+            if name in ys.get("material_sets", {}):
+                ys["material_sets"][name]["sig_y"] = float(args.sig_y)
+
+    threshold = float(args.plastic_strain_threshold)
+    ys["primary_criterion"] = args.primary_criterion
+    ys["criteria"] = [
+        {"name": "eps_p_eq_macroscopic",
+         "quantity": "eps_p_eq_macroscopic",
+         "threshold": threshold, "blocking": True,
+         "comment": "sqrt(2/3 E_p:E_p), E_p = Volumenmittel des plastischen Dehnungstensors "
+                    "ueber das reduzierte RVE-Volumen -> Rp0,2-Analogon"},
+        {"name": "alpha_avg_material",
+         "quantity": "alpha_avg_reduced_material_volume",
+         "threshold": threshold, "blocking": True,
+         "comment": "<alpha> (akkumulierte aequivalente plastische Dehnung) ueber die Materialphase"},
+        {"name": "yielded_fraction_material" if args.yielded_volume_reference == "material"
+                 else "yielded_fraction_rve",
+         "quantity": "yielded_fraction_reduced_material_volume"
+                     if args.yielded_volume_reference == "material"
+                     else "yielded_fraction_reduced_volume",
+         "threshold": float(args.yielded_volume_fraction), "blocking": True,
+         "comment": ("Kriterium der bisherigen Studie: Anteil des Materialvolumens mit "
+                     "alpha > alpha_yield_tolerance"
+                     if args.yielded_volume_reference == "material"
+                     else "Anteil des reduzierten RVE-Volumens mit alpha > alpha_yield_tolerance "
+                          "(Materialanteil x relative Dichte)")},
+    ]
+
     for assignment in args.set or []:
         set_dotted(config, assignment)
     return config
@@ -232,6 +264,20 @@ def build_parser():
     parser.add_argument("--sdf-pad-width", type=int, default=3,
                         help="Padding vor dem Signed-Distance-Field (Schutz gegen "
                              "abgeschnittene Isoflaechen am Domaenenrand)")
+    parser.add_argument("--sig-y", type=float, default=100.0,
+                        help="Anfangsfliessgrenze in MPa")
+    parser.add_argument("--sig-y-materials", nargs="*", default=["std"],
+                        help="Materialsaetze, fuer die --sig-y gilt")
+    parser.add_argument("--plastic-strain-threshold", type=float, default=0.002,
+                        help="Schwelle der drei plastischen Dehnungsmasse (0.002 = Rp0,2)")
+    parser.add_argument("--yielded-volume-fraction", type=float, default=0.002,
+                        help="Schwelle des Volumenanteil-Kriteriums (drittes Abbruchkriterium)")
+    parser.add_argument("--yielded-volume-reference", default="material",
+                        choices=["material", "rve"],
+                        help="Bezugsvolumen des Volumenanteil-Kriteriums: Materialphase "
+                             "(porositaetsunabhaengig) oder reduziertes RVE-Volumen")
+    parser.add_argument("--primary-criterion", default="eps_p_eq_macroscopic",
+                        help="Kriterium, dessen Zustand als final_yield_state ausgegeben wird")
     parser.add_argument("--max-element-size-um", type=float, default=None,
                         help="Zielkantenlaenge der Elemente in um (max_cell_circumradius). "
                              "Setzt die Groessenfaktoren passend zur Voxelgroesse; hat Vorrang.")
@@ -296,6 +342,10 @@ def main():
         print(f"  Elementgroesse     : {h:.1f} um (max_cell_circumradius)")
     t = config["02d_axis_aligned_cuboid_crop"]["boundary_seal"]["thicknesses"]
     print(f"  Randschale (Voxel) : x/z = {t['x_min']}, y = {t['y_min']}")
+    ys = config["yield_surface"]
+    print(f"  sig_y (std)        : {ys['material_sets']['std']['sig_y']} MPa")
+    print(f"  Fliesskriterien    : {', '.join(c['name'] + ('' if c['blocking'] else ' (nur Doku)') for c in ys['criteria'])}")
+    print(f"  Schwelle           : {ys['criteria'][0]['threshold']:g}  | final_yield_state aus: {ys['primary_criterion']}")
     print(f"  metadata_output_path: {config['metadata_output_path']}")
 
 

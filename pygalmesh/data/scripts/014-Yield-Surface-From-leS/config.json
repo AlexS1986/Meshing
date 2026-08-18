@@ -238,7 +238,7 @@
       "std": {
         "E": 70000.0,
         "nu": 0.35,
-        "sig_y": 140.0,
+        "sig_y": 100.0,
         "hard": 0.0
       },
       "conv": {
@@ -256,7 +256,31 @@
     "strain_scale_start": 1e-06,
     "yielded_volume_fraction": 0.02,
     "alpha_yield_tolerance": 1e-05,
-    "strain_scale_rate": 1.0
+    "strain_scale_rate": 1.0,
+    "primary_criterion": "eps_p_eq_macroscopic",
+    "criteria": [
+      {
+        "name": "eps_p_eq_macroscopic",
+        "quantity": "eps_p_eq_macroscopic",
+        "threshold": 0.002,
+        "blocking": true,
+        "comment": "sqrt(2/3 E_p:E_p), E_p = Volumenmittel des plastischen Dehnungstensors ueber das reduzierte RVE-Volumen -> Rp0,2-Analogon"
+      },
+      {
+        "name": "alpha_avg_material",
+        "quantity": "alpha_avg_reduced_material_volume",
+        "threshold": 0.002,
+        "blocking": true,
+        "comment": "<alpha> (akkumulierte aequivalente plastische Dehnung) ueber die Materialphase"
+      },
+      {
+        "name": "yielded_fraction_material",
+        "quantity": "yielded_fraction_reduced_material_volume",
+        "threshold": 0.002,
+        "blocking": true,
+        "comment": "Kriterium der bisherigen Studie: Anteil des Materialvolumens mit alpha > alpha_yield_tolerance"
+      }
+    ]
   },
   "dataset": {
     "id": "JM-25-77_A01_les",

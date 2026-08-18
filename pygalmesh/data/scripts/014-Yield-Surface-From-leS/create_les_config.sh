@@ -25,6 +25,11 @@ ARGS=(
   --mesh-size-scale "${LES_MESH_SIZE_SCALE:-1.0}"
   --boundary-shell-xz "${LES_BOUNDARY_SHELL_XZ:-8}"
   --boundary-shell-y "${LES_BOUNDARY_SHELL_Y:-12}"
+  --sig-y "${YIELD_SIG_Y:-100}"
+  --plastic-strain-threshold "${YIELD_PLASTIC_STRAIN_THRESHOLD:-0.002}"
+  --yielded-volume-fraction "${YIELD_YIELDED_VOLUME_FRACTION:-0.02}"
+  --yielded-volume-reference "${YIELD_YIELDED_VOLUME_REFERENCE:-material}"
+  --primary-criterion "${YIELD_PRIMARY_CRITERION:-eps_p_eq_macroscopic}"
 )
 
 if [[ -n "${LES_MAX_ELEMENT_SIZE_UM:-}" ]]; then

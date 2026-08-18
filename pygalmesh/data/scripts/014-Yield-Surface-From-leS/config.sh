@@ -58,6 +58,24 @@ LES_MESH_SIZE_SCALE="${LES_MESH_SIZE_SCALE:-1.0}"
 # LES_CURRENT_TETS=16000000
 # LES_TARGET_TETS=6000000
 
+# --- Fliessgrenze und Fliesskriterien -----------------------------------------
+# Anfangsfliessgrenze des Aluminiums (Materialsatz "std").
+YIELD_SIG_Y="${YIELD_SIG_Y:-100}"
+# Schwelle der drei plastischen Dehnungsmasse. 0.002 = 0,2 % = Rp0,2-Definition.
+# Der Lauf endet erst, wenn ALLE drei ueberschritten sind; jedes liefert einen
+# eigenen Fliessflaechenpunkt (yield_states in der Ergebnis-JSON).
+YIELD_PLASTIC_STRAIN_THRESHOLD="${YIELD_PLASTIC_STRAIN_THRESHOLD:-0.002}"
+# Drittes Kriterium: Anteil des Volumens, der bereits fliesst (alpha > 1e-5).
+# Bezug "material" = Anteil der Aluminiumphase (porositaetsunabhaengig).
+# Bezug "rve" = Anteil des reduzierten RVE-Volumens; beide unterscheiden sich um
+# die relative Dichte (hier rund 0,148), 2 % des Materials = 0,30 % des RVE.
+# Schwelle 0,002 = 0,2 % des Materials fliesst. Die bisherige Studie verwendete
+# 0,02; dieses Kriterium spricht jetzt also deutlich frueher an (Fliessbeginn).
+YIELD_YIELDED_VOLUME_FRACTION="${YIELD_YIELDED_VOLUME_FRACTION:-0.002}"
+YIELD_YIELDED_VOLUME_REFERENCE="${YIELD_YIELDED_VOLUME_REFERENCE:-material}"
+# Welches Kriterium final_yield_state fuellt (collect_/create_yield_surface_*).
+YIELD_PRIMARY_CRITERION="${YIELD_PRIMARY_CRITERION:-eps_p_eq_macroscopic}"
+
 # --- Randschale (02d) ---------------------------------------------------------
 # Dicke in Voxeln. Sie muss vom Netz aufloesbar bleiben: bei 33,4 um Voxeln und
 # 75 um Elementen sind 8 Voxel = 267 um rund 3,5 Elemente. Die alten 3 Voxel

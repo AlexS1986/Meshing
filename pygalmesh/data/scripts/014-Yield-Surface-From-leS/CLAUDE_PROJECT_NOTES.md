@@ -337,3 +337,56 @@ Die Reparatur wird verworfen, wenn sie das Ergebnis verschlechtert oder mehr als
 - Alle `LES_*`/`YIELD_JOB_*`-Variablen in `config.sh` sind jetzt als
   `VAR="${VAR:-wert}"` geschrieben und damit fuer einen einzelnen Aufruf ueber
   die Umgebung ueberschreibbar (vorher hat `source config.sh` sie ueberschrieben).
+
+### Drei Fliesskriterien statt einem, sig_y = 100 MPa
+
+- `yield_surface.material_sets.std.sig_y` 140 -> **100 MPa** (`YIELD_SIG_Y` in config.sh).
+- `00_template/elastoplastic.py` zeichnet je Zeitschritt zusaetzlich auf:
+  `eps_p_eq_macroscopic` (= sqrt(2/3 E_p:E_p) mit E_p = Volumenmittel des
+  deviatorischen plastischen Dehnungstensors ueber das reduzierte RVE-Volumen),
+  `eps_p_eq_avg_reduced_material_volume`, `eps_p_eq_avg_reduced_volume` und
+  `e_p_avg_reduced_volume`. `alpha_avg_*` gab es bereits.
+- **Drei blockierende Kriterien** (Schwelle je 0,002 = Rp0,2):
+  `eps_p_eq_macroscopic`, `eps_p_eq_avg_material`, `alpha_avg_material`.
+  Der Lauf endet erst, wenn alle drei erreicht sind; jedes haelt seinen
+  Zustand beim **erstmaligen** Ueberschreiten in `yield_states.<name>`.
+  Damit gibt es drei auswertbare Fliessflaechen aus einem Lauf.
+- Das alte Kriterium (2 % des Materialvolumens mit alpha > 1e-5) laeuft als
+  viertes, nicht abbrechendes Mass mit -> Vergleichbarkeit zur 192er-Studie.
+- `final_yield_state` wird aus `primary_criterion` (Default
+  `eps_p_eq_macroscopic`) gefuellt, damit collect_/create_yield_surface_*
+  unveraendert funktionieren.
+- **Wichtig:** Die Kriterienpruefung laeuft auf allen MPI-Raengen mit denselben
+  kollektiv assemblierten Werten (der Zustand wird auf allen Raengen gebaut, nur
+  die Historie wird auf Rang 0 gesammelt) — sonst wuerde StopSimulation
+  asymmetrisch geworfen und der Lauf haengen.
+- Verifiziert: die Kriterienlogik wurde als eigenstaendiges Skript mit
+  synthetischen, unterschiedlich schnell wachsenden Massen durchgespielt
+  (Erstschreiten je Kriterium korrekt, Abbruch erst bei allen drei,
+  final_yield_state vom primaeren Kriterium). Der DolfinX-Teil ist lokal nicht
+  lauffaehig und **nicht** ausgefuehrt worden.
+
+### Korrektur der Kriterienauswahl
+
+Auf Wunsch: das Kriterium `eps_p_eq_avg_material` (Mittel des Betrags der
+lokalen plastischen Dehnung ueber die Materialphase) entfaellt. Die drei
+abbrechenden Kriterien sind jetzt:
+
+1. `eps_p_eq_macroscopic`      >= 0,002   (Rp0,2-Analogon, makroskopisch)
+2. `alpha_avg_material`        >= 0,002
+3. `yielded_fraction_material` >= 0,02    (Kriterium der bisherigen Studie)
+
+Der Lauf endet, wenn alle drei erreicht sind; jedes liefert weiterhin seinen
+eigenen Zustand in `yield_states`. Die Groesse
+`eps_p_eq_avg_reduced_material_volume` wird weiterhin je Zeitschritt
+aufgezeichnet, dient aber nur der Auswertung.
+
+### Schwelle des dritten Kriteriums
+
+`YIELD_YIELDED_VOLUME_FRACTION` steht jetzt auf **0,002** (0,2 % des
+Materialvolumens fliesst), Bezug bleibt die Materialphase. Damit haben alle drei
+Kriterien dieselbe Zahl 0,002, messen aber verschiedene Dinge: zwei Dehnungsmasse
+und einen Volumenanteil. Das dritte Kriterium spricht damit frueher an als in der
+bisherigen Studie (dort 0,02) und markiert eher den Fliessbeginn; ein
+Vergleichslauf zur alten Fliessflaeche braucht
+YIELD_YIELDED_VOLUME_FRACTION=0.02.
