@@ -307,6 +307,14 @@ LES_REDUCE_FACTOR=8 ./create_les_config.sh --output config-A01-les-r8.json
 | Netzvorbereitung | SBATCH-Header in `job_prepare_mesh_CLUSTER.sh` und `run_prepare_mesh_CLUSTER.sh` | `-n 32`, `--mem-per-cpu=45000`, `--nodes=1` | Es arbeitet nur **ein** Task (`run_container 1` = `srun -n 1`); die Zuteilung dient dem Speicher. 32 × 45 GB = 1,44 TB — genauso viel wie beim erfolgreichen Lauf mit 96 × 15 GB, nur ohne 64 brachliegende Kerne. |
 | Fließflächen-Punkte | `YIELD_JOB_*` in `config.sh` | `-n 96`, kein `-N`, `--mem-per-cpu=9000`, `-C i01` | Der elasto-plastische Solve ist der rechenintensive Teil. `job_yield_surface_point_CLUSTER.sh` liest die Taskzahl über `SLURM_NTASKS`, es genügt also, den Header zu ändern. `YIELD_JOB_NODES=0` lässt `-N` weg, damit SLURM die Tasks über mehrere Knoten verteilen darf. |
 
+**Log-Dateien:** jeder Punkt-Job bekommt `#SBATCH -e/-o` auf seinen **eigenen**
+`ys_*`-Ordner auf dem Scratch. `%x.err.%j` und `%x.out.%j` landen also dort, wo
+auch `config.json`, `parameters.txt` und die Ergebnis-JSON liegen — auch bei
+einem blanken `sbatch job_ys_...sh` ohne weitere Argumente. Der Pfad wird beim
+Erzeugen der Jobs aus `$HPC_SCRATCH` aufgelöst (SBATCH-Zeilen werden von SLURM
+nicht expandiert). Ist `HPC_SCRATCH` beim Erzeugen nicht gesetzt — etwa beim
+Generieren auf dem Mac — warnt das Skript und lässt die Zeilen weg.
+
 Die Werte greifen beim nächsten `setup_yield_surface_jobs.sh` bzw.
 `02_create_folders_CLUSTER.sh`; bereits erzeugte Punkt-Jobs behalten ihren
 alten Header.

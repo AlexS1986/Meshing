@@ -390,3 +390,13 @@ und einen Volumenanteil. Das dritte Kriterium spricht damit frueher an als in de
 bisherigen Studie (dort 0,02) und markiert eher den Fliessbeginn; ein
 Vergleichslauf zur alten Fliessflaeche braucht
 YIELD_YIELDED_VOLUME_FRACTION=0.02.
+
+### Log-Dateien der Punkt-Jobs
+
+`setup_yield_surface_jobs.py` schreibt jetzt `#SBATCH -e/-o` direkt in jeden
+erzeugten Punkt-Job, mit dem jeweiligen `ys_*`-Ordner auf dem Scratch als Ziel.
+Damit landen `.err`/`.out` auch bei einem blanken `sbatch job_ys_...sh` beim Job
+und nicht im Aufrufverzeichnis. SBATCH-Zeilen werden nicht von der Shell
+expandiert, der Pfad wird deshalb beim Erzeugen aus `$HPC_SCRATCH` aufgeloest
+(ueberschreibbar mit --scratch-root bzw. YIELD_JOB_SCRATCH_ROOT). Fehlt
+HPC_SCRATCH, warnt das Skript und laesst die Zeilen weg.

@@ -9,7 +9,7 @@
 # mit 96 x 15000 MB.
 #SBATCH --nodes=1
 #SBATCH -n 32
-#SBATCH --mem-per-cpu=45000
+#SBATCH --mem-per-cpu=15000
 #SBATCH -C "m01&mem1536g"
 #SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/014-Yield-Surface-From-leS/%x.err.%j
 #SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/014-Yield-Surface-From-leS/%x.out.%j

@@ -21,4 +21,8 @@ SETUP_ARGS+=(
   --job-constraint "${YIELD_JOB_CONSTRAINT:-i01}"
   --job-time "${YIELD_JOB_TIME:-1440}"
 )
+
+if [[ -n "${YIELD_JOB_SCRATCH_ROOT:-}" ]]; then
+  SETUP_ARGS+=(--scratch-root "$YIELD_JOB_SCRATCH_ROOT")
+fi
 python3 "$SCRIPT_DIR/setup_yield_surface_jobs.py" "${SETUP_ARGS[@]}"

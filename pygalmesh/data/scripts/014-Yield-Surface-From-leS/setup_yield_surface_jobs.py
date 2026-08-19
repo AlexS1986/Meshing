@@ -3,6 +3,7 @@ import argparse
 import csv
 import json
 import math
+import os
 from pathlib import Path
 
 from write_yield_surface_parameters import parameter_text
@@ -66,6 +67,9 @@ def main():
     parser.add_argument("--job-constraint", default="i01", help="SBATCH -C; leer = weglassen")
     parser.add_argument("--job-time", type=int, default=1440, help="SBATCH -t in Minuten")
     parser.add_argument("--job-account", default="p0023647")
+    parser.add_argument("--scratch-root", default=None,
+                        help="Wurzel des Scratch-Bereichs fuer die Log-Pfade der Jobs "
+                             "(Default: $HPC_SCRATCH)")
     args = parser.parse_args()
 
     project_dir = Path(args.project_dir).resolve() if args.project_dir else Path(__file__).resolve().parent
@@ -87,6 +91,12 @@ def main():
     except ValueError as exc:
         raise ValueError("--output-dir must be inside --project-dir so it is available through /data") from exc
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    scratch_root = (args.scratch_root or os.environ.get("HPC_SCRATCH")
+                    or os.environ.get("HPC_Scratch") or "").rstrip("/")
+    if not scratch_root:
+        print("[WARNUNG] HPC_SCRATCH ist nicht gesetzt — die Punkt-Jobs bekommen keine "
+              "#SBATCH -e/-o Zeilen. Beim Einreichen dann --error/--output angeben.")
 
     directions = sample_directions(args.points)
     manifest_rows = []
@@ -144,6 +154,14 @@ def main():
         if args.job_nodes:
             sbatch_lines.append(f"#SBATCH -N {args.job_nodes}")
         sbatch_lines.append(f"#SBATCH --mem-per-cpu={args.job_mem_per_cpu}")
+        # Log-Dateien in den Ordner des jeweiligen Punkt-Jobs. SBATCH-Zeilen werden
+        # nicht von der Shell expandiert, der Pfad muss also hier aufgeloest werden;
+        # er zeigt auf den Scratch, weil dort gerechnet wird.
+        if scratch_root:
+            log_dir = (f"{scratch_root}/pygalmesh/data/scripts/{project_dir.name}/"
+                       f"{sample_dir.relative_to(project_dir).as_posix()}")
+            sbatch_lines.append(f"#SBATCH -e {log_dir}/%x.err.%j")
+            sbatch_lines.append(f"#SBATCH -o {log_dir}/%x.out.%j")
         if args.job_constraint:
             sbatch_lines.append(f"#SBATCH -C {args.job_constraint}")
         sbatch_lines.append("#SBATCH --mail-type=END")
