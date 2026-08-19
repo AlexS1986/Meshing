@@ -20,8 +20,16 @@ SIM_CONTAINER="$HOME/dolfinx_alex/alex-dolfinx.sif"
 SIM_BIND="$HOME/dolfinx_alex/shared:/home,$HPC_SCRATCH/pygalmesh/data:/data"
 SOURCE_DIR="$working_directory/00_template"
 sim_ntasks="${SLURM_NTASKS:-32}"
-SRUN_TIME="${SRUN_TIME:-1440}"
-SRUN_MEM_PER_CPU="${SRUN_MEM_PER_CPU:-9000}"
+# Ohne explizite Vorgabe erbt der srun-Step die Zuteilung des Jobs. Feste Werte
+# hier fuehren zu "More processors requested than permitted", sobald der Job
+# weniger Speicher je CPU hat als der Step anfordert: SLURM rechnet den
+# Speicherwunsch in CPUs um und verlangt dann mehr, als der Job besitzt.
+# (Beispiel: Job 64 x 5600 MB, Step wollte 64 x 9000 MB -> braeuchte 103 CPUs.)
+SRUN_TIME="${SRUN_TIME:-}"
+SRUN_MEM_PER_CPU="${SRUN_MEM_PER_CPU:-}"
+SRUN_LIMITS=()
+if [[ -n "$SRUN_TIME" ]]; then SRUN_LIMITS+=(--time="$SRUN_TIME"); fi
+if [[ -n "$SRUN_MEM_PER_CPU" ]]; then SRUN_LIMITS+=(--mem-per-cpu="$SRUN_MEM_PER_CPU"); fi
 case_scratch="$working_directory/scratch/yield_point_${SLURM_JOB_ID:-manual}"
 rm -rf "$case_scratch"
 mkdir -p "$case_scratch/tmp"
@@ -32,7 +40,7 @@ run_container() {
   local bind_paths="$3"
   local container="$4"
   shift 4
-  local srun_args=(-n "$ntasks" --time="$SRUN_TIME" --mem-per-cpu="$SRUN_MEM_PER_CPU")
+  local srun_args=(-n "$ntasks" ${SRUN_LIMITS[@]+"${SRUN_LIMITS[@]}"})
   if [[ -n "$chdir" ]]; then
     srun_args+=(--chdir="$chdir")
   fi
@@ -47,7 +55,7 @@ run_container() {
   ' bash "$case_scratch" "$bind_paths" "$container" "$@"
 }
 
-CONFIG_INFO=$(srun -n 1 --time="$SRUN_TIME" --mem-per-cpu="$SRUN_MEM_PER_CPU" apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" python3 - "$CONFIG_PATH" <<'PYINFO'
+CONFIG_INFO=$(srun -n 1 ${SRUN_LIMITS[@]+"${SRUN_LIMITS[@]}"} apptainer exec --bind "$BIND_PATHS" "$CONTAINER_PATH" python3 - "$CONFIG_PATH" <<'PYINFO'
 import json, sys
 with open(sys.argv[1]) as handle:
     config = json.load(handle)

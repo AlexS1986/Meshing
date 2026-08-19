@@ -326,6 +326,23 @@ nach einem Lauf messen und dann passend setzen:
 sacct -j <prep-jobid> --format=JobID,JobName,AllocCPUS,MaxRSS,Elapsed
 ```
 
+### srun-Schritte erben die Job-Zuteilung
+
+`job_yield_surface_point_CLUSTER.sh` hatte `--time=1440` und
+`--mem-per-cpu=9000` fest in jedem `srun`-Aufruf stehen. Sobald der Job weniger
+Speicher je CPU bekommt als der Step anfordert, rechnet SLURM den Speicherwunsch
+in CPUs um und bricht ab mit
+
+```
+srun: error: Unable to create step for job <id>: More processors requested than permitted
+```
+
+(Beispiel: Job 64 × 5600 MB, Step wollte 64 × 9000 MB — das entspräche 103 CPUs.)
+Beide Angaben sind jetzt leer voreingestellt, der Step erbt damit Zeit und
+Speicher des Jobs. Über `SRUN_TIME` und `SRUN_MEM_PER_CPU` lassen sie sich bei
+Bedarf weiterhin setzen. Nebeneffekt: mit `YIELD_JOB_TIME=3-00:00:00` auf der
+`long`-Partition wird der Step nicht mehr nach 24 h abgeschnitten.
+
 ## 8c. Fließkriterien und Ergebnis-JSON
 
 `sig_y = 100 MPa` (Materialsatz `std`, in `config.sh` über `YIELD_SIG_Y`).

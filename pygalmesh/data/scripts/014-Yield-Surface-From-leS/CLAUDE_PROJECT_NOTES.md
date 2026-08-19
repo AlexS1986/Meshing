@@ -412,3 +412,13 @@ Default je Punkt-Job jetzt: **-n 64, -N 1, --mem-per-cpu=5600** = 358400 MB auf
 einem Knoten, 6400 MB Reserve zum Knotenlimit. Neu konfigurierbar ausserdem
 YIELD_JOB_PARTITION (leer = deflt) und YIELD_JOB_TIME (akzeptiert auch
 "3-00:00:00"). Die Netzvorbereitung bleibt auf der mem-Partition (32 x 45000 MB).
+
+### Fehler "More processors requested than permitted"
+
+Ursache: `job_yield_surface_point_CLUSTER.sh` setzte in jedem srun-Aufruf fest
+`--time=1440 --mem-per-cpu=9000`. Bei einem Job mit 64 x 5600 MB verlangte der
+Step damit 64 x 9000 MB; SLURM rechnet das in CPUs um (103) und lehnt den Step ab.
+Behoben: `SRUN_TIME` und `SRUN_MEM_PER_CPU` sind leer voreingestellt und werden
+nur angehaengt, wenn gesetzt (`SRUN_LIMITS`-Array, an beiden srun-Stellen).
+Der Step erbt damit Zeit und Speicher des Jobs. Verhindert zugleich, dass Steps
+auf der long-Partition nach 24 h abgeschnitten werden.
