@@ -59,13 +59,18 @@ def main():
         ),
     )
     parser.add_argument("--project-dir", default=None, help="Defaults to the directory containing this script.")
-    parser.add_argument("--job-ntasks", type=int, default=96,
+    parser.add_argument("--job-ntasks", type=int, default=64,
                         help="MPI-Tasks je Punkt-Job (SBATCH -n)")
-    parser.add_argument("--job-nodes", type=int, default=0,
+    parser.add_argument("--job-nodes", type=int, default=1,
                         help="SBATCH -N; 0 = weglassen, dann verteilt SLURM frei")
-    parser.add_argument("--job-mem-per-cpu", type=int, default=9000)
+    parser.add_argument("--job-mem-per-cpu", type=int, default=5600,
+                        help="MB je Task; 64 x 5600 = 358400 MB passen auf einen i01-Knoten (364800 MB)")
     parser.add_argument("--job-constraint", default="i01", help="SBATCH -C; leer = weglassen")
-    parser.add_argument("--job-time", type=int, default=1440, help="SBATCH -t in Minuten")
+    parser.add_argument("--job-time", default="1440",
+                        help="SBATCH -t (Minuten oder d-hh:mm:ss). deflt erlaubt max. 1440, "
+                             "long bis 7-00:00:00")
+    parser.add_argument("--job-partition", default="",
+                        help="SBATCH -p; leer = Default-Partition (deflt, max. 24 h)")
     parser.add_argument("--job-account", default="p0023647")
     parser.add_argument("--scratch-root", default=None,
                         help="Wurzel des Scratch-Bereichs fuer die Log-Pfade der Jobs "
@@ -151,6 +156,8 @@ def main():
             f"#SBATCH -t {args.job_time}",
             f"#SBATCH -n {args.job_ntasks}",
         ]
+        if args.job_partition:
+            sbatch_lines.append(f"#SBATCH -p {args.job_partition}")
         if args.job_nodes:
             sbatch_lines.append(f"#SBATCH -N {args.job_nodes}")
         sbatch_lines.append(f"#SBATCH --mem-per-cpu={args.job_mem_per_cpu}")

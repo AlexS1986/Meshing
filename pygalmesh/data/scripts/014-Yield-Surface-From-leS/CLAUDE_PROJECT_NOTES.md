@@ -400,3 +400,15 @@ und nicht im Aufrufverzeichnis. SBATCH-Zeilen werden nicht von der Shell
 expandiert, der Pfad wird deshalb beim Erzeugen aus `$HPC_SCRATCH` aufgeloest
 (ueberschreibbar mit --scratch-root bzw. YIELD_JOB_SCRATCH_ROOT). Fehlt
 HPC_SCRATCH, warnt das Skript und laesst die Zeilen weg.
+
+### Ressourcen der Punkt-Jobs (Clusterdaten)
+
+Gemessen am Cluster: i01-Knoten (mpsc) haben 96 Kerne und RealMemory = 364800 MB,
+i02 (mpsd) 104 Kerne und 490000 MB. Account p0023647: MaxJobs 400, MaxSubmit 1000
+- 192 gleichzeitige Punkt-Jobs sind also zulaessig. Partition "deflt" begrenzt auf
+24 h, "long" auf 7 Tage bei denselben i01-Knoten.
+
+Default je Punkt-Job jetzt: **-n 64, -N 1, --mem-per-cpu=5600** = 358400 MB auf
+einem Knoten, 6400 MB Reserve zum Knotenlimit. Neu konfigurierbar ausserdem
+YIELD_JOB_PARTITION (leer = deflt) und YIELD_JOB_TIME (akzeptiert auch
+"3-00:00:00"). Die Netzvorbereitung bleibt auf der mem-Partition (32 x 45000 MB).

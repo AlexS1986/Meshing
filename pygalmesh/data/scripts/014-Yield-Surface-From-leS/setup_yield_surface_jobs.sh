@@ -20,6 +20,7 @@ SETUP_ARGS+=(
   --job-mem-per-cpu "${YIELD_JOB_MEM_PER_CPU:-9000}"
   --job-constraint "${YIELD_JOB_CONSTRAINT:-i01}"
   --job-time "${YIELD_JOB_TIME:-1440}"
+  --job-partition "${YIELD_JOB_PARTITION:-}"
 )
 
 if [[ -n "${YIELD_JOB_SCRATCH_ROOT:-}" ]]; then

@@ -7,13 +7,23 @@ BASE_PATH="/data/scripts/014-Yield-Surface-From-leS"
 
 # Sampling der Fliessflaeche (setup_yield_surface_jobs.sh)
 # Ressourcen je Punkt-Job. Der Punkt-Job liest die Taskzahl ueber SLURM_NTASKS,
-# es genuegt also, sie hier zu aendern. YIELD_JOB_NODES=0 laesst SBATCH -N weg,
-# damit SLURM die Tasks frei auf Knoten verteilen darf.
-YIELD_JOB_NTASKS="${YIELD_JOB_NTASKS:-96}"
-YIELD_JOB_NODES="${YIELD_JOB_NODES:-0}"
-YIELD_JOB_MEM_PER_CPU="${YIELD_JOB_MEM_PER_CPU:-9000}"
+# es genuegt also, sie hier zu aendern. YIELD_JOB_NODES=1 haelt den Job auf einem
+# Knoten (0 wuerde SBATCH -N weglassen und SLURM frei verteilen lassen).
+# Gesamtspeicher je Job = YIELD_JOB_NTASKS x YIELD_JOB_MEM_PER_CPU und muss auf
+# EINEN Knoten passen. i01 (mpsc): 96 Kerne, RealMemory = 364800 MB.
+#   64 x 5600 MB = 358400 MB  <- Default, 6400 MB Reserve zum Knotenlimit
+#   64 x 5700 MB = 364800 MB     exakt das Knotenlimit, keine Reserve
+#   64 x 4000 MB = 256000 MB     genuegsam, falls MUMPS weniger braucht
+# Reicht das nicht: -C i02 (104 Kerne, 490000 MB) -> 64 x 7500 = 480000 MB.
+YIELD_JOB_NTASKS="${YIELD_JOB_NTASKS:-64}"
+YIELD_JOB_NODES="${YIELD_JOB_NODES:-1}"
+YIELD_JOB_MEM_PER_CPU="${YIELD_JOB_MEM_PER_CPU:-5600}"
 YIELD_JOB_CONSTRAINT="${YIELD_JOB_CONSTRAINT:-i01}"
 YIELD_JOB_TIME="${YIELD_JOB_TIME:-1440}"
+# Partition. Leer = Default "deflt": i01-Knoten (96 Kerne, 364800 MB), max. 24 h.
+# "long" hat dieselben Knoten, aber bis zu 7 Tagen Laufzeit (330 i01-Knoten).
+# Bei "long" auch YIELD_JOB_TIME hochsetzen, z.B. YIELD_JOB_TIME=3-00:00:00.
+YIELD_JOB_PARTITION="${YIELD_JOB_PARTITION:-}"
 YIELD_SURFACE_POINTS="${YIELD_SURFACE_POINTS:-6}"
 YIELD_SURFACE_STRAIN_RADIUS="${YIELD_SURFACE_STRAIN_RADIUS:-0.25}"
 

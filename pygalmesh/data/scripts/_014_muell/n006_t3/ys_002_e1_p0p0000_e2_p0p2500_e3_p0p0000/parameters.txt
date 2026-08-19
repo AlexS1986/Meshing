@@ -1,0 +1,23 @@
+sample_id = ys_002_e1_p0p0000_e2_p0p2500_e3_p0p0000
+sample_index = 2
+sample_count = 6
+sample_method = cartesian_axes
+sample_radius = 0.25
+sample_direction_unit = [0.0, 1.0, 0.0]
+eps_mac_eigenvalues = [0.0, 0.25, 0.0]
+materials = ['std']
+loading_directions = ['tensor']
+max_mean_strain = 0.25
+time_step = 0.0001
+total_time = 1000000000.0
+dt_min = 1e-11
+strain_scale_start = 1e-06
+strain_scale_rate = 1.0
+yielded_volume_fraction = 0.02
+alpha_yield_tolerance = 1e-05
+quadrature_degree = 1
+
+material.std.E = 70000.0
+material.std.nu = 0.35
+material.std.sig_y = 100.0
+material.std.hard = 0.0
