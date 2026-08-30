@@ -219,7 +219,10 @@ ls -1 "$S"/*_segmented/*_3D/subvolume_x*_y*/dlfx_mesh.xdmf                      
 ls -1 yield_surface_jobs/*/n096/ys_*/job_*.sh | wc -l                            # 768
 apptainer exec "$HOME/dolfinx_alex/alex-dolfinx.sif" python3 -c "import h5py; print(h5py.version.version)"
 
-# 7) einreichen (erst trocken, dann echt)
+# 7) einreichen (erst trocken, dann echt) - AUS $S HERAUS, sonst scheitert die
+#    Netzvorbereitung: sie erbt das Absende-Verzeichnis, und Apptainer sieht die
+#    Host-Pfade unter /work/scratch nur ueber das eingehaengte CWD.
+cd "$S"
 DRY_RUN=1 "$S/batch_submit_CLUSTER.sh" | head -40
 read -r -p "768 Punkt-Jobs jetzt einreichen? [Enter]" _
 YS_FORCE_FRESH=1 "$S/batch_submit_CLUSTER.sh"

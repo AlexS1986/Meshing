@@ -750,3 +750,33 @@ Gelernt/festgehalten (Ablauf im Detail: `NEUSTART_KOMPLETT.md`):
 - Beim ersten laufenden Punkt-Job den Block `=== Feldausgabe / Wandzeit ===` in
   der `.out` pruefen: `walltime_deadline` muss einen Zeitpunkt zeigen, nicht
   `unbekannt`. Das ist der erste echte Containerlauf der Deadline-Wache.
+
+### Nachtrag 30.08.2026: Netzvorbereitung scheitert je nach Absende-Verzeichnis
+
+Symptom beim Neustart: `run_prepare_mesh_CLUSTER.sh` laeuft an ("Preparing mesh
+for dataset: ...", Config und .leS werden gefunden) und bricht sofort ab mit
+
+```text
+WARNING: Error changing the container working directory. Using '/home/as12vapa'
+  instead: chdir /home/as12vapa/meshing/Meshing/pygalmesh: no such file or directory
+/usr/bin/python3: can't open file '/work/scratch/.../015-.../A01_les_2_npy.py':
+  [Errno 2] No such file or directory
+```
+
+Die Datei liegt sehr wohl auf dem Scratch. Ursache: die Pipeline-Schritte
+uebergeben dem Container **Host-Pfade** unter `/work/scratch` (Skripte,
+`volume.npy`, `mesh.xdmf`), gebunden sind aber nur
+`$HOME/meshing/Meshing/pygalmesh/data:/home` und
+`$HPC_SCRATCH/pygalmesh/data:/data`. Sichtbar wird der Host-Pfad nur, weil
+Apptainer das **aktuelle Arbeitsverzeichnis** mit einhaengt. Die Punkt-Jobs
+rufen `run_container` mit `chdir="$target"` auf (Laufordner unter
+`/work/scratch`) und funktionieren deshalb; die Netzvorbereitung ruft es mit
+leerem chdir auf und erbt damit das Verzeichnis, aus dem `sbatch` abgeschickt
+wurde. Aus `$HOME/meshing/Meshing/pygalmesh` (so steht es in README Schritt 1)
+ist das ausserhalb von `/work/scratch` -> Abbruch. Frueher fiel das nicht auf,
+weil aus dem Projektordner auf dem Scratch heraus eingereicht wurde.
+
+Behoben: `cd "$working_directory"` direkt nach der Zuweisung in
+`run_prepare_mesh_CLUSTER.sh` (mit Begruendung im Kommentar). Zusaetzliche
+Faustregel: `batch_submit_CLUSTER.sh` aus `$HPC_SCRATCH/.../015-.../` heraus
+aufrufen, nicht aus HOME.

@@ -21,6 +21,14 @@
 set -euo pipefail
 
 working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS"
+# Die Schritte unten geben Apptainer HOST-Pfade unter /work/scratch (Skripte,
+# volume.npy, mesh.xdmf). Gebunden sind aber nur .../pygalmesh/data:/home und
+# $HPC_SCRATCH/pygalmesh/data:/data - sichtbar wird der Host-Pfad nur, weil
+# Apptainer das aktuelle Arbeitsverzeichnis mit einhaengt. Ohne dieses cd erbt
+# der srun-Step das Verzeichnis, aus dem sbatch abgeschickt wurde; liegt das
+# ausserhalb von /work/scratch (z.B. $HOME/meshing/Meshing/pygalmesh), bricht
+# schon A01 mit "can't open file .../A01_les_2_npy.py" ab.
+cd "$working_directory"
 CONFIG_ARG="${1:-${PREPARE_MESH_CONFIG:-config-A01-les.json}}"
 if [[ "$CONFIG_ARG" = /* ]]; then
   CONFIG_PATH="$CONFIG_ARG"
