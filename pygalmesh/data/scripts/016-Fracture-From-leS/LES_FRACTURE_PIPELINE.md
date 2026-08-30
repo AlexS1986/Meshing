@@ -116,6 +116,41 @@ gebildet. Letzteres ist bewusst **auflösungsspezifisch** — in 012 war das ein
 Falle: `01_segment_slice_wise.specimen_name` ist über die Stufen hinweg gleich,
 und alle drei Stufen hätten sich gegenseitig im Archiv überschrieben.
 
+### Wie viele Jobs sind das?
+
+**Zwei SLURM-Jobs je Config** — mehr nicht. `submit_fracture_pipeline_CLUSTER.sh`
+reicht genau einen Netz-Job und einen Simulations-Job ein, verkettet über
+`--dependency=afterok`. Für alle drei Auflösungsstufen also 6 Jobs.
+
+Das ist der große Unterschied zu 015: dort waren es 4 Datensätze × 2
+Fließgrenzen × 96 Punkte = **768** Punkt-Jobs, weil jeder Punkt der Fließfläche
+ein eigener FE-Lauf ist. Eine Bruchsimulation ist **ein** Lauf.
+
+Innerhalb der Jobs laufen `srun`-Steps:
+
+| Job | Steps | wie viele |
+|---|---|---:|
+| Netzerzeugung | `A01`, `02b` | 2 |
+| | je Teilvolumen: `02c`, `02d`, `03`, `04`, `05`, `08`, `09` | 7 |
+| | `make_mesh_dlfx_compatible` | 1 |
+| | **Summe** bei `xy_divisions = 1` | **10** |
+| Bruchsimulation | `script.py`, je Teilvolumen × Material × Richtung | **1** |
+
+Alle Steps der Netzerzeugung laufen mit `srun -n 1` — der Job fordert 32 Tasks
+nur wegen des Speichers an. Der Simulations-Step läuft mit `-n 96`.
+
+Die Zahlen skalieren mit:
+
+* `02b_build_subvolume_arrays.xy_divisions` — bei 2 wären es 4 Teilvolumen und
+  damit 4 × 7 + 3 = 31 Netz-Steps und 4 Simulations-Steps. Default ist 1.
+* `fracture.materials` × `fracture.directions` — Default `["std"] × ["y"]` = 1.
+* Die `enabled`-Flags von `02e`, `02f`, `10`, `11`. Diese vier Blöcke fehlen in
+  der Config, `config_bool` liefert dafür 0 — sie laufen also nicht.
+
+Die Config-Abfragen (`config_bool`, `config_value_default`) laufen **auf dem
+Host**, nicht über `srun`. In 015 gingen sie noch durch den Container und
+kosteten pro Abfrage einen Job-Step.
+
 ### Ressourcen
 
 | Job | Header | Werte | Begründung |

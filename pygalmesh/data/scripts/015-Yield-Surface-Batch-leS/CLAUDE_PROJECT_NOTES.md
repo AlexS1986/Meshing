@@ -14,7 +14,7 @@ Die Pipeline ist **unveraendert**; neu ist eine Batch-Schicht fuer vier
 | sig_y | 75 MPa und 100 MPa (Materialsatz `std`) |
 | Aufloesung | `reduce = 2` wie in 014 (Nutzerentscheidung), Elementgroesse 75 um |
 | Punkte je Kombination | 96 (Fibonacci-Sphere) |
-| Zeitlimit je Punkt-Job | `-t 3000` Minuten |
+| Zeitlimit je Punkt-Job | `-t 10080` Minuten (7 d, Maximum der Partition `long`; bis 30.08.2026 `-t 3000`) |
 
 **Ein Netz je Datensatz, nicht je Kombination.** Das Netz haengt nicht von
 `sig_y` ab. Beide sig_y-Varianten bekommen deshalb dieselbe `dataset.id`
@@ -30,10 +30,11 @@ Dehnungsrichtung besteht, haetten sich die beiden Varianten desselben Punktes
 denselben Arbeitsordner geteilt und sich gegenseitig ueberschrieben. `run_root`
 enthaelt jetzt zusaetzlich das `binning_label`.
 
-**`-t 3000` erzwingt `-p long`.** Die Default-Partition `deflt` erlaubt maximal
-1440 Minuten und lehnt `-t 3000` mit *"Requested time limit is invalid"* ab.
-`long` hat dieselben i01-Knoten und bis zu 7 Tage. In `config.sh` stehen deshalb
-`YIELD_JOB_TIME=3000` **und** `YIELD_JOB_PARTITION=long`. Die Netzvorbereitung
+**Langes Zeitlimit erzwingt `-p long`.** Die Default-Partition `deflt` erlaubt
+maximal 1440 Minuten und lehnt alles darueber mit *"Requested time limit is
+invalid"* ab. `long` hat dieselben i01-Knoten und bis zu 7 Tage. In `config.sh`
+stehen deshalb `YIELD_JOB_TIME=10080` (seit 30.08.2026, vorher 3000) **und**
+`YIELD_JOB_PARTITION=long`. Die Netzvorbereitung
 bleibt auf `mem` mit 1440 Minuten (ueber `PREP_JOB_TIME` auf der
 sbatch-Kommandozeile ueberschreibbar, weil SBATCH-Header nicht expandiert
 werden).
@@ -82,7 +83,7 @@ Glob `JM-25[-_]<nummer>*.leS` und meldet, welche Datei es genommen hat.
 
 **Nicht ausgefuehrt.** Wie in 014 wurden die Skripte nur vorbereitet. Geprueft
 wurden: Erzeugung aller acht Configs, Erzeugung der Punkt-Jobs (Testlauf mit 6
-Punkten je Kombination, korrekte `-t 3000 -p long`-Header und eindeutige
+Punkten je Kombination, korrekte `-t <YIELD_JOB_TIME> -p long`-Header und eindeutige
 Jobnamen), `batch_submit_CLUSTER.sh` im `DRY_RUN`, sowie
 `batch_collect_results.sh` gegen synthetische Ergebnis-JSONs (Paketstruktur,
 CSV-Spalten, Zip). Netzvorbereitung und DolfinX-Solve sind lokal nicht
@@ -95,8 +96,9 @@ lauffaehig und wurden nicht gerechnet.
   Die anderen drei Datensaetze koennen andere Gittergroessen haben als JM-25-77.
 - Randschalendicke (8/12/8 Voxel) ist an JM-25-77 kalibriert und sollte fuer die
   drei neuen Datensaetze anhand ihrer Voxelgroesse geprueft werden.
-- Ob 3000 Minuten je Punkt-Job reichen, ist eine Schaetzung; die `long`-Partition
-  liesse bis `7-00:00:00` zu.
+- Zeitlimit je Punkt-Job seit 30.08.2026 `-t 10080` = 7 d, also das Maximum der
+  `long`-Partition. Mehr geht nicht; laengere Rechnungen laufen ueber die
+  Fortsetzungskette (`resubmit_yield_surface_timeouts_CLUSTER.sh`).
 
 ---
 
@@ -524,3 +526,195 @@ Behoben: `SRUN_TIME` und `SRUN_MEM_PER_CPU` sind leer voreingestellt und werden
 nur angehaengt, wenn gesetzt (`SRUN_LIMITS`-Array, an beiden srun-Stellen).
 Der Step erbt damit Zeit und Speicher des Jobs. Verhindert zugleich, dass Steps
 auf der long-Partition nach 24 h abgeschnitten werden.
+
+---
+
+## Session 30.08.2026 — Restart-Mechanismus aus 014 uebernommen
+
+Der in 014 gebaute Restart nach SLURM-Timeout (fortsetzen statt neu rechnen,
+Zustand exakt aus der eigenen XDMF/HDF5-Ausgabe rekonstruiert, e_p =
+dev(eps(u)) - dev(sigma)/(2 mu) bei quadrature_degree = 1) gilt jetzt auch
+fuer die Batch-Studie. Konzept und Einschraenkungen: RESTART_NACH_TIMEOUT.md
+in 014; 015-Besonderheiten: RESTART_NACH_TIMEOUT.md hier.
+
+- `00_template/elastoplastic.py` und `00_template/yield_restart.py` sind
+  byteidentisch mit 014 (gepruefte Kopie).
+- `job_yield_surface_point_CLUSTER.sh`: identischer Restart-Block wie in 014
+  (kein `rm -rf` des Zielordners bei vorhandenem Rechenstand, Quick-Skip bei
+  vorhandener yield_run-JSON, `YS_FORCE_FRESH=1` = altes Verhalten); die
+  015-Eigenheiten (run_root mit binning_label, Slim-Copy nach 00_results)
+  bleiben unveraendert.
+- `resubmit_yield_surface_timeouts_CLUSTER.sh` (neu, 015-Fassung): durchsucht
+  `yield_surface_jobs/<combo>/<nNNN>/ys_*`, liest den SLURM-Jobnamen aus der
+  `#SBATCH -J`-Zeile (in 015 `<dataset>_s<sig_y>-ysNNN`, nicht sample_id) fuer
+  den squeue-Abgleich, prueft Fertigsein gegen
+  `00_results/<run_id>/<binning_label>/yield_surface/...` (Slim- und
+  Vollkopie) und reicht je Timeout-Punkt eine `afternotok`-Kette ein
+  (MAX_CHAIN, Default 5). Logs gehen wie beim batch_submit per
+  --error/--output in den Sample-Ordner.
+- Erst-Einreichung weiterhin `batch_submit_CLUSTER.sh`; Wiederanlaeufe nur
+  ueber das Resubmit-Skript (batch_submit wuerde alle 768 Punkte einreichen).
+- batch_status_CLUSTER.sh unveraendert nutzbar.
+
+---
+
+## Session 30.08.2026 (2) — Feldausgabe ausgeduennt + Wandzeit-Deadline
+
+**Problem.** Die `.h5` der Punktlaeufe wird zu gross: `elastoplastic.py` schrieb
+in **jedem** erfolgreichen Zeitschritt vier Felder (u, sigma, sig_vm, alpha).
+Gleichzeitig darf nicht einfach seltener geschrieben werden, denn seit dem
+Restart-Umbau ist die Feldausgabe **zugleich der Checkpoint** — und der letzte
+Zeitschritt vor dem SLURM-Zeitlimit (seit 30.08.2026 10080 Minuten) soll auf
+jeden Fall in der Datei stehen.
+
+**Entscheidung.** Zwei Mechanismen in `00_template/elastoplastic.py`:
+
+1. **Ausduennung nach Wandzeit.** Ein Snapshot hoechstens alle
+   `yield_surface.field_output.min_minutes_between_writes` Minuten — **Default
+   720 = 12 h** (Nutzervorgabe; anfangs 240 = 4 h, am selben Tag auf 12 h
+   erhoeht). Zusaetzlich immer: erster Zeitschritt, jedes erstmalige Erreichen
+   eines Fliesskriteriums, letzter Zeitschritt vor Abbruch.
+   Damit haengt die Dateigroesse an der Laufzeit, nicht an der (wegen adaptiver
+   Schrittweite unbekannten) Zahl der Zeitschritte: ein Punkt-Job ueber die
+   vollen 7 Tage kommt auf 14 + wenige Snapshots statt einiger tausend. Alternativ konfigurierbar:
+   `every_n_steps` und `strain_scale_interval` (beide 0 = aus, ODER-verknuepft).
+2. **Deadline-Wache.** Das Skript kennt die Endzeit des Jobs und beendet sich
+   rechtzeitig **selbst**, statt sich abschiessen zu lassen. Vor dem Beenden
+   schreibt es den zuletzt gerechneten Zeitschritt als Snapshot plus
+   `restart_meta`. Abbruchbedingung, ausgewertet vor jedem neuen Zeitschritt und
+   nach jedem erfolgreichen:
+
+   ```text
+   Restzeit <= safety_margin_minutes + reserve_factor * (Dauer Zeitschritt + Dauer Schreiben)
+   ```
+
+   Dauer eines Zeitschritts = Maximum der letzten fuenf, Schreibdauer = bisheriges
+   Maximum (vor dem ersten Snapshot ersatzweise die Schrittdauer). Default:
+   `safety_margin_minutes = 15`, `reserve_factor = 2`.
+
+**Warum das mehr ist als "letzter Snapshot".** Bei einem harten Kill gingen
+bisher auch `yield_run_*.json` und `yield_averages_*.json` verloren; jetzt sind
+Zustand *und* komplette Mittelwert-Historie in `restart_meta_*.json`, und die
+Fortsetzung verliert hoechstens die Schritte seit dem letzten Snapshot.
+
+### Details, die zusammenpassen muessen
+
+- **`restart_meta` nur zusammen mit einem Snapshot.** Vorher wurde die
+  Meta-Datei je Zeitschritt geschrieben. Mit ausgeduennter Feldausgabe zeigte
+  sie damit auf einen Zeitschritt, den es in der XDMF gar nicht mehr gibt.
+  Jetzt schreibt `write_fields_and_meta()` beides gemeinsam — erst die Felder,
+  dann die Meta (bei einem Kill dazwischen bleibt die aeltere, konsistente
+  Meta stehen). `--restart-meta-every` ist damit wirkungslos, das Argument
+  bleibt nur der Kompatibilitaet halber bestehen.
+- **u, sigma und alpha sind Pflichtfelder.** Aus ihnen rekonstruiert
+  `yield_restart.py` den Zustand; wer sie in `field_output.fields` weglaesst,
+  bekommt sie mit Hinweis wieder eingesetzt. Frei abwaehlbar ist nur `sig_vm`.
+- **Kriterienpruefung jetzt VOR dem Schreiben.** Sonst landet der Zeitschritt,
+  in dem ein Kriterium erstmals erreicht wird, nicht in der Felddatei.
+- **Kein `yield_run_*.json` beim Wandzeit-Stop.** Diese Datei ist die
+  Fertig-Markierung fuer den Idempotenz-Guard im Skript und fuer
+  `resubmit_yield_surface_timeouts_CLUSTER.sh`. Ein unterbrochener Lauf darf sie
+  nicht schreiben, sonst gilt der Punkt als fertig. `after_last_timestep()`
+  wird beim Wandzeit-Stop daher uebersprungen.
+- **Exit-Code 3 beim Wandzeit-Stop.** Die Fortsetzungskette haengt an
+  `sbatch --dependency=afternotok`; ein sauberer Exit 0 wuerde die restlichen
+  Kettenglieder abraeumen und den Punkt unfertig zuruecklassen. Der Job endet
+  deshalb mit != 0. `job_yield_surface_point_CLUSTER.sh` faengt Exit 3 ab und
+  gibt eine erklaerende Zeile aus.
+- **Marker fuer das Resubmit-Skript.** Rang 0 schreibt beim Wandzeit-Stop
+  `YIELD_WALLTIME_STOP: ...` nach stderr, also in die `.err`-Datei des Jobs.
+  `resubmit_yield_surface_timeouts_CLUSTER.sh` behandelt diesen Marker jetzt
+  wie `DUE TO TIME LIMIT` (sonst waere der Lauf "anderer Fehler" und wuerde
+  ohne `INCLUDE_FAILED=1` uebersprungen).
+- **Kollektive Entscheidungen.** Ob geschrieben und ob abgebrochen wird,
+  entscheidet Rang 0 und verteilt es per `comm.bcast`. Uhren laufen auf den
+  Raengen minimal auseinander; ohne bcast koennte ein Rang schreiben und ein
+  anderer nicht — beides sind kollektive Operationen, das haengt.
+- **`--signal` bewusst NICHT in den SBATCH-Headern.** Ein von SLURM gesendetes
+  SIGUSR1 landet beim `bash -lc`-Wrapper des Steps und wuerde ihn ohne Handler
+  sofort beenden. Die Deadline kommt deshalb aus der Job-Endzeit, nicht aus
+  einem Signal. Ein Handler fuer SIGUSR1/SIGUSR2 existiert trotzdem im Solver
+  (manuelles `scancel --signal=USR1 <jobid>` beendet den Lauf sauber).
+
+### Woher die Job-Endzeit kommt
+
+`job_yield_surface_point_CLUSTER.sh` ermittelt sie vor dem Solver-Start und
+exportiert sie als `YIELD_WALLTIME_DEADLINE_EPOCH` (zusaetzlich mit
+`APPTAINERENV_`/`SINGULARITYENV_`-Praefix, damit sie sicher im Container
+ankommt):
+
+1. bereits gesetzte Variable, sonst
+2. `SLURM_JOB_END_TIME`, sonst
+3. `squeue -h -j $SLURM_JOB_ID -O EndTime` + `date -d`.
+
+Im Solver zusaetzlich moeglich: `--walltime-deadline-epoch`,
+`--walltime-limit-minutes`, `YIELD_WALLTIME_LIMIT_MINUTES` oder
+`yield_surface.walltime.limit_minutes` (ab Jobstart gerechnet). Ist gar nichts
+bekannt, laeuft der Job wie frueher bis zum Kill — der Solver sagt das beim
+Start deutlich an. Abschalten der Wache: `--no-walltime-stop` bzw.
+`walltime.stop_before_deadline = false`.
+
+### Neue Config-Bloecke (in allen `config*.json` ergaenzt)
+
+```json
+"yield_surface": {
+  "field_output": {
+    "enabled": true,
+    "min_minutes_between_writes": 720.0,
+    "every_n_steps": 0,
+    "strain_scale_interval": 0.0,
+    "write_first_step": true,
+    "write_on_yield_event": true,
+    "fields": ["u", "sigma", "sig_vm", "alpha"]
+  },
+  "walltime": {
+    "stop_before_deadline": true,
+    "safety_margin_minutes": 15.0,
+    "reserve_factor": 2.0,
+    "exit_code": 3
+  }
+}
+```
+
+`write_yield_surface_parameters.py` schreibt beide Bloecke mit in
+`parameters.txt`, `yield_run_*.json` protokolliert am Ende zusaetzlich
+`time_steps_computed`, `field_output.snapshots_written` und den
+`walltime`-Block.
+
+### Stand / offen
+
+- Geaenderte Dateien: `00_template/elastoplastic.py`,
+  `job_yield_surface_point_CLUSTER.sh`,
+  `resubmit_yield_surface_timeouts_CLUSTER.sh`,
+  `write_yield_surface_parameters.py`, alle `config*.json`.
+- Die Entscheidungs- und Zeitlogik ist ausserhalb des Containers mit Stubs
+  getestet (Intervall, erzwungenes Schreiben, Deadline, Signal). **Ein echter
+  Lauf im Container steht aus** — beim ersten Punkt-Job den Kopf der `.out`
+  pruefen: Block `=== Feldausgabe / Wandzeit ===` muss eine Deadline mit
+  plausibler Restzeit zeigen, danach `[FIELDOUT] Snapshot ...`-Zeilen.
+- Faustwert zum Nachjustieren: dauert ein Zeitschritt sehr lange (grosse Netze),
+  waechst die Reserve automatisch mit; `safety_margin_minutes` deckt nur den
+  Fixanteil (Start, Kopieren, Auslastungsschwankungen) ab.
+
+### Nachtrag (Nutzervorgabe, 30.08.2026): 7-Tage-Limit und 12-h-Snapshots
+
+- **Zeitlimit je Punkt-Job auf `-t 10080`** (7 d) erhoeht, also das Maximum der
+  `long`-Partition. Gesetzt in `config.sh` (`YIELD_JOB_TIME`), als Default in
+  `setup_yield_surface_jobs.py --job-time` und im Fallback von
+  `setup_yield_surface_jobs.sh`. Partition bleibt `long` (Pflicht, `deflt`
+  erlaubt nur 1440). Die Netzvorbereitung bleibt bei `PREP_JOB_TIME=1440`
+  auf `mem`.
+- **Snapshot-Abstand auf 720 Minuten (12 h)** erhoeht — in allen `config*.json`
+  und als Default in `elastoplastic.py`. Ein Punkt-Job ueber die vollen 7 Tage
+  schreibt damit hoechstens 14 Snapshots plus erster Schritt, Fliess-Ereignisse
+  und Abschluss-Snapshot.
+- **Wichtig beim Uebernehmen:** bereits erzeugte Punkt-Jobskripte unter
+  `yield_surface_jobs/<combo>/nNNN/ys_*/job_*.sh` tragen das alte `-t` im
+  SBATCH-Header und die alten Configs. Vor dem Einreichen deshalb
+  `batch_create_configs.sh` und `batch_setup_jobs.sh` neu laufen lassen und
+  mit `batch_create_folders_CLUSTER.sh` auf den Scratch synchronisieren
+  (Kontrolle: `grep '^#SBATCH -t' yield_surface_jobs/*/*/ys_000*/job_*.sh`).
+- Der Kompromiss ist bewusst: 12 h Snapshot-Abstand heisst, dass ein Absturz
+  ohne Deadline-Wache (also nur bei unbekannter Job-Endzeit oder hartem
+  Knotenausfall) bis zu 12 h Rechenzeit kostet. Mit funktionierender
+  Deadline-Wache ist der Verlust bei einem Zeitlimit-Ende praktisch null.

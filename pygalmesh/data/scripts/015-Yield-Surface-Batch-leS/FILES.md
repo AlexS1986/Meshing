@@ -46,7 +46,8 @@ Acht Kombinationen: vier `.leS`-Datensaetze x zwei Anfangsfliessgrenzen
 |---|---|
 | `setup_yield_surface_jobs.sh` / `.py` | erzeugen N Belastungsrichtungen, je Richtung `config.json` + SLURM-Job + `parameters.txt`, dazu `manifest.csv` und `submit_all_yield_surface_points.sh`. Neu in 015: `--job-name-prefix` bzw. `YIELD_JOB_NAME_PREFIX` fuer kurze, eindeutige SLURM-Jobnamen (`JM-25-77_s075-ys000`) |
 | `write_yield_surface_parameters.py` | rendert `parameters.txt` aus einer Config (von `setup_yield_surface_jobs.py` importiert) |
-| `job_yield_surface_point_CLUSTER.sh` | führt einen Punkt-Job aus: `00_template/elastoplastic.py` im DolfinX-Container → `yield_run_std_tensor.json`. In 015 enthaelt `run_root` zusaetzlich das `binning_label` (Trennung der beiden sig_y), und nach `00_results` werden nur die Auswertungsdateien kopiert — `KEEP_FULL_RUN_COPY=1` stellt das Verhalten aus 014 wieder her |
+| `job_yield_surface_point_CLUSTER.sh` | führt einen Punkt-Job aus: `00_template/elastoplastic.py` im DolfinX-Container → `yield_run_std_tensor.json`. In 015 enthaelt `run_root` zusaetzlich das `binning_label` (Trennung der beiden sig_y), und nach `00_results` werden nur die Auswertungsdateien kopiert — `KEEP_FULL_RUN_COPY=1` stellt das Verhalten aus 014 wieder her. Seit 30.08.2026 restart-fähig: vorhandener Rechenstand im Zielordner wird fortgesetzt statt gelöscht (`YS_FORCE_FRESH=1` erzwingt Neustart). Ermittelt ausserdem die Job-Endzeit und gibt sie als `YIELD_WALLTIME_DEADLINE_EPOCH` an den Solver weiter; Exit-Code 3 des Solvers = kontrolliert vor dem Zeitlimit beendet, der Job endet dann bewusst mit != 0 |
+| `resubmit_yield_surface_timeouts_CLUSTER.sh` | findet am Zeitlimit abgebrochene Punkt-Jobs über alle Kombinationen und reicht je Punkt eine Restart-Kette ein (`afternotok`-Dependencies, `MAX_CHAIN`, `DRY_RUN`, `INCLUDE_FAILED`); erkennt neben `DUE TO TIME LIMIT` auch den Marker `YIELD_WALLTIME_STOP` (kontrolliertes Beenden vor dem Zeitlimit); Details `RESTART_NACH_TIMEOUT.md` |
 
 ## 3. Einreichen und Synchronisieren
 
@@ -98,7 +99,7 @@ Acht Kombinationen: vier `.leS`-Datensaetze x zwei Anfangsfliessgrenzen
 
 | Ordner | Inhalt |
 |---|---|
-| `00_template/` | `elastoplastic.py` (DolfinX-Solver der Punkt-Jobs) und Hilfsdateien |
+| `00_template/` | `elastoplastic.py` (DolfinX-Solver der Punkt-Jobs, restart-fähig: setzt nach Timeout aus der eigenen XDMF/HDF5-Ausgabe fort, schreibt `restart_meta_*.json`; Feldausgabe ausgedünnt — Default ein Snapshot je 12 h Wandzeit — und beendet sich mit garantiertem letzten Snapshot vor dem SLURM-Zeitlimit selbst, Config-Blöcke `yield_surface.field_output` / `yield_surface.walltime`), `yield_restart.py` (Restart-Logik: XDMF zurücklesen, Partitionierung verifizieren, e_p/alpha rekonstruieren) und Hilfsdateien |
 | `<dataset>_segmented/` | wird von der Pipeline angelegt: Volumen, `metadata.json`, Netze |
 | `yield_surface_jobs/` | wird von `setup_yield_surface_jobs` angelegt; in 015 je Kombination: `<dataset>_sigy<XXX>/nNNN/` |
 | `yield_surface_runs/` | Arbeitsordner der Punkt-Jobs: `<dataset>/<binning_label>/<sample_id>/` (vollstaendig, inkl. Netz und Feldausgabe) |

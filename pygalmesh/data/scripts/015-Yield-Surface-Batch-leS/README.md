@@ -14,7 +14,7 @@ Ergebnisse zum Herunterladen einpackt.
 | Punkte je Kombination | **96** (Fibonacci-Sphere, `YIELD_SURFACE_POINTS`) |
 | Punkt-Jobs gesamt | 768 |
 | Netzvorbereitungen | **4** — eine je Datensatz, nicht je Kombination |
-| Zeitlimit je Punkt-Job | **`-t 3000`** Minuten auf der Partition **`long`** |
+| Zeitlimit je Punkt-Job | **`-t 10080`** Minuten (7 d) auf der Partition **`long`** |
 
 > **Warum nur vier Netzvorbereitungen?** Das Netz haengt nicht von der
 > Fliessgrenze ab. Beide sig_y-Varianten eines Datensatzes bekommen dieselbe
@@ -23,9 +23,11 @@ Ergebnisse zum Herunterladen einpackt.
 > `leS-r2-sigy100`), das in allen Ergebnispfaden auftaucht.
 
 > **Warum `-p long`?** Die Default-Partition `deflt` erlaubt hoechstens 1440
-> Minuten. `-t 3000` (2 d 2 h) wuerde dort mit *"Requested time limit is
-> invalid"* abgelehnt. `long` hat dieselben i01-Knoten und laesst bis zu 7 Tage
-> zu. Beides steht in `config.sh` (`YIELD_JOB_TIME`, `YIELD_JOB_PARTITION`).
+> Minuten. `-t 10080` (7 d) wuerde dort mit *"Requested time limit is invalid"*
+> abgelehnt. `long` hat dieselben i01-Knoten und laesst genau diese 7 Tage zu —
+> mehr ist nicht moeglich, laengere Rechnungen laufen ueber die
+> Fortsetzungskette. Beides steht in `config.sh` (`YIELD_JOB_TIME`,
+> `YIELD_JOB_PARTITION`).
 
 ---
 
@@ -267,7 +269,7 @@ scp '<user>@<login-node>:$HPC_SCRATCH/pygalmesh/data/scripts/015-Yield-Surface-B
 
 | Datei | Aenderung |
 |---|---|
-| `config.sh` | `BATCH_DATASETS`, `BATCH_SIG_Y`, `LES_RESOURCE_DIR`, `YIELD_JOB_TIME=3000`, `YIELD_JOB_PARTITION=long`, `YIELD_SURFACE_POINTS=96`, `PREP_JOB_*`, `BATCH_MAX_SUBMIT` |
+| `config.sh` | `BATCH_DATASETS`, `BATCH_SIG_Y`, `LES_RESOURCE_DIR`, `YIELD_JOB_TIME=10080`, `YIELD_JOB_PARTITION=long`, `YIELD_SURFACE_POINTS=96`, `PREP_JOB_*`, `BATCH_MAX_SUBMIT` |
 | `setup_yield_surface_jobs.py` | neue Option `--job-name-prefix` (kurze, eindeutige SLURM-Jobnamen); Projektname wird aus dem Ordnernamen abgeleitet statt fest verdrahtet; `job_name` steht jetzt im `manifest.csv` |
 | `setup_yield_surface_jobs.sh` | reicht `YIELD_JOB_NAME_PREFIX` durch |
 | `job_yield_surface_point_CLUSTER.sh` | `run_root` enthaelt jetzt das `binning_label` — sonst wuerden sich die beiden sig_y-Varianten desselben Datensatzes denselben Arbeitsordner teilen und gegenseitig ueberschreiben. Ausserdem kopiert der Job per Default nur noch die Auswertungsdateien nach `00_results` (`KEEP_FULL_RUN_COPY=1` stellt die Vollkopie aus 014 wieder her) |
@@ -284,6 +286,20 @@ Logs, Plots), nicht mehr den kompletten Arbeitsordner mit Netz, XDMF/H5 und
 Voxeldaten. Bei 768 Punkt-Jobs waere die Vollkopie aus 014 mehrere hundert GB.
 Die vollstaendigen Laufordner liegen weiterhin unter
 `yield_surface_runs/<dataset>/<binning_label>/<sample_id>/`.
+
+### Feldausgabe und Zeitlimit (seit 30.08.2026)
+
+`elastoplastic.py` schreibt **nicht mehr jeden Zeitschritt** in die XDMF/H5,
+sondern hoechstens einen Snapshot je zwoelf Stunden Wandzeit
+(`yield_surface.field_output.min_minutes_between_writes`) — plus erster
+Zeitschritt, Fliess-Ereignisse und der letzte Zeitschritt vor einem Abbruch.
+Damit die letzte Rechenzeit nicht verloren geht, kennt der Solver die Endzeit
+des Jobs und **beendet sich rechtzeitig selbst**; davor schreibt er den zuletzt
+gerechneten Zeitschritt als Snapshot plus `restart_meta_*.json`. Ein so
+beendeter Punkt gilt bewusst als *nicht fertig* (kein `yield_run_*.json`,
+Exit-Code 3, Marker `YIELD_WALLTIME_STOP` in der `.err`); die Fortsetzung
+laeuft ueber `resubmit_yield_surface_timeouts_CLUSTER.sh` wie bei einem echten
+Timeout. Details: `RESTART_NACH_TIMEOUT.md` und `CLAUDE_PROJECT_NOTES.md`.
 
 ---
 

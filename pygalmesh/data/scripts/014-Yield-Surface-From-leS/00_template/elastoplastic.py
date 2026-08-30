@@ -18,6 +18,8 @@ import alex.solution as sol
 import alex.linearelastic as le
 import basix
 
+import yield_restart
+
 
 class StopSimulation(Exception):
     pass
@@ -34,6 +36,10 @@ parser.add_argument("--eps2", type=float, default=None, help="Second eigenvalue 
 parser.add_argument("--eps3", type=float, default=None, help="Third eigenvalue of the target diagonal macroscopic strain tensor.")
 parser.add_argument("--yielded-volume-fraction", type=float, default=None, help="Stop once this fraction of the reduced material volume has alpha above tolerance.")
 parser.add_argument("--alpha-yield-tolerance", type=float, default=None, help="Alpha threshold used to classify a cell as yielded.")
+parser.add_argument("--fresh", action="store_true",
+                    help="Vorhandene Ausgaben ignorieren und von vorne rechnen (kein Restart).")
+parser.add_argument("--restart-meta-every", type=int, default=1,
+                    help="Alle N erfolgreichen Zeitschritte die Restart-Metadaten schreiben (Default 1).")
 args = parser.parse_args()
 
 material_set = args.material or args.legacy_material or "std"
@@ -46,6 +52,17 @@ script_name = os.path.splitext(os.path.basename(__file__))[0]
 logfile_path = alex.os.logfile_full_path(script_path, f"{script_name}_{material_set}_{loading_direction}")
 outputfile_graph_path = alex.os.outputfile_graph_full_path(script_path, f"{script_name}_{material_set}_{loading_direction}")
 outputfile_xdmf_path = alex.os.outputfile_xdmf_full_path(script_path, f"{script_name}_{material_set}_{loading_direction}")
+restart_base_name = f"{script_name}_{material_set}_{loading_direction}"
+
+# Idempotenz fuer Resubmit-Ketten: Wenn die Zusammenfassung schon existiert,
+# ist dieser Punkt fertig - nichts erneut rechnen (und nichts ueberschreiben).
+_summary_guard = os.path.join(
+    script_path, f"yield_run_{material_set.lower()}_{loading_direction}.json")
+if os.path.isfile(_summary_guard) and not args.fresh:
+    if MPI.COMM_WORLD.Get_rank() == 0:
+        print(f"[RESTART] {os.path.basename(_summary_guard)} existiert bereits - "
+              "Lauf ist abgeschlossen, nichts zu tun (mit --fresh erzwingen).")
+    sys.exit(0)
 
 
 def load_optional_config():
@@ -354,11 +371,83 @@ if rank == 0:
     print(f"[YIELD] final_yield_state kommt von: {primary_criterion}")
 
 
+# ---------------------------------------------------------------------------
+# Restart: Falls eine fruehere (z.B. am SLURM-Zeitlimit abgebrochene) Rechnung
+# dieses Punkts existiert, wird ihr letzter konsistenter Zustand aus der
+# XDMF/HDF5-Ausgabe geladen und die Rechnung dort fortgesetzt. Details und
+# Annahmen: yield_restart.py. Mit --fresh wird immer von vorne gerechnet.
+# ---------------------------------------------------------------------------
+RESUME = False
+resume_info = None
+restart_count = 0
+_success_steps = 0
+if not args.fresh and deg_quad != 1:
+    if rank == 0:
+        print(f"[RESTART] quadrature_degree = {deg_quad} != 1: Die DP0-Ausgabe "
+              "ist dann nicht verlustfrei, Restart aus der Feldausgabe wird "
+              "uebersprungen (Lauf startet von vorne).")
+if not args.fresh and deg_quad == 1:
+    _rst = yield_restart.try_restore(
+        domain, comm, V, u_fun, alpha_n,
+        [e_p_11_n, e_p_22_n, e_p_33_n, e_p_12_n, e_p_13_n, e_p_23_n],
+        mu.value, script_path, restart_base_name, logfile_path)
+    if _rst is not None:
+        RESUME = True
+        _t_state = float(_rst["t_state"])
+        _dt_resume = _rst["dt_last"]
+        if _dt_resume is None or not np.isfinite(_dt_resume) or _dt_resume <= 0.0:
+            _dt_resume = dt_value
+        _dt_resume = min(float(_dt_resume), float(dt_max.value))
+        dt_global.value = _dt_resume
+        t.value = _t_state + _dt_resume
+        um1.x.array[:] = u_fun.x.array[:]
+        urestart.x.array[:] = u_fun.x.array[:]
+        _meta = _rst["meta"]
+        if _meta is not None:
+            yield_states.update(_meta.get("yield_states", {}))
+            if rank == 0:
+                averaged_history.extend(_meta.get("averaged_history", []))
+            restart_count = int(_meta.get("restart_count", 0)) + 1
+        else:
+            restart_count = 1
+        resume_info = {
+            "resumed_from_t": _t_state,
+            "resumed_dt": _dt_resume,
+            "source_xdmf": os.path.basename(_rst["source_xdmf"]),
+            "had_meta": _meta is not None,
+        }
+        # Neue XDMF-Datei je Fortsetzung - die alte enthaelt den Zustand, aus
+        # dem gerade gelesen wurde, und darf nicht ueberschrieben werden.
+        outputfile_xdmf_path = yield_restart.next_output_xdmf(script_path, restart_base_name)
+        if rank == 0:
+            print(f"[RESTART] Fortsetzung Nr. {restart_count}: Zustand bei "
+                  f"t = {_t_state:.6g} aus {resume_info['source_xdmf']} geladen "
+                  f"(dt = {_dt_resume:.3e}, Meta: {resume_info['had_meta']}).")
+            if _meta is None:
+                print("[RESTART] Keine Meta-Datei gefunden (alter Lauf): "
+                      "yield_states/averaged_history beginnen beim Resume; bereits "
+                      "ueberschrittene Kriterien werden im ersten fortgesetzten "
+                      "Schritt erneut (geringfuegig spaeter) registriert.")
+            print(f"[RESTART] Neue Feldausgabe: {os.path.basename(outputfile_xdmf_path)}")
+
+trestart_const = dlfx.fem.Constant(domain, float(t.value - dt_global.value) if RESUME else 0.0)
+
+
 def before_first_time_step():
     urestart.x.array[:] = um1.x.array[:]
     if rank == 0:
-        sol.prepare_newton_logfile(logfile_path)
-        pp.prepare_graphs_output_file(outputfile_graph_path)
+        if not RESUME:
+            sol.prepare_newton_logfile(logfile_path)
+            pp.prepare_graphs_output_file(outputfile_graph_path)
+        else:
+            # Bestehende Log-/Graphdateien fortschreiben, nicht verwerfen.
+            for _path in (logfile_path, outputfile_graph_path):
+                try:
+                    with open(_path, "a") as _handle:
+                        _handle.write(f"# restart {restart_count}: fortgesetzt, "
+                                      f"naechster Schritt bei t = {t.value:.6g}\n")
+                except OSError:
+                    pass
         print("=== Yield Surface Elasto-Plastic Run ===")
         print(f"material: {material}")
         print(f"loading_direction: {loading_direction}")
@@ -532,6 +621,23 @@ def after_timestep_success(t, dt, iters):
                   f"{value:.6g} >= {float(criterion['threshold']):.6g} "
                   f"(t = {state['t']:.6g}, strain_scale = {state['strain_scale']:.6g})")
 
+    # Restart-Metadaten (klein): t/dt des letzten erfolgreichen Schritts plus
+    # Kriterien-Historie. Zusammen mit der bereits geschriebenen Feldausgabe
+    # ist damit eine verlustfreie Fortsetzung nach einem Abbruch moeglich.
+    global _success_steps
+    _success_steps += 1
+    if rank == 0 and (_success_steps % max(1, args.restart_meta_every) == 0):
+        yield_restart.write_meta_atomic(script_path, restart_base_name, {
+            "format": yield_restart.FORMAT_VERSION,
+            "t_state": state["t"],
+            "dt_last": state["dt"],
+            "xdmf": os.path.basename(outputfile_xdmf_path),
+            "nranks": comm.size,
+            "restart_count": restart_count,
+            "yield_states": yield_states,
+            "averaged_history": averaged_history,
+        })
+
     if blocking_criteria and all(name in yield_states for name in blocking_criteria):
         final_yield_state = yield_states.get(primary_criterion) or yield_states[blocking_criteria[-1]]
         stop_reason = "all_blocking_criteria_reached"
@@ -582,6 +688,8 @@ def after_last_timestep():
                 "total_volume_box": vol_overall,
                 "homogenization_excludes_boundary_shell": shell_widths is not None,
                 "config_path": config_path,
+                "restart_count": restart_count,
+                "resume_info": resume_info,
             }, handle, indent=2)
         print(f"Saved yield run summary to: {summary_path}")
         averages_path = os.path.join(script_path, f"yield_averages_{material}_{loading_direction}.json")
@@ -606,7 +714,8 @@ try:
         comm=comm,
         print_bool=True,
         t=t,
-        dt_max=dt_max
+        dt_max=dt_max,
+        trestart=trestart_const
     )
 except StopSimulation:
     if rank == 0 and stop_reason is None:

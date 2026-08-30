@@ -422,3 +422,68 @@ Behoben: `SRUN_TIME` und `SRUN_MEM_PER_CPU` sind leer voreingestellt und werden
 nur angehaengt, wenn gesetzt (`SRUN_LIMITS`-Array, an beiden srun-Stellen).
 Der Step erbt damit Zeit und Speicher des Jobs. Verhindert zugleich, dass Steps
 auf der long-Partition nach 24 h abgeschnitten werden.
+
+---
+
+## Session 30.08.2026 — Restart der am Zeitlimit abgebrochenen Punkt-Jobs
+
+Mehrere Punkt-Jobs (Partition deflt, `-t 1440`) wurden mit
+`CANCELLED ... DUE TO TIME LIMIT` abgebrochen. Entscheidung: **fortsetzen statt
+neu rechnen**, alles auf dem Cluster, Zeitlimit bleibt 1440.
+
+### Kernidee (keine Checkpoints noetig)
+
+`elastoplastic.py` schreibt je erfolgreichem Zeitschritt u (P1), sigma (DP0)
+und alpha (DP0) in die XDMF/HDF5-Ausgabe; das Newton-Logfile enthaelt t und dt.
+Bei `quadrature_degree = 1` ist das der vollstaendige Zustand:
+`e_p = dev(eps(u)) - dev(sigma)/(2 mu)` ist exakt rekonstruierbar (ein
+Gausspunkt je Zelle, DP0 dort verlustfrei). Deshalb sind auch die **bereits**
+abgebrochenen Laeufe ohne vorherige Checkpoints fortsetzbar.
+
+### Umsetzung (Details: `RESTART_NACH_TIMEOUT.md`)
+
+- `00_template/yield_restart.py` (neu): parst die XDMF-XML (versionsunabhaengig),
+  liest die HDF5-Datensaetze rangweise als Slabs, **verifiziert** Knoten-
+  koordinaten und Zell-Konnektivitaet gegen die globale Nummerierung des neuen
+  Laufs (gleiches Netz + gleiche Prozesszahl + gleicher Container =>
+  reproduzierbare Partitionierung; bei Abweichung klarer Abbruch, nie stiller
+  Falschzustand). Beschaedigte letzte Zeitschritte (Kill mitten im Schreiben)
+  werden uebersprungen -> naechstaelterer Schritt.
+- `00_template/elastoplastic.py`: Restart-Erkennung; schreibt je Schritt
+  `restart_meta_<base>.json` (t, dt, yield_states, averaged_history) atomar;
+  Fortsetzungen schreiben in neue `_rN.xdmf`-Dateien (alte Ausgabe = Restart-
+  Quelle, wird nie ueberschrieben); Log-/Graphdateien werden fortgeschrieben;
+  Solver bekommt jetzt `trestart` uebergeben (sonst faellt t nach einem nicht
+  konvergierten ersten Fortsetzungsschritt auf ~0 zurueck — vorher latent
+  irrelevant, beim Resume kritisch); Quick-Exit, wenn `yield_run_*.json` schon
+  existiert (macht Kettenglieder idempotent). Neue Optionen `--fresh`,
+  `--restart-meta-every`.
+- `job_yield_surface_point_CLUSTER.sh`: `rm -rf` des Zielordners nur noch, wenn
+  dort KEIN Rechenstand liegt; sonst nur Skripte aktualisieren.
+  `YS_FORCE_FRESH=1` = altes Verhalten.
+- `resubmit_yield_surface_timeouts_CLUSTER.sh` (neu): klassifiziert alle
+  `ys_*`-Punkte (fertig / laeuft / Timeout / anderer Fehler / nie gestartet)
+  und reicht je Timeout-Punkt eine Kette aus `MAX_CHAIN` (Default 5) Jobs ein:
+  Glied n+1 mit `--dependency=afternotok:<n>` + `--kill-on-invalid-dep=yes`.
+  Erfolgreiches Glied raeumt die Restkette automatisch ab; manuelles
+  Nachreichen entfaellt (bei Bedarf Skript einfach erneut aufrufen).
+
+### Gelernt / Einschraenkungen
+
+- XDMF-Attributdaten sind per Definition an die Geometrie-/Topologie-
+  Datensaetze des Files ausgerichtet (Node- bzw. Zell-Reihenfolge in globaler
+  Nummerierung) — genau das macht die Wiederherstellung ohne Checkpoint-Format
+  moeglich; die Verifikation prueft exakt die Zeilen, die gelesen werden.
+- Restart benoetigt h5py im `alex-dolfinx.sif` (einmal pruefen:
+  `apptainer exec ... python3 -c "import h5py"`).
+- Alte Laeufe haben keine Meta-Datei: yield_states/averaged_history beginnen
+  beim Resume; ein schon vor dem Abbruch ueberschrittenes Kriterium wird im
+  ersten fortgesetzten Schritt erneut (geringfuegig spaeter, konservativ)
+  registriert. Kuenftig verlustfrei dank Meta-Datei.
+- Offline getestet (XDMF-Parser, HDF5-Slab-Reader, e_p-Rekonstruktion gegen
+  unabhaengige Referenz, Meta-Roundtrip, dt-Suche im Newton-Logfile); ein
+  DolfinX-Ende-zu-Ende-Test war lokal/Cloud nicht moeglich (kein dolfinx) ->
+  erster Kettenlauf auf dem Cluster ist der Integrationstest, im .out auf
+  `[RESTART] Fortsetzung Nr. ...` und fortlaufendes t achten.
+- 015 nutzt dasselbe Template; Uebernahme dorthin steht noch aus
+  (siehe RESTART_NACH_TIMEOUT.md, Abschnitt "Uebertragen auf Studie 015").

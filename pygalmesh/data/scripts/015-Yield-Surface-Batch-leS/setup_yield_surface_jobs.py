@@ -66,9 +66,9 @@ def main():
     parser.add_argument("--job-mem-per-cpu", type=int, default=5600,
                         help="MB je Task; 64 x 5600 = 358400 MB passen auf einen i01-Knoten (364800 MB)")
     parser.add_argument("--job-constraint", default="i01", help="SBATCH -C; leer = weglassen")
-    parser.add_argument("--job-time", default="1440",
-                        help="SBATCH -t (Minuten oder d-hh:mm:ss). deflt erlaubt max. 1440, "
-                             "long bis 7-00:00:00")
+    parser.add_argument("--job-time", default="10080",
+                        help="SBATCH -t (Minuten oder d-hh:mm:ss). Default 10080 = 7 d = "
+                             "Maximum der Partition long; deflt erlaubt nur 1440")
     parser.add_argument("--job-partition", default="",
                         help="SBATCH -p; leer = Default-Partition (deflt, max. 24 h)")
     parser.add_argument("--job-account", default="p0023647")

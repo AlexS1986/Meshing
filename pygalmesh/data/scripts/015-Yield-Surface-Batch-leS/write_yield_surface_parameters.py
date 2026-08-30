@@ -33,6 +33,23 @@ def parameter_text(config, material=None, loading_direction=None):
         f"alpha_yield_tolerance = {ys.get('alpha_yield_tolerance', 1e-5)}",
         f"quadrature_degree = {ys.get('quadrature_degree', 1)}",
     ]
+    fo = ys.get("field_output", {})
+    wt = ys.get("walltime", {})
+    lines.extend([
+        "",
+        f"field_output.enabled = {fo.get('enabled', True)}",
+        f"field_output.min_minutes_between_writes = {fo.get('min_minutes_between_writes', 720.0)}",
+        f"field_output.every_n_steps = {fo.get('every_n_steps', 0)}",
+        f"field_output.strain_scale_interval = {fo.get('strain_scale_interval', 0.0)}",
+        f"field_output.write_first_step = {fo.get('write_first_step', True)}",
+        f"field_output.write_on_yield_event = {fo.get('write_on_yield_event', True)}",
+        f"field_output.fields = {fo.get('fields', ['u', 'sigma', 'sig_vm', 'alpha'])}",
+        f"walltime.stop_before_deadline = {wt.get('stop_before_deadline', True)}",
+        f"walltime.safety_margin_minutes = {wt.get('safety_margin_minutes', 15.0)}",
+        f"walltime.reserve_factor = {wt.get('reserve_factor', 2.0)}",
+        f"walltime.exit_code = {wt.get('exit_code', 3)}",
+        f"walltime.limit_minutes = {wt.get('limit_minutes', 'aus SLURM')}",
+    ])
     for name in materials:
         values = material_sets.get(name.lower(), default_material)
         lines.extend([

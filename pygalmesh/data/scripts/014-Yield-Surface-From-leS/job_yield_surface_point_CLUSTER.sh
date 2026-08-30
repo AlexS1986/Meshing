@@ -94,6 +94,13 @@ echo "Using config: $CONFIG_PATH"
 echo "Using prepared mesh folder: $base_subvolume_folder"
 echo "Run root: $run_root"
 
+# Restart-Verhalten: Existiert im Zielordner bereits ein (abgebrochener)
+# Rechenstand (elastoplastic_*.xdmf bzw. restart_meta_*.json), wird er NICHT
+# geloescht; nur die Skripte werden aktualisiert und elastoplastic.py setzt
+# den Lauf selbst fort (siehe 00_template/yield_restart.py). Mit
+# YS_FORCE_FRESH=1 wird der alte Stand verworfen und neu gerechnet.
+FORCE_FRESH="${YS_FORCE_FRESH:-0}"
+
 for mat in "${MATERIALS[@]}"; do
   for direction in "${DIRECTIONS[@]}"; do
     final_output_dir="$working_directory/00_results/${dataset_id}/${binning_label}/yield_surface/${sample_id}-${mat}-${direction}"
@@ -104,16 +111,36 @@ for mat in "${MATERIALS[@]}"; do
         exit 1
       fi
       target="$run_root/$(basename "$subfolder")"
-      rm -rf "$target"
-      mkdir -p "$target"
-      cp -v "$subfolder"/dlfx_mesh.* "$target"/
-      cp -v "$subfolder"/mesh.xdmf "$target"/ 2>/dev/null || true
-      cp -v "$subfolder"/mesh.h5 "$target"/ 2>/dev/null || true
-      cp -v "$subfolder/$shell_volume_filename" "$target"/ 2>/dev/null || true
-      cp -v "$subfolder"/volume*.npy "$target"/ 2>/dev/null || true
-      cp -v "$SOURCE_DIR"/* "$target"/
-      cp -v "$working_directory/write_yield_surface_parameters.py" "$target/"
-      cp -v "$CONFIG_HOST_PATH" "$target/config.json"
+      mat_lc="$(echo "$mat" | tr '[:upper:]' '[:lower:]')"
+      summary_file="$target/yield_run_${mat_lc}_${direction}.json"
+      if [[ "$FORCE_FRESH" != "1" && -f "$summary_file" ]]; then
+        echo "[RESTART] $(basename "$summary_file") existiert bereits - Solverlauf wird uebersprungen."
+        continue
+      fi
+      has_state=0
+      if [[ "$FORCE_FRESH" != "1" && -d "$target" && -f "$target/dlfx_mesh.xdmf" ]]; then
+        if compgen -G "$target/elastoplastic_*.xdmf" > /dev/null || \
+           compgen -G "$target/restart_meta_*.json" > /dev/null; then
+          has_state=1
+        fi
+      fi
+      if [[ "$has_state" == "1" ]]; then
+        echo "[RESTART] Vorhandener Rechenstand in $target wird fortgesetzt (kein rm -rf)."
+        cp -v "$SOURCE_DIR"/* "$target"/
+        cp -v "$working_directory/write_yield_surface_parameters.py" "$target/"
+        cp -v "$CONFIG_HOST_PATH" "$target/config.json"
+      else
+        rm -rf "$target"
+        mkdir -p "$target"
+        cp -v "$subfolder"/dlfx_mesh.* "$target"/
+        cp -v "$subfolder"/mesh.xdmf "$target"/ 2>/dev/null || true
+        cp -v "$subfolder"/mesh.h5 "$target"/ 2>/dev/null || true
+        cp -v "$subfolder/$shell_volume_filename" "$target"/ 2>/dev/null || true
+        cp -v "$subfolder"/volume*.npy "$target"/ 2>/dev/null || true
+        cp -v "$SOURCE_DIR"/* "$target"/
+        cp -v "$working_directory/write_yield_surface_parameters.py" "$target/"
+        cp -v "$CONFIG_HOST_PATH" "$target/config.json"
+      fi
       run_container 1 "$target" "$SIM_BIND" "$SIM_CONTAINER" \
         python3 "$target/write_yield_surface_parameters.py" --config "$target/config.json" --output "$target/parameters.txt" --material "$mat" --loading-direction "$direction"
       run_container "$sim_ntasks" "$target" "$SIM_BIND" "$SIM_CONTAINER" \

@@ -280,7 +280,29 @@
         "blocking": true,
         "comment": "Kriterium der bisherigen Studie: Anteil des Materialvolumens mit alpha > alpha_yield_tolerance"
       }
-    ]
+    ],
+    "field_output": {
+      "enabled": true,
+      "min_minutes_between_writes": 720.0,
+      "every_n_steps": 0,
+      "strain_scale_interval": 0.0,
+      "write_first_step": true,
+      "write_on_yield_event": true,
+      "fields": [
+        "u",
+        "sigma",
+        "sig_vm",
+        "alpha"
+      ],
+      "comment": "Ausduennung der XDMF/H5-Feldausgabe: hoechstens ein Snapshot je min_minutes_between_writes Minuten Wandzeit (Default 720 = 12 h), zusaetzlich erster Schritt, Fliess-Ereignisse und der letzte Schritt vor dem Zeitlimit. u/sigma/alpha sind zugleich der Restart-Checkpoint (yield_restart.py) und werden immer geschrieben. every_n_steps/strain_scale_interval = 0 bedeutet aus."
+    },
+    "walltime": {
+      "stop_before_deadline": true,
+      "safety_margin_minutes": 15.0,
+      "reserve_factor": 2.0,
+      "exit_code": 3,
+      "comment": "Der Solver beendet sich vor dem SLURM-Zeitlimit selbst und schreibt davor den letzten Zeitschritt als Snapshot plus restart_meta. Reserve = safety_margin_minutes + reserve_factor * (Dauer Zeitschritt + Dauer Schreiben). Die Job-Endzeit setzt job_yield_surface_point_CLUSTER.sh (YIELD_WALLTIME_DEADLINE_EPOCH); limit_minutes ist nur der Notnagel, wenn SLURM nichts liefert. exit_code muss != 0 sein, damit die Fortsetzungskette (--dependency=afternotok) weiterlaeuft."
+    }
   },
   "dataset": {
     "id": "JM-25-83_les_r2",

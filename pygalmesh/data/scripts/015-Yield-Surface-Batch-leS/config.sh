@@ -28,11 +28,12 @@ YIELD_JOB_NODES="${YIELD_JOB_NODES:-1}"
 YIELD_JOB_MEM_PER_CPU="${YIELD_JOB_MEM_PER_CPU:-5600}"
 YIELD_JOB_CONSTRAINT="${YIELD_JOB_CONSTRAINT:-i01}"
 # Zeitlimit je Punkt-Job in Minuten (oder d-hh:mm:ss).
-# 3000 min = 2 d 2 h. Das ist mehr als die 1440 min der Default-Partition
-# "deflt" -> YIELD_JOB_PARTITION muss deshalb auf "long" stehen (gleiche
-# i01-Knoten, bis zu 7 Tagen). Wird 3000 mit leerer Partition eingereicht,
-# lehnt SLURM den Job mit "Requested time limit is invalid" ab.
-YIELD_JOB_TIME="${YIELD_JOB_TIME:-3000}"
+# 10080 min = 7 d = das Maximum der Partition "long" (gleiche i01-Knoten).
+# Die Default-Partition "deflt" erlaubt nur 1440 min, YIELD_JOB_PARTITION muss
+# deshalb auf "long" stehen; sonst lehnt SLURM mit "Requested time limit is
+# invalid" ab. elastoplastic.py beendet sich vor dem Limit selbst und schreibt
+# davor einen Snapshot (siehe yield_surface.walltime in der Config).
+YIELD_JOB_TIME="${YIELD_JOB_TIME:-10080}"
 YIELD_JOB_PARTITION="${YIELD_JOB_PARTITION:-long}"
 YIELD_SURFACE_POINTS="${YIELD_SURFACE_POINTS:-96}"
 YIELD_SURFACE_STRAIN_RADIUS="${YIELD_SURFACE_STRAIN_RADIUS:-0.25}"

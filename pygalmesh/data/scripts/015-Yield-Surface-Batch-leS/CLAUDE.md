@@ -8,7 +8,7 @@ Batch-Schicht.
 **Studie dieses Ordners:** vier Datensätze (`JM-25-77`, `JM-25-71`, `JM-25-83`,
 `JM-25-88`) × zwei Anfangsfließgrenzen (75 und 100 MPa) = acht Kombinationen,
 je 96 Fließflächenpunkte. Ein vorbereitetes Netz je Datensatz, `reduce = 2`,
-Punkt-Jobs mit `-t 3000` auf der Partition `long`.
+Punkt-Jobs mit `-t 10080` (7 d) auf der Partition `long`.
 **Bedienung: `README.md`. Entscheidungen: `CLAUDE_PROJECT_NOTES.md`.**
 
 **Grundregel (Projektvorgabe):** Alles, was entschieden oder gelernt wird, wird

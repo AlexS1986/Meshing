@@ -30,7 +30,8 @@ einmal, 5–10 je Subvolumen.
 |---|---|
 | `setup_yield_surface_jobs.sh` / `.py` | erzeugen N Belastungsrichtungen, je Richtung `config.json` + SLURM-Job + `parameters.txt`, dazu `manifest.csv` und `submit_all_yield_surface_points.sh` |
 | `write_yield_surface_parameters.py` | rendert `parameters.txt` aus einer Config (von `setup_yield_surface_jobs.py` importiert) |
-| `job_yield_surface_point_CLUSTER.sh` | führt einen Punkt-Job aus: `00_template/elastoplastic.py` im DolfinX-Container → `yield_run_std_tensor.json` |
+| `job_yield_surface_point_CLUSTER.sh` | führt einen Punkt-Job aus: `00_template/elastoplastic.py` im DolfinX-Container → `yield_run_std_tensor.json`; seit 30.08.2026 restart-fähig: vorhandener Rechenstand im Zielordner wird fortgesetzt statt gelöscht (`YS_FORCE_FRESH=1` erzwingt Neustart) |
+| `resubmit_yield_surface_timeouts_CLUSTER.sh` | findet am Zeitlimit abgebrochene Punkt-Jobs und reicht je Punkt eine Restart-Kette ein (`afternotok`-Dependencies, `MAX_CHAIN`, `DRY_RUN`, `INCLUDE_FAILED`); Details `RESTART_NACH_TIMEOUT.md` |
 
 ## 3. Einreichen und Synchronisieren
 
@@ -90,7 +91,7 @@ Verzeichnis aus, aendert nur den 010-Pfad und committet nichts.
 
 | Ordner | Inhalt |
 |---|---|
-| `00_template/` | `elastoplastic.py` (DolfinX-Solver der Punkt-Jobs) und Hilfsdateien |
+| `00_template/` | `elastoplastic.py` (DolfinX-Solver der Punkt-Jobs, restart-fähig: setzt nach Timeout aus der eigenen XDMF/HDF5-Ausgabe fort, schreibt `restart_meta_*.json`), `yield_restart.py` (Restart-Logik: XDMF zurücklesen, Partitionierung verifizieren, e_p/alpha rekonstruieren) und Hilfsdateien |
 | `<dataset>_segmented/` | wird von der Pipeline angelegt: Volumen, `metadata.json`, Netze |
 | `yield_surface_jobs/` | wird von `setup_yield_surface_jobs` angelegt |
 | `00_results/` | wird von der Auswertung angelegt |

@@ -34,6 +34,34 @@ case_scratch="$working_directory/scratch/yield_point_${SLURM_JOB_ID:-manual}"
 rm -rf "$case_scratch"
 mkdir -p "$case_scratch/tmp"
 
+# ---------------------------------------------------------------------------
+# Wandzeit-Deadline an den Solver weiterreichen
+# ---------------------------------------------------------------------------
+# elastoplastic.py duennt die Feldausgabe aus (Default: ein Snapshot alle zwoelf
+# Stunden) und beendet sich deshalb rechtzeitig VOR dem SLURM-Zeitlimit selbst,
+# um den zuletzt gerechneten Zeitschritt noch als Snapshot plus restart_meta zu
+# schreiben. Dafuer braucht es die Endzeit des Jobs. Reihenfolge: bereits
+# gesetzte Variable, SLURM_JOB_END_TIME, sonst squeue.
+deadline_epoch="${YIELD_WALLTIME_DEADLINE_EPOCH:-${SLURM_JOB_END_TIME:-}}"
+if [[ -z "$deadline_epoch" && -n "${SLURM_JOB_ID:-}" ]] && command -v squeue > /dev/null; then
+  end_str="$(squeue -h -j "$SLURM_JOB_ID" -O EndTime 2> /dev/null | head -n 1 | tr -d ' ' || true)"
+  if [[ -n "$end_str" && "$end_str" != "N/A" && "$end_str" != "Unknown" ]]; then
+    deadline_epoch="$(date -d "$end_str" +%s 2> /dev/null || true)"
+  fi
+fi
+if [[ -n "$deadline_epoch" ]]; then
+  # Apptainer reicht das Environment durch; die APPTAINERENV_/SINGULARITYENV_-
+  # Varianten sind die Absicherung fuer --cleanenv-artige Voreinstellungen.
+  export YIELD_WALLTIME_DEADLINE_EPOCH="$deadline_epoch"
+  export APPTAINERENV_YIELD_WALLTIME_DEADLINE_EPOCH="$deadline_epoch"
+  export SINGULARITYENV_YIELD_WALLTIME_DEADLINE_EPOCH="$deadline_epoch"
+  echo "Job-Endzeit (Deadline fuer den Solver): $(date -d "@$deadline_epoch" 2> /dev/null || echo "$deadline_epoch")"
+else
+  echo "[WARNUNG] Job-Endzeit nicht ermittelbar - der Solver kann sich nicht"
+  echo "          rechtzeitig beenden und wird am Zeitlimit hart abgeschossen."
+  echo "          Notfalls YIELD_WALLTIME_LIMIT_MINUTES=<Minuten> setzen."
+fi
+
 run_container() {
   local ntasks="$1"
   local chdir="$2"
@@ -97,6 +125,14 @@ echo "Using config: $CONFIG_PATH"
 echo "Using prepared mesh folder: $base_subvolume_folder"
 echo "Run root: $run_root"
 
+# Restart-Verhalten (wie in 014, siehe dort RESTART_NACH_TIMEOUT.md): Existiert
+# im Zielordner bereits ein (abgebrochener) Rechenstand (elastoplastic_*.xdmf
+# bzw. restart_meta_*.json), wird er NICHT geloescht; nur die Skripte werden
+# aktualisiert und elastoplastic.py setzt den Lauf selbst fort (siehe
+# 00_template/yield_restart.py). Mit YS_FORCE_FRESH=1 wird der alte Stand
+# verworfen und neu gerechnet.
+FORCE_FRESH="${YS_FORCE_FRESH:-0}"
+
 for mat in "${MATERIALS[@]}"; do
   for direction in "${DIRECTIONS[@]}"; do
     final_output_dir="$working_directory/00_results/${dataset_id}/${binning_label}/yield_surface/${sample_id}-${mat}-${direction}"
@@ -107,20 +143,57 @@ for mat in "${MATERIALS[@]}"; do
         exit 1
       fi
       target="$run_root/$(basename "$subfolder")"
-      rm -rf "$target"
-      mkdir -p "$target"
-      cp -v "$subfolder"/dlfx_mesh.* "$target"/
-      cp -v "$subfolder"/mesh.xdmf "$target"/ 2>/dev/null || true
-      cp -v "$subfolder"/mesh.h5 "$target"/ 2>/dev/null || true
-      cp -v "$subfolder/$shell_volume_filename" "$target"/ 2>/dev/null || true
-      cp -v "$subfolder"/volume*.npy "$target"/ 2>/dev/null || true
-      cp -v "$SOURCE_DIR"/* "$target"/
-      cp -v "$working_directory/write_yield_surface_parameters.py" "$target/"
-      cp -v "$CONFIG_HOST_PATH" "$target/config.json"
+      mat_lc="$(echo "$mat" | tr '[:upper:]' '[:lower:]')"
+      summary_file="$target/yield_run_${mat_lc}_${direction}.json"
+      if [[ "$FORCE_FRESH" != "1" && -f "$summary_file" ]]; then
+        echo "[RESTART] $(basename "$summary_file") existiert bereits - Solverlauf wird uebersprungen."
+        continue
+      fi
+      has_state=0
+      if [[ "$FORCE_FRESH" != "1" && -d "$target" && -f "$target/dlfx_mesh.xdmf" ]]; then
+        if compgen -G "$target/elastoplastic_*.xdmf" > /dev/null || \
+           compgen -G "$target/restart_meta_*.json" > /dev/null; then
+          has_state=1
+        fi
+      fi
+      if [[ "$has_state" == "1" ]]; then
+        echo "[RESTART] Vorhandener Rechenstand in $target wird fortgesetzt (kein rm -rf)."
+        cp -v "$SOURCE_DIR"/* "$target"/
+        cp -v "$working_directory/write_yield_surface_parameters.py" "$target/"
+        cp -v "$CONFIG_HOST_PATH" "$target/config.json"
+      else
+        rm -rf "$target"
+        mkdir -p "$target"
+        cp -v "$subfolder"/dlfx_mesh.* "$target"/
+        cp -v "$subfolder"/mesh.xdmf "$target"/ 2>/dev/null || true
+        cp -v "$subfolder"/mesh.h5 "$target"/ 2>/dev/null || true
+        cp -v "$subfolder/$shell_volume_filename" "$target"/ 2>/dev/null || true
+        cp -v "$subfolder"/volume*.npy "$target"/ 2>/dev/null || true
+        cp -v "$SOURCE_DIR"/* "$target"/
+        cp -v "$working_directory/write_yield_surface_parameters.py" "$target/"
+        cp -v "$CONFIG_HOST_PATH" "$target/config.json"
+      fi
       run_container 1 "$target" "$SIM_BIND" "$SIM_CONTAINER" \
         python3 "$target/write_yield_surface_parameters.py" --config "$target/config.json" --output "$target/parameters.txt" --material "$mat" --loading-direction "$direction"
+      # Exit-Code 3 = elastoplastic.py hat sich kontrolliert vor dem Zeitlimit
+      # beendet (Snapshot und restart_meta sind geschrieben). Der Job muss dann
+      # mit != 0 enden, sonst raeumt sbatch --dependency=afternotok die
+      # restlichen Glieder der Fortsetzungskette ab.
+      set +e
       run_container "$sim_ntasks" "$target" "$SIM_BIND" "$SIM_CONTAINER" \
         python3 "$target/elastoplastic.py" --material "$mat" --loading-direction "$direction" --config "$target/config.json"
+      solver_rc=$?
+      set -e
+      if [[ "$solver_rc" -eq 3 ]]; then
+        echo "YIELD_WALLTIME_STOP: $sample_id ($mat/$direction) wurde kontrolliert vor dem" >&2
+        echo "Zeitlimit beendet - Rechenstand liegt in $target, Fortsetzung per Resubmit." >&2
+        rm -rf "$case_scratch" || true
+        exit 3
+      elif [[ "$solver_rc" -ne 0 ]]; then
+        echo "elastoplastic.py fehlgeschlagen (Exit $solver_rc)" >&2
+        rm -rf "$case_scratch" || true
+        exit "$solver_rc"
+      fi
     done
     mkdir -p "$final_output_dir"
     if [[ "${KEEP_FULL_RUN_COPY:-0}" == "1" ]]; then
