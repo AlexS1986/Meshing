@@ -103,6 +103,15 @@ Default der .leS-Config (`LES_SDF_PAD_WIDTH` in `config.sh`).
 2. iterativ die Flächen im Sternbereich nicht-mannigfaltiger Kanten, danach
    `fill_holes`.
 
+Seit 30.08.2026 schließt `close_boundary_loops()` die dabei entstehenden
+Löcher: `trimesh.repair.fill_holes` kann nur Drei- und Vierecklöcher, der
+Sternbereich hinterlässt aber Schleifen mit 6–14 Randkanten. Gefüllt wird mit
+einem Fächer um den Schwerpunkt der Schleife, und nur bei *einfachen* Schleifen
+(jeder Randknoten hat genau zwei Randnachbarn) mit höchstens
+`max_boundary_loop_edges` Kanten (Default 64) — ein echtes großes Loch am
+Domänenrand bleibt damit unangetastet. Ohne diesen Schritt endete die Reparatur
+regelmäßig mit `nicht-mannigfaltig 4 -> 0, offen 0 -> 30, VERWORFEN`.
+
 Sicherungen: die Reparatur wird **verworfen**, wenn sie die Oberfläche
 verschlechtert (mehr offene + nicht-mannigfaltige Kanten als vorher) oder wenn
 mehr als `repair_nonmanifold_max_faces` Flächen betroffen wären

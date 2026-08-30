@@ -103,6 +103,99 @@ def surface_edge_counts(faces):
     return uniq, np.asarray(inverse).ravel(), counts
 
 
+def close_boundary_loops(mesh, params=None):
+    """
+    Schliesst offene Randschleifen mit einem Faecher um den Schwerpunkt.
+
+    trimesh.repair.fill_holes deckt nur Drei- und Vierecksloecher ab. Nach dem
+    Entfernen des Sternbereichs einer nicht-mannigfaltigen Kante bleibt aber
+    typischerweise ein Loch mit sechs bis vierzehn Randkanten stehen - genau
+    daran ist die Reparatur bisher gescheitert (Log: "offen 0 -> 14",
+    anschliessend VERWORFEN, weil die Schutzregel offen+nicht-mannigfaltig
+    vergleicht).
+
+    Geschlossen werden nur *einfache* Schleifen (jeder Randknoten hat genau
+    zwei Randnachbarn) mit hoechstens max_boundary_loop_edges Kanten. Alles
+    andere bleibt unangetastet: lieber ein Loch stehen lassen, als eine
+    Selbstdurchdringung einzubauen. Die Obergrenze verhindert ausserdem, dass
+    ein echtes grosses Loch (Isoflaeche laeuft am Domaenenrand aus, tausende
+    Randkanten) versehentlich zugedeckelt wird.
+    """
+    import trimesh
+
+    params = params or {}
+    max_loop_edges = int(params.get("max_boundary_loop_edges", 64) or 64)
+    empty = {"surface_repair_loops_closed": 0, "surface_repair_loop_faces_added": 0}
+
+    faces = np.asarray(mesh.faces, dtype=np.int64)
+    if len(faces) == 0:
+        return mesh, empty
+
+    uniq, _, counts = surface_edge_counts(faces)
+    open_edges = uniq[counts == 1]
+    if len(open_edges) == 0:
+        return mesh, empty
+
+    neighbours = {}
+    for a, b in open_edges:
+        neighbours.setdefault(int(a), []).append(int(b))
+        neighbours.setdefault(int(b), []).append(int(a))
+    branching = {v for v, nb in neighbours.items() if len(nb) != 2}
+
+    visited = set()
+    loops = []
+    for start in neighbours:
+        if start in visited or start in branching:
+            continue
+        loop = [start]
+        visited.add(start)
+        current, previous = start, None
+        ok = True
+        while True:
+            candidates = [v for v in neighbours[current] if v != previous]
+            if not candidates:
+                ok = False
+                break
+            nxt = candidates[0]
+            if nxt == start:
+                break
+            if nxt in visited or nxt in branching:
+                ok = False
+                break
+            visited.add(nxt)
+            loop.append(nxt)
+            previous, current = current, nxt
+            if len(loop) > max_loop_edges:
+                ok = False
+                break
+        if ok and len(loop) >= 3:
+            loops.append(loop)
+
+    if not loops:
+        return mesh, empty
+
+    vertices = np.asarray(mesh.vertices, dtype=float)
+    new_vertices = []
+    new_faces = []
+    next_index = len(vertices)
+    for loop in loops:
+        new_vertices.append(vertices[loop].mean(axis=0))
+        centre = next_index
+        next_index += 1
+        for i in range(len(loop)):
+            new_faces.append((loop[i], loop[(i + 1) % len(loop)], centre))
+
+    merged = trimesh.Trimesh(
+        vertices=np.vstack((vertices, np.asarray(new_vertices, dtype=float))),
+        faces=np.vstack((faces, np.asarray(new_faces, dtype=np.int64))),
+        process=False,
+    )
+    return merged, {
+        "surface_repair_loops_closed": len(loops),
+        "surface_repair_loop_faces_added": len(new_faces),
+    }
+
+
 def repair_nonmanifold_surface(mesh, params):
     """
     Entfernt doppelte Flaechen und loest nicht-mannigfaltige Kanten auf, indem die
@@ -116,6 +209,8 @@ def repair_nonmanifold_surface(mesh, params):
         "surface_repair_duplicate_faces_removed": 0,
         "surface_repair_faces_removed": 0,
         "surface_repair_iterations": 0,
+        "surface_repair_loops_closed": 0,
+        "surface_repair_loop_faces_added": 0,
     }
     if not info["surface_repair_enabled"]:
         return mesh, info
@@ -160,6 +255,12 @@ def repair_nonmanifold_surface(mesh, params):
         mesh.remove_unreferenced_vertices()
         if params.get("fill_holes", True):
             trimesh.repair.fill_holes(mesh)
+            # fill_holes kann nur Drei- und Vierecksloecher; der Sternbereich
+            # hinterlaesst groessere Schleifen. Die bleiben sonst als offene
+            # Kanten stehen und die Reparatur wird unten verworfen.
+            mesh, loop_info = close_boundary_loops(mesh, params)
+            info["surface_repair_loops_closed"] += loop_info["surface_repair_loops_closed"]
+            info["surface_repair_loop_faces_added"] += loop_info["surface_repair_loop_faces_added"]
         trimesh.repair.fix_winding(mesh)
         trimesh.repair.fix_normals(mesh)
         mesh.merge_vertices()
@@ -205,6 +306,8 @@ def repair_surface(vertices, faces, params):
               f"{nonmanifold_info['surface_repair_nonmanifold_after']}, offen "
               f"{nonmanifold_info['surface_repair_open_edges_before']} -> "
               f"{nonmanifold_info['surface_repair_open_edges_after']}"
+              f", {nonmanifold_info.get('surface_repair_loops_closed', 0)} Randschleifen mit "
+              f"{nonmanifold_info.get('surface_repair_loop_faces_added', 0)} Flaechen geschlossen"
               + (", VERWORFEN" if nonmanifold_info.get("surface_repair_reverted") else "") + ")")
 
     component_filter_info = filter_surface_components(mesh, params)

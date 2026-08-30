@@ -780,3 +780,86 @@ Behoben: `cd "$working_directory"` direkt nach der Zuweisung in
 `run_prepare_mesh_CLUSTER.sh` (mit Begruendung im Kommentar). Zusaetzliche
 Faustregel: `batch_submit_CLUSTER.sh` aus `$HPC_SCRATCH/.../015-.../` heraus
 aufrufen, nicht aus HOME.
+
+### Nachtrag 30.08.2026 (2): Netzvorbereitung nur fuer JM-25-77 erfolgreich
+
+Zweiter Anlauf (Prep-Jobs 54430515-518, aus `$S` heraus eingereicht): der
+Container-Pfad-Fehler ist weg, A01/02b/02c/02d laufen durch. Ergebnis:
+
+| Datensatz | Job | Zustand |
+|---|---|---|
+| JM-25-77 | 54430515 | COMPLETED nach 54:42 -> 192 Punkt-Jobs laufen |
+| JM-25-71 | 54430516 | FAILED nach 18:21 in Schritt 03 |
+| JM-25-83 | 54430517 | FAILED nach 22:07 in Schritt 03 |
+| JM-25-88 | 54430518 | FAILED nach 16:36 in Schritt 03 |
+
+Kein Speicherproblem (MaxRSS 24-34 GB bei 480 GB Anforderung), sondern:
+
+```text
+RuntimeError: SDF surface is not watertight/manifold enough for volume meshing;
+see .../subvolume_x0_y0/mesh_sdf_surface.topology.txt
+```
+
+Also `surface_verdict(...) == "bad"` bei `require_watertight_surface = true`.
+JM-25-77 ist der aus 014 bekannte, durchgetestete Datensatz; die drei neuen
+`.leS` sind an dieser Stelle zum ersten Mal vernetzt worden. Die Konfiguration
+ist fuer alle vier identisch (`sdf_sigma_voxels = 1.0`, `pad_width = 3`,
+`level = 0.0`, `keep_largest_component = true`, `fill_holes = true`,
+`min_surface_component_faces = 0`), es ist also ein Datenthema, kein Codethema.
+
+Wichtig: `--kill-on-invalid-dep=yes` hat die 576 zugehoerigen Punkt-Jobs sofort
+verworfen; die 192 Punkt-Jobs von JM-25-77 laufen ungestoert weiter. Nachreichen
+spaeter je Datensatz mit `ONLY_DATASETS=...`.
+
+Diagnose ueber `mesh_sdf_surface.topology.txt` (Tabelle in `LES_PIPELINE.md`,
+Abschnitt "Wenn Schritt 03 mit ... abbricht"): `surface_open_edges > 0` ->
+`pad_width` erhoehen; `surface_nonmanifold_edges > 0` -> Reparaturbudget
+(`repair_nonmanifold_max_faces`) bzw. `level` minimal verschieben;
+`surface_watertight = false` bei 0 offenen Kanten -> `min_surface_component_faces`.
+
+### Nachtrag 30.08.2026 (3): warum die drei neuen Datensaetze nicht vernetzbar waren
+
+Die Topologie-Reports zeigen einen sehr kleinen, lokalen Defekt:
+
+| | JM-25-77 | JM-25-71 | JM-25-83 | JM-25-88 |
+|---|---|---|---|---|
+| offene Kanten | 0 | 0 | 0 | 0 |
+| nicht-mannigfaltige Kanten | 0 | 2 | 4 | 4 |
+| watertight | ja | nein | nein | nein |
+| Flaechen | 22,3 Mio | 31,3 Mio | 38,1 Mio | 27,9 Mio |
+
+Zwei bis vier kaputte Kanten unter 47 Millionen. `repair_nonmanifold_surface()`
+loest sie auch (`nicht-mannigfaltig 4 -> 0`), reisst dabei aber Loecher auf, die
+`trimesh.repair.fill_holes` **nicht** schliesst (`offen 0 -> 14 / 30 / 25`) —
+fill_holes kann nur Drei- und Vierecksloecher, der entfernte Sternbereich
+hinterlaesst aber Schleifen mit 6 bis 14 Randkanten. Die Schutzregel
+(`sum(after) > sum(before)`) verwirft die Reparatur daraufhin komplett, und der
+Report zeigt wieder die urspruenglichen 2-4 Kanten -> `verdict = bad` ->
+`require_watertight_surface` bricht ab.
+
+**Entscheidung:** nicht am `level` drehen (das haette die Geometrie aller vier
+Datensaetze veraendert und JM-25-77 vom laufenden Stand abgekoppelt), sondern
+die fehlende Lochfuellung nachruesten: neue Funktion `close_boundary_loops()`
+in `03_mesh_3D_array_pygalmesh.py`, aufgerufen in der Reparaturschleife direkt
+nach `fill_holes`. Sie schliesst einfache Randschleifen (jeder Randknoten genau
+zwei Randnachbarn) bis `max_boundary_loop_edges` (Default 64) mit einem Faecher
+um den Schleifenschwerpunkt; verzweigte oder sehr grosse Schleifen bleiben
+unangetastet, damit ein echtes Loch am Domaenenrand nicht zugedeckelt wird.
+
+Geprueft (trimesh 5.0, synthetisch): Loch aus dem Sternbereich eines
+Kugelknotens, 5 Randkanten — `fill_holes` allein bleibt bei `offen 5`,
+mit `close_boundary_loops` `offen 0, nicht-mannigfaltig 0, watertight True`,
+Volumenabweichung zur ungestoerten Kugel 0,0035 %. Auf einer intakten
+Oberflaeche ist die Funktion ein No-op (Flaechenzahl unveraendert) — **JM-25-77
+bekommt also exakt dasselbe Netz wie bisher**, die 192 laufenden Punkt-Jobs
+bleiben gueltig.
+
+Der Beweis am echten Datensatz steht noch aus: im neuen Prep-Log muss
+`🩹 Oberflaechenreparatur: ... (nicht-mannigfaltig 4 -> 0, offen 0 -> 0,
+N Randschleifen ... geschlossen)` **ohne** "VERWORFEN" stehen und danach
+`SDF surface topology verdict: good`.
+
+Falls das nicht reicht, ist der naechste Griff `level = -0.05` in
+`sdf_pygalmesh_parameters` (verschiebt die Isoflaeche um 0,05 Voxel und loest
+den Pinch) — dann aber fuer alle vier Datensaetze, inklusive Neustart von
+JM-25-77.
