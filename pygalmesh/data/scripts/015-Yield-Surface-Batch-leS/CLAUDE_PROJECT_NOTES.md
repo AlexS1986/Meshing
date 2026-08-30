@@ -718,3 +718,35 @@ Start deutlich an. Abschalten der Wache: `--no-walltime-stop` bzw.
   ohne Deadline-Wache (also nur bei unbekannter Job-Endzeit oder hartem
   Knotenausfall) bis zu 12 h Rechenzeit kostet. Mit funktionierender
   Deadline-Wache ist der Verlust bei einem Zeitlimit-Ende praktisch null.
+
+---
+
+## Session 30.08.2026 (3) — Runbook fuer den kompletten Neustart
+
+Entscheidung: 015 wird mit dem Stand vom 30.08.2026 (ausgeduennte Feldausgabe,
+Wandzeit-Deadline, `-t 10080` auf `long`) **komplett neu** gerechnet, nicht als
+Fortsetzung der mit dem alten Stand begonnenen Laeufe.
+
+Gelernt/festgehalten (Ablauf im Detail: `NEUSTART_KOMPLETT.md`):
+
+- Der Punkt-Job ist seit dem Restart-Umbau idempotent: vorhandener Rechenstand
+  wird fortgesetzt, vorhandenes `yield_run_*.json` uebersprungen. Ein Neustart
+  braucht deshalb zwei Dinge: auf dem Scratch `yield_surface_runs/` und
+  `00_results/` loeschen **und** die Erst-Einreichung mit `YS_FORCE_FRESH=1`
+  fahren (wird per `sbatch --export=ALL` in jeden Job vererbt).
+- `YS_FORCE_FRESH` darf nur an `batch_submit_CLUSTER.sh`, nie an
+  `resubmit_yield_surface_timeouts_CLUSTER.sh` — sonst startet jede Fortsetzung
+  wieder bei null.
+- `batch_create_folders_CLUSTER.sh` synchronisiert mit `rsync -av --update` und
+  **ohne** `--delete`: es raeumt auf dem Scratch nichts weg und ueberschreibt
+  nichts, was dort neuer ist. Nach `git pull` haben die Dateien in HOME die
+  Checkout-Zeit als mtime und gehen durch; alte generierte Ordner
+  (`yield_surface_jobs/`) muessen von Hand weg.
+- Erst `scancel -u $USER`, dann aufraeumen — sonst schreiben Kettenglieder aus
+  `afterok`/`afternotok` in die frisch geleerten Ordner.
+- Die vier vorbereiteten Netze bleiben liegen: sie haengen weder von sig_y noch
+  von Feldausgabe oder Zeitlimit ab. `AUTO_SKIP_PREPARE=1` (Default) ueberspringt
+  die Prepare-Jobs dann automatisch.
+- Beim ersten laufenden Punkt-Job den Block `=== Feldausgabe / Wandzeit ===` in
+  der `.out` pruefen: `walltime_deadline` muss einen Zeitpunkt zeigen, nicht
+  `unbekannt`. Das ist der erste echte Containerlauf der Deadline-Wache.
