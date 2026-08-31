@@ -11,16 +11,6 @@ weiter (gleicher Import, gleiche Argumente) und ergaenzt danach
 
 und entfernt den `yield_surface`-Block, den dieses Projekt nicht braucht.
 
-Randschale (Session 2026-08-31): Default ist wie in 011 eine EXTERNE Schale
-(`02f_add_voxel_shell`, 3 Voxel, nach aussen angefuegt); der innere Seal aus
-02d wird abgeschaltet. Der Seal hatte bei 400-um-Elementen 9/14/9 Voxel
-(1,2/1,9/1,2 mm) Schaum je Seite ueberschrieben.
-
-Surfing-BC (Session 2026-08-31): alex.boundaryconditions.get_boundary_of_box_
-as_function wendet die Verschiebung nur bei |y - y_mid| >= 4*epsilon an. Mit
-eps_factor <= 8 ist 4*epsilon >= Ly/2 und die BC greift NIRGENDS (freie
-Starrkoerpermoden). Das Skript bricht deshalb bei eps_factor <= 8 ab.
-
 Projektregel: Configs werden aus einer bestehenden, validierten Config
 abgeleitet. Basis ist `config-A01-les-base.json`, die 1:1-Kopie der in 015
 gelaufenen `config-A01-les.json`.
@@ -128,30 +118,8 @@ def build_parser():
     group.add_argument("--mue-param", type=float, default=1.0)
     group.add_argument("--gc-param", type=float, default=1.0)
     group.add_argument("--boundary-shell-elements", type=float, default=3.0,
-                       help="(nur --shell-mode seal) Zieldicke der Randschale in Elementen; "
-                            "daraus wird die Dicke in Voxeln gerechnet, wenn "
-                            "--boundary-shell-xz/-y fehlen")
-    group.add_argument("--shell-mode", choices=["external", "seal", "none"], default="external",
-                       help="external: 02f fuegt aussen Aluminium an (wie 011, Default); "
-                            "seal: 02d ueberschreibt den Rand des Ausschnitts (015); "
-                            "none: keine Schale")
-    group.add_argument("--shell-voxels", type=int, default=3,
-                       help="(--shell-mode external) Dicke der externen Schale in Voxeln "
-                            "auf allen Seiten; 011 nutzte 3 (y/z). Wird von --shell-um ueberschrieben.")
-    group.add_argument("--shell-um", type=float, default=None,
-                       help="(--shell-mode external) Dicke der externen Schale in um; "
-                            "Voxel = ceil(um / Voxelgroesse). Mindestens eine Elementgroesse, "
-                            "sonst loest das Netz die Schale nicht auf. 011: 3 * 134 um = 400 um")
-    group.add_argument("--shell-voxels-x", type=int, default=None,
-                       help="(--shell-mode external) abweichende Dicke an den x-Enden")
-    group.add_argument("--snap-mesh-to-box", dest="snap_mesh_to_box", action="store_true", default=True,
-                       help="10_snap_mesh_to_crop_boundary aktivieren (wie 011): Knoten nahe "
-                            "der Box-Flaechen werden exakt auf die Flaeche gezogen")
-    group.add_argument("--no-snap-mesh-to-box", dest="snap_mesh_to_box", action="store_false")
-    group.add_argument("--facet-distance-ratio", type=float, default=3.0,
-                       help="max_facet_distance = max_element_size / ratio. 011 hatte 3.0/1.0 = 3; "
-                            "die 015-Basis hat 16,7 (24 um Facettenabstand bei 400-um-Elementen). "
-                            "0 = Wert der Basis skaliert uebernehmen")
+                       help="Zieldicke der Randschale in Elementen; daraus wird die "
+                            "Dicke in Voxeln gerechnet, wenn --boundary-shell-xz/-y fehlen")
     return parser
 
 
@@ -193,88 +161,18 @@ def main():
     # Elementen und 133,6 um Voxeln sind drei Elemente rund 9 Voxel; die 8/12
     # aus 015 waren auf 75-um-Elemente abgestimmt.
     voxel_um = voxel_size_m * 1e6 * args.reduce
-    if args.shell_mode == "external" and args.shell_um:
-        args.shell_voxels = int(math.ceil(float(args.shell_um) / voxel_um))
-    if args.shell_mode == "external" and args.max_element_size_um:
-        if args.shell_voxels * voxel_um < float(args.max_element_size_um) - 1e-9:
-            print(f"WARNUNG: externe Schale {args.shell_voxels * voxel_um:.0f} um ist duenner als "
-                  f"die Elementgroesse {float(args.max_element_size_um):.0f} um - das Netz kann sie "
-                  "nicht aufloesen. --shell-um >= Elementgroesse waehlen.", file=sys.stderr)
-    if args.shell_mode == "seal":
-        if args.max_element_size_um and not args.boundary_shell_xz:
-            args.boundary_shell_xz = int(math.ceil(
-                args.boundary_shell_elements * float(args.max_element_size_um) / voxel_um))
-        if args.boundary_shell_xz and not args.boundary_shell_y:
-            # y traegt die Zug-/Surfing-Raender und war schon in 015 dicker (12 statt 8).
-            args.boundary_shell_y = int(math.ceil(args.boundary_shell_xz * 1.5))
+    if args.max_element_size_um and not args.boundary_shell_xz:
+        args.boundary_shell_xz = int(math.ceil(
+            args.boundary_shell_elements * float(args.max_element_size_um) / voxel_um))
+    if args.boundary_shell_xz and not args.boundary_shell_y:
+        # y traegt die Zug-/Surfing-Raender und war schon in 015 dicker (12 statt 8).
+        args.boundary_shell_y = int(math.ceil(args.boundary_shell_xz * 1.5))
 
     # --- 3. Basiskonfiguration aus 015 ableiten --------------------------------
     config = les.build_config(base, args)
 
     # Der Bruchzweig rechnet keine Fliessflaeche.
     config.pop("yield_surface", None)
-
-    # --- 3a. Randschale ---------------------------------------------------------
-    shell_x = args.shell_voxels_x if args.shell_voxels_x is not None else args.shell_voxels
-    seal_block = config.setdefault("02d_axis_aligned_cuboid_crop", {})
-    seal_cfg = seal_block.setdefault("boundary_seal", {})
-    if args.shell_mode == "external":
-        # Wie 011: 02d aus, 02f fuegt AUSSEN eine Schale an und frisst keinen Schaum.
-        seal_block["enabled"] = False
-        seal_block["use_cuboid_for_meshing"] = False
-        seal_cfg["enabled"] = False
-        config["02f_add_voxel_shell"] = {
-            "enabled": True,
-            "value": 0,
-            "output_filename": "volume_external_shell.npy",
-            "report_filename": "volume_external_shell.txt",
-            "use_shell_for_meshing": True,
-            "thickness": args.shell_voxels,
-            "thicknesses": {
-                "x_min": shell_x, "x_max": shell_x,
-                "y_min": args.shell_voxels, "y_max": args.shell_voxels,
-                "z_min": args.shell_voxels, "z_max": args.shell_voxels,
-            },
-            "comment": (
-                "Wert 0 = Aluminium (Pipeline-Konvention). Externe Schale wie in 011 "
-                "(dort 3 Voxel in y/z). 04_scale_and_translate_mesh_mod.py (011-Version) "
-                "rechnet die Verschiebung des Ursprungs heraus."
-            ),
-        }
-    elif args.shell_mode == "seal":
-        seal_block["enabled"] = True
-        seal_block["use_cuboid_for_meshing"] = True
-        seal_cfg["enabled"] = True
-        config["02f_add_voxel_shell"] = {"enabled": False, "use_shell_for_meshing": False}
-    else:
-        seal_block["enabled"] = False
-        seal_block["use_cuboid_for_meshing"] = False
-        seal_cfg["enabled"] = False
-        config["02f_add_voxel_shell"] = {"enabled": False, "use_shell_for_meshing": False}
-
-    config.setdefault("02e_mirror_extrude_voxel", {"enabled": False, "use_mirrored_for_meshing": False})
-    config.setdefault("11_mirror_extrude_mesh", {"enabled": False})
-    config["10_snap_mesh_to_crop_boundary"] = {
-        "enabled": bool(args.snap_mesh_to_box),
-        "tolerance_fraction": 0.015,
-        "tolerance_absolute": None,
-        "volume_tolerance": 1e-14,
-        "orient_tets_positive": True,
-        "comment": "Wie 011: Knoten nahe der Box-Flaechen exakt auf die Flaeche ziehen, "
-                   "damit die Surfing-BC (atol = 2 % Lx) den Rand sauber findet.",
-    }
-
-    # --- 3b. Facettenabstand relativ zur Elementgroesse -------------------------
-    # Die 015-Basis hat max_element/max_facet = 16,7; nach Skalierung auf 400 um
-    # waeren das 24 um Facettenabstand - eine extrem feine Oberflaeche unter groben
-    # Elementen. 011 hatte 3,0 / 1,0. Das erhaelt den Charakter "grobes Netz".
-    if args.facet_distance_ratio and args.facet_distance_ratio > 0:
-        mesh_block = config["03_mesh_3D_array"]
-        for block in (mesh_block.get("pygalmesh_parameters"),
-                      mesh_block.get("sdf_pygalmesh_parameters", {}).get("pygalmesh_parameters")):
-            if isinstance(block, dict) and block.get("max_element_size_factor"):
-                block["max_facet_distance_factor"] = float(block["max_element_size_factor"]) / args.facet_distance_ratio
-        mesh_block["facet_distance_ratio_applied"] = args.facet_distance_ratio
 
     specimen = args.specimen or args.dataset_id.split("_")[0]
     config["dataset"]["specimen"] = specimen
@@ -284,31 +182,8 @@ def main():
     y_len = axis_length_mm(args.y_range, args.grid[1] if args.grid else 0, voxel_size_m)
     z_len = axis_length_mm(args.z_range, args.grid[2] if args.grid else 0, voxel_size_m)
 
-    # Externe Schale vergroessert die Box; epsilon wird in pfmfrac_function.py aus
-    # der Bounding-Box des NETZES gebildet, also inklusive Schale.
-    voxel_mm = voxel_um / 1000.0
-    if args.shell_mode == "external":
-        x_len = (x_len + 2 * shell_x * voxel_mm) if x_len else x_len
-        y_len = (y_len + 2 * args.shell_voxels * voxel_mm) if y_len else y_len
-        z_len = (z_len + 2 * args.shell_voxels * voxel_mm) if z_len else z_len
-
     element_um = float(args.max_element_size_um) if args.max_element_size_um else None
     epsilon_mm = (y_len / args.eps_factor) if y_len else None
-
-    # Surfing-BC-Band: alex.boundaryconditions.get_boundary_of_box_as_function
-    # wendet die Verschiebung nur bei |y - y_mid| >= 4*epsilon an, d.h. auf dem
-    # Anteil (1 - 8/eps_factor) der Hoehe. eps_factor <= 8 -> BC greift nirgends.
-    bc_band_fraction = 1.0 - 8.0 / args.eps_factor
-    if bc_band_fraction <= 0.0:
-        sys.exit(
-            f"FEHLER: eps_factor_param = {args.eps_factor:g} -> 4*epsilon >= Ly/2. Die "
-            "Surfing-Randbedingung wuerde auf keinem Knoten greifen (freie "
-            "Starrkoerpermoden, Ergebnis unbrauchbar). eps_factor_param muss > 8 sein; "
-            "011 nutzte 20."
-        )
-    if bc_band_fraction < 0.5:
-        print(f"WARNUNG: Surfing-BC wirkt nur auf {bc_band_fraction:.0%} der Hoehe "
-              f"(011: 60 %). eps_factor_param >= 16 empfohlen.", file=sys.stderr)
     elements_per_epsilon = (
         (epsilon_mm * 1000.0) / element_um if (epsilon_mm and element_um) else None
     )
@@ -352,24 +227,16 @@ def main():
         "epsilon_mm": epsilon_mm,
         "element_size_um": element_um,
         "elements_per_epsilon": elements_per_epsilon,
-        "surfing_bc_band_fraction": bc_band_fraction,
-        "surfing_bc_band_mm_per_side": (bc_band_fraction * y_len / 2.0) if y_len else None,
         "crack_start_x_fraction": 0.2,
-        "shell_mode": args.shell_mode,
-        "shell_voxels": (
-            {"x": shell_x, "y": args.shell_voxels, "z": args.shell_voxels}
-            if args.shell_mode == "external" else
-            {"xz": args.boundary_shell_xz, "y": args.boundary_shell_y}
-            if args.shell_mode == "seal" else None
-        ),
-        "shell_thickness_mm": (args.shell_voxels * voxel_mm) if args.shell_mode == "external" else None,
+        "boundary_shell_voxels": {
+            "xz": args.boundary_shell_xz,
+            "y": args.boundary_shell_y,
+        },
         "comment": (
             "Richtwerte: mindestens 2 Elemente je epsilon, besser 4. Ist der Wert "
-            "kleiner, ist das Bruchergebnis netzabhaengig - dann Elemente verfeinern "
-            "oder den Riegel hoeher machen (LES_BAR_Y_MM). eps_factor_param NICHT "
-            "unter 12 senken: die Surfing-BC wirkt nur bei |y-y_mid| >= 4*epsilon "
-            "(surfing_bc_band_fraction = 1 - 8/eps_factor). bar_extent_mm enthaelt "
-            "die externe Schale. Werte gelten nur, wenn --grid gesetzt war."
+            "kleiner, ist das Bruchergebnis netzabhaengig - dann entweder die "
+            "Elemente verfeinern oder eps_factor_param verkleinern (epsilon groesser). "
+            "Werte gelten nur, wenn --grid gesetzt war."
         ),
     }
 
@@ -382,7 +249,7 @@ def main():
 
     section = config["A01_les_2_npy"]
     pg = config["03_mesh_3D_array"]["sdf_pygalmesh_parameters"]["pygalmesh_parameters"]
-    seal = config["02d_axis_aligned_cuboid_crop"]["boundary_seal"].get("thicknesses", {})
+    seal = config["02d_axis_aligned_cuboid_crop"]["boundary_seal"]["thicknesses"]
     print(f"Wrote {output_path}")
     print(f"  Stufe / dataset.id : {args.tier} / {config['dataset']['id']}")
     print(f"  Probe (Archivpfad) : {specimen}")
@@ -391,25 +258,15 @@ def main():
     print(f"  Crop (Originalgitter): x={section['crop']['x_range']} "
           f"y={section['crop']['y_range']} z={section['crop']['z_range']}")
     if x_len:
-        print(f"  Riegel inkl. Schale: {x_len:.2f} x {y_len:.2f} x {z_len:.2f} mm")
+        print(f"  Riegel             : {x_len:.2f} x {y_len:.2f} x {z_len:.2f} mm")
     print(f"  Elementgroesse     : "
           f"{config['03_mesh_3D_array'].get('max_element_size_um', float('nan')):.1f} um "
           f"(Faktor {pg['max_element_size_factor']:.4f} x dx)")
-    print(f"  max_facet_distance : {pg['max_facet_distance_factor']:.4f} x dx "
-          f"= {pg['max_facet_distance_factor'] * voxel_um:.0f} um")
-    if args.shell_mode == "external":
-        print(f"  Randschale         : extern (02f), {args.shell_voxels} Voxel = "
-              f"{args.shell_voxels * voxel_mm * 1000:.0f} um (x-Enden: {shell_x} Voxel); 02d-Seal aus")
-    elif args.shell_mode == "seal":
-        print(f"  Randschale         : innen (02d-Seal), x/z = {seal.get('x_min')}, y = {seal.get('y_min')} Voxel")
-    else:
-        print("  Randschale         : keine")
+    print(f"  Randschale (Voxel) : x/z = {seal['x_min']}, y = {seal['y_min']}")
     if epsilon_mm:
         print(f"  epsilon            : {epsilon_mm:.3f} mm (Ly / {args.eps_factor:g})")
         print(f"  Elemente je epsilon: {elements_per_epsilon:.2f}"
               + ("   <-- ZU WENIG (< 2)" if elements_per_epsilon < 2.0 else ""))
-        print(f"  Surfing-BC-Band    : |y-y_mid| >= 4*eps = {4*epsilon_mm:.2f} mm -> "
-              f"{bc_band_fraction:.0%} der Hoehe ({bc_band_fraction*y_len/2:.2f} mm je Seite)")
     print(f"  Gc                 : {args.fracture_toughness_name} = "
           f"{FRACTURE_TOUGHNESS_SETS[args.fracture_toughness_name]['Gc']} N/mm")
 

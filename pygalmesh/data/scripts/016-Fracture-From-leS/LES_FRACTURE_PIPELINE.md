@@ -9,17 +9,19 @@ getroffenen Entscheidungen: `CLAUDE.md`. Für den Voxel→FEM-Teil im Detail:
 ## 1. Die Kette in einem Bild
 
 ```text
-JM-25-88_78p86.leS  (ASCII, 1 = Material)
+JM-25_77_85p55.leS  (ASCII, 1 = Material)
         │  A01_les_2_npy.py      Crop (Riegel) + reduce + Phaseninversion
         ▼
 segmented_3D_volume.npy  (uint8, 1 = Pore, 0 = Aluminium)
         │  02b_build_subvolume_arrays.py     Teilvolumen (xy_divisions = 1)
         │  02c_voxel_topology_cleanup.py     nur Audit (cleanup aus)
-        │  02d_axis_aligned_cuboid_crop.py   Randschale aus Aluminium
+        │  02d_axis_aligned_cuboid_crop.py   AUS (innerer Seal, bis 2026-08-31)
+        │  02f_add_voxel_shell.py            externe Aluminiumschale 0,4 mm (wie 011)
         ▼
-volume_boundary_shell_aniso.npy
+volume_external_shell.npy
         │  03_mesh_3D_array_pygalmesh.py     SDF + Marching Cubes + CGAL
-        │  04_scale_and_translate_mesh_mod.py  auf mm skalieren, zentrieren
+        │  04_scale_and_translate_mesh_mod.py  auf mm skalieren, Schale herausrechnen (011-Version)
+        │  10_snap_mesh_to_crop_boundary.py  Randknoten auf die Box-Flächen ziehen
         │  05 / 08 / 09                      TetGen, Qualität, Topologie
         ▼
 mesh.xdmf
@@ -61,7 +63,7 @@ Abschalten mit `SKIP_CONFIGS=1`.
 ### Woher Gitter und Voxelgröße kommen
 
 ```bash
-python3 A04_les_header_info.py /data/resources/A01_segmented/JM-25-88_78p86.leS
+python3 A04_les_header_info.py /data/resources/A01_segmented/JM-25_77_85p55.leS
 python3 A04_les_header_info.py <datei> --format shell   # LES_GRID=... LES_VOXEL_SIZE_M=...
 ```
 
@@ -79,7 +81,7 @@ Zusätzlich zu allem, was schon aus 015 kommt:
 |---|---|
 | `fracture` | Materialsätze, `Gc`-Sätze, `eps_factor_param`, `element_order` — gelesen von `00_template/script.py` |
 | `mesh_resolution` | Stufe, reduce, Voxel- und Elementgröße |
-| `fracture_geometry_check` | Riegelmaße in mm, `epsilon`, Elemente je epsilon, verwendetes Gitter — reine Dokumentation und Warnquelle |
+| `fracture_geometry_check` | Riegelmaße in mm (inkl. Schale), `epsilon`, Elemente je epsilon, `surfing_bc_band_fraction`, Schale, verwendetes Gitter — Dokumentation und Warnquelle |
 | `dataset.specimen` | Probenname für den Archivpfad |
 
 Der `yield_surface`-Block aus 015 wird entfernt.
@@ -97,7 +99,7 @@ data/scripts/016-Fracture-From-leS/02_create_folders_CLUSTER.sh
 "$HPC_SCRATCH/pygalmesh/data/scripts/016-Fracture-From-leS/submit_fracture_pipeline_CLUSTER.sh"
 
 # Varianten
-submit_fracture_pipeline_CLUSTER.sh config-fracture-JM-25-88-medium.json
+submit_fracture_pipeline_CLUSTER.sh config-fracture-JM-25-77-medium.json
 ONLY_MESH=1 submit_fracture_pipeline_CLUSTER.sh     # nur vernetzen
 SKIP_MESH=1 submit_fracture_pipeline_CLUSTER.sh     # Netz existiert schon
 DRY_RUN=1   submit_fracture_pipeline_CLUSTER.sh     # nur anzeigen
@@ -106,8 +108,8 @@ DRY_RUN=1   submit_fracture_pipeline_CLUSTER.sh     # nur anzeigen
 Einzeln:
 
 ```bash
-sbatch job_generate_mesh_CLUSTER.sh  config-fracture-JM-25-88-coarse.json
-sbatch job_run_simulation_CLUSTER.sh config-fracture-JM-25-88-coarse.json
+sbatch job_generate_mesh_CLUSTER.sh  config-fracture-JM-25-77-coarse.json
+sbatch job_run_simulation_CLUSTER.sh config-fracture-JM-25-77-coarse.json
 ```
 
 ⚠ **Dieselbe Config für beide Stufen.** Der Archivpfad wird aus
@@ -187,11 +189,18 @@ sacct -j <jobid> --format=JobID,JobName,AllocCPUS,MaxRSS,Elapsed
   `eta = 0.005`, `Mob = 1000`.
 * **Anriss:** `s = 0` für `x < 0,2·Lx` in einem Band von ±2 % `Ly` um die
   Mittelebene — ein durchgehender Kerb über die volle Dicke.
-* **Randbedingungen (Surfing):** auf dem gesamten Box-Rand wird das
+* **Randbedingungen (Surfing):** auf dem Box-Rand wird das
   K-Feld-Verschiebungsfeld einer Modus-I-Rissspitze aufgebracht, deren Position
   mit `v_crack = 2·(x_max − x_start)/Tend` nach `+x` wandert.
   `K1 = sig_c · sqrt(Ly)` mit `sig_c` aus `Gc`, `mu` und `epsilon`.
   Dazu die Irreversibilitäts-Nebenbedingung.
+  **⚠ Nicht auf dem ganzen Rand:** `alex.boundaryconditions.get_boundary_of_box_as_function`
+  spart das Rissband aus und setzt die Verschiebung nur bei
+  `|y − y_mid| ≥ 4·epsilon`, also auf dem Anteil `1 − 8/eps_factor_param` der
+  Höhe (20 → 60 %, 16 → 50 %, 12 → 33 %, **8 → 0 %**). Mit `eps_factor = 8`
+  (016 bis 2026-08-31) greift die BC auf keinem Knoten; das Ergebnis ist eine
+  Starrkörperrotation. Der Generator und das Simulationsjob-Skript brechen
+  deshalb bei `eps_factor ≤ 8` ab.
 * **Zeit:** `dt = 1e-4`, `Tend = 1000·dt`, adaptive Newton-Schrittweite,
   Abbruch wenn `dt < 1e-14`.
 * **Auswertung je Zeitschritt:** J-Integral aus dem Eshelby-Tensor über den
@@ -263,8 +272,11 @@ zu kurz.
 | `surface_open_edges > 0` | Isofläche am Domänenrand abgeschnitten | `sdf_pygalmesh_parameters.pad_width` erhöhen (Default hier 3); `sdf_sigma_voxels` **nicht** erhöhen |
 | `surface_nonmanifold_edges > 0` | zwei Oberflächenblätter berühren sich | `03` repariert das selbst (`repair_nonmanifold`); sonst `level` minimal verschieben |
 | Starrkörpermoden im FE | freischwebende Materialinseln | `keep_largest_component = true` (Default hier) |
+| **uY linear in x, uX linear in y, Dehnung ≈ 0 (reine Rotation)** | Surfing-BC greift nirgends: `eps_factor_param ≤ 8` → `4·epsilon ≥ Ly/2` | `FRACTURE_EPS_FACTOR_PARAM = 20`; grobe Elemente über `LES_BAR_Y_MM` auffangen |
+| Wenige Poren, dicke Vollmaterialwände | innerer 02d-Seal frisst den Schaum (9/14/9 Voxel = 1,2/1,9/1,2 mm bei 134-µm-Voxeln) | `LES_SHELL_MODE=external` (Default seit 2026-08-31): 02f fügt die Schale außen an |
+| Netz um die Schale gestaucht (z um ~20 % zu kurz) | 015-Version von `04_scale_and_translate_mesh_mod.py` kennt 02f nicht | 011-Version verwenden (liegt jetzt hier), Aufruf mit `--npy` |
 | `More processors requested than permitted` | `srun`-Step fordert mehr Speicher je CPU als der Job hat | Step erbt die Werte — `SRUN_MEM_PER_CPU` leer lassen |
-| Weniger als 2 Elemente je epsilon | Netz zu grob für `epsilon` | Elemente verfeinern **oder** `FRACTURE_EPS_FACTOR_PARAM` verkleinern |
+| Weniger als 2 Elemente je epsilon | Netz zu grob für `epsilon` | Elemente verfeinern **oder** Riegel höher (`LES_BAR_Y_MM`). **Nicht** `eps_factor` senken (siehe oben) |
 
 Gemessen in 014 an einem 300³-Ausschnitt bei reduce = 2: `pad_width = 1` mit
 `sigma = 1,25` erzeugt 7180 offene Kanten; mit `pad_width = 3` keine. Deshalb ist
@@ -290,5 +302,5 @@ Stegdicken und Porengrößen messen — die Grundlage für die Wahl der
 Elementgröße:
 
 ```bash
-python3 evaluate_pore_size_distribution.py --config config-fracture-JM-25-88-coarse.json
+python3 evaluate_pore_size_distribution.py --config config-fracture-JM-25-77-coarse.json
 ```

@@ -195,7 +195,7 @@ for subfolder in "$base_subvolume_folder"/subvolume_x*_y*/; do
   run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH" \
     python3 "$working_directory/03_mesh_3D_array_pygalmesh.py" --config "$CONFIG_PATH" --npy "$meshing_npy_file" --mesh "$mesh_output"
   run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH" \
-    python3 "$working_directory/04_scale_and_translate_mesh_mod.py" --config "$CONFIG_PATH" --mesh "$mesh_output" --center_x "$center_x" --center_y "$center_y"
+    python3 "$working_directory/04_scale_and_translate_mesh_mod.py" --config "$CONFIG_PATH" --mesh "$mesh_output" --center_x "$center_x" --center_y "$center_y" --npy "$meshing_npy_file"
 
   if [[ "$(config_bool 10_snap_mesh_to_crop_boundary.enabled)" == "1" ]]; then
     run_container 1 "" "$BIND_PATHS" "$CONTAINER_PATH" \

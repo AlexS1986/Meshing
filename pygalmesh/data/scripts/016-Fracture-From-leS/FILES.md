@@ -26,16 +26,16 @@ Herkunft: **015** = unverändert aus `015-Yield-Surface-Batch-leS`,
 | `A04_les_header_info.py` | neu | Liest nur die erste Zeile der `.leS`-Datei: `nx ny nz voxel_size`. Liefert `--format shell` für `create_fracture_config.sh`. | — |
 | `02b_build_subvolume_arrays.py` | 015 | Teilvolumen (`xy_divisions`). | `02b_build_subvolume_arrays` |
 | `02c_voxel_topology_cleanup.py` | 015 | Komponenten-/Kavitäten-Audit; Cleanup im Default aus. | `02c_voxel_topology_cleanup` |
-| `02d_axis_aligned_cuboid_crop.py` | 015 | Randschale aus Aluminium (Wert 0) — trägt die Dirichlet-Ränder. | `02d_axis_aligned_cuboid_crop` |
+| `02d_axis_aligned_cuboid_crop.py` | 015 | Innerer Rand-Seal (Wert 0). **Seit 2026-08-31 aus** — ersetzt durch die externe Schale `02f` (siehe unten). | `02d_axis_aligned_cuboid_crop` |
 | `02e_mirror_extrude_voxel.py` | 012 | Optional: Voxelvolumen in x spiegeln. **Default aus** — der Riegel kommt direkt aus dem Volumen. | `02e_mirror_extrude_voxel` |
-| `02f_add_voxel_shell.py` | 012 | Optional: additive Außenschale nach dem Spiegeln. **Default aus**. | `02f_add_voxel_shell` |
+| `02f_add_voxel_shell.py` | 012 | Externe Aluminiumschale (Wert 0), außen an den Ausschnitt angefügt, frisst keinen Schaum. **Seit 2026-08-31 Default an** (`LES_SHELL_UM = 400`), trägt die Dirichlet-Ränder der Surfing-BC wie in 011. | `02f_add_voxel_shell` |
 | `03_mesh_3D_array_pygalmesh.py` | 015 | SDF → Marching Cubes → CGAL-Tetraeder. Enthält die automatische Oberflächenreparatur. | `03_mesh_3D_array` |
-| `04_scale_and_translate_mesh_mod.py` | 015 | Netz auf mm skalieren und positionieren. | `03_mesh_3D_array` |
+| `04_scale_and_translate_mesh_mod.py` | **011** (seit 2026-08-31; 015-Stand als `*.from015.bak`) | Netz auf mm skalieren und positionieren; rechnet mit `--npy` die externe Schale (02f) und eine Spiegelung (02e) in den Ursprung ein. | `03_mesh_3D_array`, `02f_add_voxel_shell`, `02e_mirror_extrude_voxel` |
 | `05_tetgen_postprocess_mesh.py` | 015 | TetGen-Nachbearbeitung. | `05_tetgen_postprocess` |
 | `07_pygalmesh_parameter_sweep.py` | 015 | Parameterstudie zur Vernetzung (nur manuell). | — |
 | `08_mesh_quality_report.py` | 015 | Qualitätsreport `mesh.quality.txt` (auch die Tetraederzahl). | `08_mesh_quality_report` |
 | `09_mesh_topology_audit.py` | 015 | Topologie-Audit `mesh.topology.txt`. | `09_mesh_topology_audit` |
-| `10_snap_mesh_to_crop_boundary.py` | 011 | Optional: Knoten nahe der Crop-Ebene auf die Ebene projizieren. **Default aus**. | `10_snap_mesh_to_crop_boundary` |
+| `10_snap_mesh_to_crop_boundary.py` | 011 | Knoten nahe der Box-Flächen exakt auf die Fläche ziehen (Toleranz 1,5 % der kleinsten Kante). **Seit 2026-08-31 Default an** wie in 011. | `10_snap_mesh_to_crop_boundary` |
 | `11_mirror_extrude_mesh.py` | 011 | Optional: Tetraedernetz spiegeln. **Default aus**. | `11_mirror_extrude_mesh` |
 | `make_mesh_dlfx_compatible_cluster.py` | 015 | `mesh.xdmf` → `dlfx_mesh.xdmf/.h5` (läuft im DOLFINx-Container). | — |
 | `evaluate_pore_size_distribution.py` | 015 | Porengrößen- und Stegdickenverteilung — Grundlage für die Wahl der Elementgröße. | — |

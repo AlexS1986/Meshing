@@ -14,7 +14,7 @@ Dateien in Millisekunden und braucht weder numpy noch scipy. Damit koennen
 create_fracture_config.sh und die Jobskripte den Riegel-Ausschnitt in mm
 rechnen, ohne das Volumen zu laden.
 
-    python3 A04_les_header_info.py /data/resources/A01_segmented/JM-25-88_78p86.leS
+    python3 A04_les_header_info.py /data/resources/A01_segmented/JM-25_77_85p55.leS
     python3 A04_les_header_info.py <datei> --format shell
     python3 A04_les_header_info.py <ordner>          # genau eine .leS-Datei darin
 """

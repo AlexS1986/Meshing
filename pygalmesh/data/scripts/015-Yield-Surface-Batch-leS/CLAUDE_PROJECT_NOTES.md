@@ -863,3 +863,17 @@ Falls das nicht reicht, ist der naechste Griff `level = -0.05` in
 `sdf_pygalmesh_parameters` (verschiebt die Isoflaeche um 0,05 Voxel und loest
 den Pinch) — dann aber fuer alle vier Datensaetze, inklusive Neustart von
 JM-25-77.
+
+**Bestaetigt am echten Datensatz (30.08.2026, Prep-Jobs 54431644-46):**
+
+```text
+JM-25-71: nicht-mannigfaltig 2 -> 0, offen 0 -> 0, 1 Randschleife  mit 14 Flaechen geschlossen -> verdict good
+JM-25-88: nicht-mannigfaltig 4 -> 0, offen 0 -> 0, 2 Randschleifen mit 25 Flaechen geschlossen -> verdict good
+          "Prepared mesh and DolfinX files for JM-25-88_les_r2."
+```
+
+Kein "VERWORFEN" mehr; die geschlossenen Loecher sind mit 14 bzw. 25 Flaechen
+unter 31 Mio. voellig lokal. Der `level`-Eingriff bleibt damit ungenutzt, alle
+vier Datensaetze behalten `level = 0.0`. Laufzeit der Netzvorbereitung skaliert
+erwartungsgemaess mit der Flaechenzahl (JM-25-77 22 Mio. -> 55 min;
+JM-25-71 31 Mio. und JM-25-83 38 Mio. -> mehrere Stunden, Zeitlimit 1 d reicht).

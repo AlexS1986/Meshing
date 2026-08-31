@@ -52,14 +52,6 @@ shell_args=()
 keep_args=()
 [[ "$LES_KEEP_LARGEST_COMPONENT" == "true" ]] && keep_args+=(--keep-largest-component)
 
-# Randschale: extern (02f, wie 011) / seal (02d, wie 015) / none
-shell_mode_args=(--shell-mode "$LES_SHELL_MODE")
-[[ -n "$LES_SHELL_UM" ]] && shell_mode_args+=(--shell-um "$LES_SHELL_UM")
-[[ -n "$LES_SHELL_VOXELS" ]] && shell_mode_args+=(--shell-voxels "$LES_SHELL_VOXELS")
-[[ -n "$LES_SHELL_VOXELS_X" ]] && shell_mode_args+=(--shell-voxels-x "$LES_SHELL_VOXELS_X")
-[[ "$LES_SNAP_MESH_TO_BOX" == "true" ]] && shell_mode_args+=(--snap-mesh-to-box) || shell_mode_args+=(--no-snap-mesh-to-box)
-shell_mode_args+=(--facet-distance-ratio "$LES_FACET_DISTANCE_RATIO")
-
 # --- Stufen durchgehen -------------------------------------------------------
 for entry in "${MESH_TIERS[@]}"; do
   IFS='|' read -r tier reduce element_um <<< "$entry"
@@ -102,7 +94,7 @@ for entry in "${MESH_TIERS[@]}"; do
     --fracture-materials $FRACTURE_MATERIALS \
     --fracture-directions $FRACTURE_DIRECTIONS \
     "${grid_args[@]}" "${voxel_args[@]}" "${bar_args[@]}" \
-    "${shell_args[@]}" "${shell_mode_args[@]}" "${keep_args[@]}"
+    "${shell_args[@]}" "${keep_args[@]}"
 done
 
 echo

@@ -102,14 +102,6 @@ if [[ -n "$elements_per_epsilon" ]]; then
   echo "Elemente je epsilon (aus der Config): $elements_per_epsilon"
   awk -v v="$elements_per_epsilon" 'BEGIN { if (v+0 < 2.0) print "WARNUNG: weniger als 2 Elemente je epsilon - das Ergebnis wird netzabhaengig sein." }'
 fi
-# Surfing-BC greift nur bei |y - y_mid| >= 4*epsilon (alex.boundaryconditions).
-# eps_factor <= 8 -> 4*epsilon >= Ly/2 -> BC auf keinem Knoten -> Starrkoerpermoden.
-if awk -v v="$fracture_eps_factor" 'BEGIN { exit !(v+0 <= 8.0) }'; then
-  echo "FEHLER: eps_factor_param = $fracture_eps_factor <= 8: die Surfing-Randbedingung wuerde nirgends greifen." >&2
-  echo "        (BC-Band = 1 - 8/eps_factor der Hoehe; 011 nutzte 20.) Abbruch." >&2
-  exit 3
-fi
-awk -v v="$fracture_eps_factor" 'BEGIN { f = 1.0 - 8.0 / (v+0); printf "Surfing-BC wirkt auf %.0f %% der Riegelhoehe (|y-y_mid| >= 4*epsilon)\n", 100*f; if (f < 0.5) print "WARNUNG: BC-Band unter 50 % - eps_factor_param >= 16 empfohlen." }'
 
 run_container() {
   local ntasks="$1"
