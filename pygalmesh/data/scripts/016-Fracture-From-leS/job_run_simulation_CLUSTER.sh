@@ -2,11 +2,17 @@
 
 #SBATCH -J frac-les-sim
 #SBATCH -A p0023647
-#SBATCH -t 10080
-#SBATCH --mem-per-cpu=4000
-#SBATCH -n 96
+#SBATCH -t 1440
+#SBATCH --mem-per-cpu=3800
+#SBATCH -n 24
 #SBATCH -N 1
 #SBATCH -C i01
+# Ressourcen (2026-08-31): i01 hat 96 Kerne / 364 800 MB. Die 011/012-Werte
+# -n 96 x 4000 MB = 384 000 MB passen NICHT auf einen Knoten -> mit -N 1 lehnt
+# SLURM den Job ab ("Requested node configuration is not available").
+# 3800 MB x 96 = 364 800 MB waere das Maximum. Das coarse-Netz hat nur ~35k
+# Tetraeder (~47k DOFs); 24 Ranks sind dafuer reichlich. submit_fracture_
+# pipeline_CLUSTER.sh ueberschreibt diese Werte aus config.sh (SIM_JOB_*).
 #SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/016-Fracture-From-leS/%x.err.%j
 #SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/016-Fracture-From-leS/%x.out.%j
 #SBATCH --mail-type=END

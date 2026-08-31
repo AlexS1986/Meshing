@@ -75,6 +75,43 @@ Behoben: `cd "$working_directory"` in `run_generate_mesh_CLUSTER.sh` und
 `job_run_simulation_CLUSTER.sh`. Der erste 016-Lauf am 21./…08. ist vermutlich
 nur deshalb durchgelaufen, weil damals aus `$HPC_SCRATCH` heraus submittiert wurde.
 
+### Erstes Netz JM-25-77 coarse (Job 54434143) — Kennzahlen aus dem Log
+
+* Header bestätigt: 1187 × 1188 × 886 @ 16,7 µm. Crop x[0:1184] y[112:1064]
+  z[320:560] → reduziert (148, 119, 30); mit Schale (154, 125, 36).
+* **Porosität im Riegel 90,2 %** (Aluminium 9,8 %; nach Reduktion 9,6 %) —
+  deutlich poröser als die 85,55 % des Gesamtvolumens: der Riegel liegt im
+  Probenkern, die dichtere Randzone fällt weg. Beim Vergleich mit Literatur-
+  werten die lokale Porosität nehmen, nicht die aus dem Dateinamen.
+* `keep_largest_component` hat nur ≈ 800 von ≈ 51 000 Schaum-Aluminium-Voxeln
+  entfernt (214 695 Materialvoxel nach dem Filter, davon 164 640 Schale) — das
+  Stegnetz ist bei 134 µm Voxeln also noch zusammenhängend.
+* Netz: **34 657 Tetraeder, 11 711 Punkte** (011: 381 039 / 100 188 bei 6,6-fach
+  größerem Materialvolumen). Mittleres Tetraedervolumen 0,015 mm³ ≈ 0,5 mm
+  Kantenlänge — passt zur Zielgröße 400 µm. Die Simulation wird damit Minuten
+  bis Stunden dauern, nicht Tage; `-t 10080` ist weit überdimensioniert.
+* `04_mod` (011-Version): origin_vox = (−3, −3, −3), shape (154, 125, 36) —
+  Schale liegt außen, wie vorgesehen. `10_snap`: 4851 Knoten gezogen.
+* Verdicts: SDF-Oberfläche **good**, Netzqualität **good**, Voxeltopologie
+  **bad** (mehrdeutige 2×2×2-Blöcke) und Netztopologie **bad** (nicht-mannig-
+  faltige Randkanten) — **beides genauso in 011** (dort 3816 nicht-mannigfaltige
+  Randkanten, 45 Randkomponenten) und dort ohne Folgen für DOLFINx. Kein Blocker.
+* **Die Simulation startet nur dann automatisch, wenn die Kette über
+  `submit_fracture_pipeline_CLUSTER.sh` eingereicht wurde** (`--dependency=afterok`).
+  Ein direktes `sbatch job_generate_mesh_CLUSTER.sh` reiht nichts nach. Dann:
+  `sbatch job_run_simulation_CLUSTER.sh config-fracture-JM-25-77-coarse.json`
+  oder `SKIP_MESH=1 submit_fracture_pipeline_CLUSTER.sh`.
+
+### Simulationsjob: `-N 1` abgelehnt
+
+`-n 96 × --mem-per-cpu=4000 = 384 000 MB` übersteigt die 364 800 MB eines
+i01-Knotens; mit `-N 1` ist der Job nicht platzierbar. In 011/012 stand
+dasselbe — vermutlich ist die Knotenkonfiguration seither anders bilanziert.
+Neu: `SIM_JOB_NTASKS=24`, `SIM_JOB_MEM_PER_CPU=3800`, `SIM_JOB_TIME=1440`
+(auch im SBATCH-Header). 96 × 3800 wäre das Maximum je Knoten. Bei medium/fine
+über die Umgebung hochsetzen. `submit_fracture_pipeline_CLUSTER.sh` gibt jetzt
+ebenfalls `-N 1` mit, damit Header und Kette dieselbe Zuteilung anfordern.
+
 ### Beim nächsten Lauf prüfen
 
 1. `pfmfrac_function_log.txt`: Newton konvergiert in wenigen Iterationen (011: 3–4).

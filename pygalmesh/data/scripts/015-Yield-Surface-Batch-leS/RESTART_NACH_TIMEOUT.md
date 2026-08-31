@@ -98,3 +98,17 @@ zusammen (Herleitung und alle Details: `CLAUDE_PROJECT_NOTES.md`, Abschnitt
   Marker wie einen echten Timeout.
 - **`u`, `sigma`, `alpha` bleiben Pflichtfelder** in `field_output.fields` —
   ohne sie ist kein Restart möglich; abwählbar ist nur `sig_vm`.
+
+## Sonderfall: Abbruch durch MUMPS (`dt_below_minimum` ohne Plastizitaet, 31.08.2026)
+
+Symptom: `yield_run_*.json` vorhanden, aber `stop_reason = dt_below_minimum`,
+`yield_states = {}`, `final_yield_state = null`, im `.out` schon beim ersten
+Schritt `KSPSolve ... PETSc error code is: 76`. Das ist kein Timeout und kein
+Modellproblem, sondern die parallele LU (MUMPS) — seit dem Patch vom
+31.08.2026 (`nls_solve_mat_mumps_icntl_14 = 200` in `elastoplastic.py`) sollte
+es nicht mehr auftreten. Solche Punkte **frisch** neu rechnen: Slim-Kopie in
+`00_results/<run_id>/<binning>/yield_surface/<sample>-std-tensor` beiseite
+legen (sonst "fertig"), dann
+`INCLUDE_FAILED=1 YS_FORCE_FRESH=1 MAX_CHAIN=1 resubmit_yield_surface_timeouts_CLUSTER.sh <combo>/nNNN`
+— `MAX_CHAIN=1`, weil `YS_FORCE_FRESH` sonst in jedem Kettenglied den Stand
+verwirft. Details und Befehle: `CLAUDE_PROJECT_NOTES.md`, Session 31.08.2026.

@@ -195,33 +195,6 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 # ---------------------------------------------------------------------------
-# Linearer Loeser des dolfinx-NewtonSolver (PETSc-Options-Prefix "nls_solve_")
-# ---------------------------------------------------------------------------
-# Befund 31.08.2026 (Studie 015, JM-25-77): bei ~16 % der Punkt-Jobs scheitert
-# bereits der erste, rein elastische Schritt mit "KSPSolve ... PETSc error code
-# 76, Error in external library" - die parallele LU-Faktorisierung (MUMPS)
-# bricht ab, knoten- und dt-unabhaengig, bei identischer Matrix mal ja, mal
-# nein. Die dt-Halbierung des Zeitschrittreglers kann das nicht heilen (27-42
-# Verwerfungen bis dt_min). Ursache: der Default-Workspace-Zuschlag von MUMPS
-# (ICNTL(14) = 20 %) reicht je nach Partitionierung/Pivotierung nicht.
-# Abhilfe: mehr Workspace und MUMPS-Fehlercodes (INFOG) auf stdout. Die Werte
-# sind ueber yield_surface.petsc_options in der Config ueberschreibbar
-# (Schluessel ohne Prefix, z. B. {"mat_mumps_icntl_14": 300}).
-from petsc4py import PETSc
-
-_solver_opts = {
-    "pc_factor_mat_solver_type": "mumps",
-    "mat_mumps_icntl_14": 200,   # Workspace-Zuschlag in %, PETSc-Default 20
-    "mat_mumps_icntl_4": 1,      # MUMPS: nur Fehler ausgeben (INFOG(1)/INFO(2))
-}
-_solver_opts.update(yield_config.get("petsc_options", {}) or {})
-_petsc_opts = PETSc.Options()
-for _key, _value in _solver_opts.items():
-    _petsc_opts[f"nls_solve_{_key}"] = _value
-if rank == 0:
-    print(f"PETSc options (prefix nls_solve_): {_solver_opts}", flush=True)
-
-# ---------------------------------------------------------------------------
 # Feldausgabe (XDMF/H5) ausduennen + Wandzeit-Deadline
 # ---------------------------------------------------------------------------
 # Ausgangslage: vier Felder je Zeitschritt lassen die .h5 auf zweistellige GB

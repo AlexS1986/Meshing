@@ -877,3 +877,274 @@ unter 31 Mio. voellig lokal. Der `level`-Eingriff bleibt damit ungenutzt, alle
 vier Datensaetze behalten `level = 0.0`. Laufzeit der Netzvorbereitung skaliert
 erwartungsgemaess mit der Flaechenzahl (JM-25-77 22 Mio. -> 55 min;
 JM-25-71 31 Mio. und JM-25-83 38 Mio. -> mehrere Stunden, Zeitlimit 1 d reicht).
+
+## Session 31.08.2026 — Erster Stand der Punkt-Jobs, reale Ergebnisablage
+
+### Queue-Stand (31.08., ~1 d nach Einreichung)
+
+| Kombination | RUNNING | PENDING | COMPLETED | `yield_run_*.json` |
+|---|---:|---:|---:|---:|
+| JM-25-77_s075 | 79 | 0 | **17** | 17 |
+| JM-25-77_s100 | 83 | 0 | **13** | 13 |
+| JM-25-88_s075 | 84 | 12 | 0 | 0 |
+| JM-25-88_s100 | 0 | 96 | 0 | 0 |
+| JM-25-71 / JM-25-83 (beide sig_y) | 0 | je 96 | 0 | 0 |
+
+Die 30 fertigen JM-25-77-Punkte liefen 1 h 10 min bis 5 h (`sacct`, ExitCode
+0:0) — deutlich kuerzer als die restlichen, die nach >1 d noch laufen. Die
+Laufzeit haengt also stark von der Belastungsrichtung ab.
+
+**Merkregel fuer den Status:** `squeue` zeigt nur aktive Jobs. Fehlen fuer
+eine Kombination Jobs (erwartet 96 minus RUNNING+PENDING), sind sie fertig oder
+gescheitert — `sacct -u $USER --starttime=<Datum> -o JobID,JobName%30,State,ExitCode,Elapsed`
+unterscheidet das. `squeue` kuerzt Jobnamen auf 8 Zeichen, daher immer
+`-o "%.30j"` verwenden, sonst sind `_s075` und `_s100` nicht unterscheidbar.
+
+### Reale Ablagestruktur (weicht von der Kurzform in FILES.md/README ab)
+
+Die Doku schreibt `00_results/<dataset>/<binning_label>/yield_surface/...`.
+Konkret sind die Platzhalter:
+
+- `run_id` = **`<dataset>_les_r2`** (z. B. `JM-25-77_les_r2`), nicht `JM-25-77`
+- `binning_label` = **`leS-r2-sigy075`** bzw. `leS-r2-sigy100`, nicht `sigy075`
+- die Ergebnis-JSON liegt **drei Ebenen unter `yield_surface/`**:
+
+```text
+00_results/JM-25-77_les_r2/leS-r2-sigy075/yield_surface/
+  <sample>-std-tensor/                      <sample> = ys_020_e1_m0p1313_e2_m0p1573_e3_p0p1432
+    config.json
+    parameters.txt
+    <sample>/subvolume_x0_y0/yield_run_std_tensor.json   <-- der Fliessflaechenpunkt
+
+yield_surface_runs/JM-25-77_les_r2/leS-r2-sigy075/<sample>/subvolume_x0_y0/
+    yield_run_std_tensor.json (Original), dlfx_mesh.h5, config.json, Feldausgabe ...
+
+yield_surface_jobs/JM-25-77_sigy075/n096/<sample>/
+    job_<sample>_CLUSTER.sh, config.json, parameters.txt,
+    JM-25-77_s075-ys020.out.<jobid>, JM-25-77_s075-ys020.err.<jobid>
+```
+
+Drei Namensraeume fuer dieselbe Kombination: Jobordner `JM-25-77_sigy075`,
+SLURM-Jobname `JM-25-77_s075-ys020`, Ergebnisordner `JM-25-77_les_r2/leS-r2-sigy075`.
+
+**Folge fuer Ad-hoc-Suchen:** `find ... -maxdepth 2` unter `yield_surface/`
+findet nichts; ohne Tiefenlimit suchen oder ueber
+`00_results/${dataset}_*/*sigy${sig}/yield_surface` globben. Der korrigierte
+Status-Einzeiler steht in `RESTART_NACH_TIMEOUT_015.md` nicht, sondern nur im
+Chat-Protokoll vom 31.08.; `batch_status_CLUSTER.sh` bleibt der offizielle Weg.
+
+### Befund: alle 30 "fertigen" Punkte sind gescheitert (`dt_below_minimum`)
+
+Inhaltliche Pruefung der 30 JSONs: **kein einziger Fliessflaechenpunkt**.
+Bei allen 30 gilt `stop_reason = dt_below_minimum`, `criteria_reached = []`,
+`criteria_missed = [alle drei]`, `yield_states = {}`, `final_yield_state = null`;
+beim geprueften ys_020 `time_steps_computed = 4`. Die kurzen Laufzeiten
+(1-5 h) sind also die *Ausfaelle*, die 162 noch laufenden JM-25-77-Jobs die
+gesunden Laeufe. `batch_status` zaehlt diese JSONs unter ERGEBNIS, nicht unter
+GUELTIG — GUELTIG ist die einzige belastbare Zahl.
+
+Mechanik des Abbruchs (aus `alex/solution.py::solve_with_newton_adaptive_time_stepping`
+und `00_template/elastoplastic.py`):
+
+- Newton: `max_iters = 8`, dolfinx-`NewtonSolver` mit Default-Toleranzen
+  (rtol 1e-9 relativ zum Startresiduum des Schritts, atol 1e-10), Tangente per
+  `ufl.derivative` aus dem Radial-Return in `alex/plasticity.py::sig_plasticity`
+  (Konsistente Tangente, `hard = 0`, Norm-Guard bei 1e3·eps).
+- Zeitschritt: `time_step = 1e-4`, `dt_max = 10·dt = 1e-3`, Verdopplung wenn
+  `iters < 4`, Halbierung bei RuntimeError des Newton, `dt_min = 1e-11`.
+  Rekonstruierter Verlauf: dt 1e-4 -> 2e-4 -> 4e-4 -> 8e-4 (4 erfolgreiche
+  Schritte, rein elastisch, 1-2 Iterationen) bis t = 1,5e-3; der 5. Schritt mit
+  dt = 1e-3 scheitert und danach **jede** Halbierung bis 1e-11 (27 Versuche a
+  <= 8 Newton-Iterationen auf dem grossen System = die 1-5 h).
+- Das Scheitern ist damit **unabhaengig von der Schrittweite** — ein Faktor
+  1e8 kleiner half nicht. Das schliesst "Inkrement zu gross" aus. Zeitpunkt:
+  Makrodehnung ~4e-4 (Eigenwerte ~0,25 · strain_scale), d. h. genau der
+  Beginn lokaler Plastizitaet in den duennsten Stegen.
+- ys_039 scheitert bei beiden sig_y, die uebrigen 28 nur bei einem — kein
+  rein geometrischer Richtungseffekt.
+
+Hypothesen, die das Log entscheiden muss (`.out` des Jobs 54430539 = ys_020
+unter `yield_surface_jobs/JM-25-77_sigy075/n096/ys_020_*/`):
+
+1. **Residuum-Boden vs. relative Toleranz:** an der elastisch-plastischen
+   Kante (`ufl.conditional`) wechseln einzelne Quadraturpunkte zwischen den
+   Iterationen den Zustand -> Residuum stagniert auf einem zustandsabhaengigen
+   Boden; das Startresiduum skaliert aber mit dt, also wird rtol = 1e-9 bei
+   kleinerem dt *schwerer* erreichbar. Passt zu "keine Halbierung hilft".
+   Log-Signatur: `Newton iteration k: r (rel)` stagniert bei ~1e-6..1e-8,
+   8 Iterationen, dann Abbruch.
+2. **Singulaere Tangente (Stegkollaps bei idealer Plastizitaet):** ein Steg
+   ist ueber den Querschnitt plastisch, `hard = 0` -> Tangente in Belastungs-
+   richtung null -> Direktloeser Zero-Pivot bzw. Newton divergiert (Residuum
+   waechst, ggf. NaN). Waere physikalisch das Limit-Load des Stegs — und
+   ebenfalls dt-unabhaengig.
+3. **Linearer Loeser:** Default-KSP/PC des NewtonSolver (steht im Log als
+   "Default KSP Type / PC Type"); bei iterativem Loeser Divergenz.
+
+Pruefbefehle (Cluster): `grep -m2 "KSP Type\|PC Type" <out>`;
+`grep -E "Computing solution at time|Current time step dt|NO CONVERGENCE|Newton iteration|STOP" <out> | head -80`;
+`grep -i -m5 "nan|diverg|zero pivot|did not converge" <out> <err>`;
+`yield_averages_std_tensor.json` der 30 Punkte (liegt in der Slim-Kopie):
+Iterationszahlen der 4 Schritte, `sig_vm_avg`, `yielded_fraction` beim letzten
+erfolgreichen Schritt.
+
+Korrektur zu einer Vermutung von heute: `yielded_volume_fraction_target = 0.02`
+in der JSON ist der **Legacy-Parameter** `yield_surface.yielded_volume_fraction`;
+das aktive Kriterium `yielded_fraction_material` steht in
+`yield_surface.criteria[2].threshold = 0.002`, wie in LES_PIPELINE.md dokumentiert.
+Kein Handlungsbedarf.
+
+**Operativ wichtig fuer eine Wiederholung dieser 30 Punkte:** die vorhandene
+`yield_run_std_tensor.json` ist zugleich die Fertig-Markierung —
+`job_yield_surface_point_CLUSTER.sh` ueberspringt den Solver, solange sie liegt,
+und `resubmit_yield_surface_timeouts_CLUSTER.sh` wertet den Punkt als fertig.
+Vor einem Neustart also JSON (in `00_results` **und** `yield_surface_runs`)
+entfernen oder `YS_FORCE_FRESH=1` setzen; Parameteraenderungen (Newton-
+Iterationen, Toleranzen, dt) greifen nur ueber neu erzeugte Punkt-Jobs
+(`batch_setup_jobs.sh`), weil jeder `ys_*`-Ordner seine eigene Config traegt.
+
+### Naechste Schritte
+
+- Log von ys_020 (54430539) auswerten und die Hypothese festnageln; danach
+  entscheiden: Newton robuster machen (`max_iters` 8 -> 25-50, absolute
+  Toleranz, Line Search) vs. Loeserwechsel vs. Punkt als "kein Fliesspunkt
+  im Modellhorizont" akzeptieren.
+- Fortschritt der 162 laufenden JM-25-77-Jobs pruefen (Schrittzahl, dt,
+  Anzahl `NO CONVERGENCE` im `.out`), damit klar ist, ob sie nur langsam sind
+  oder dasselbe Problem vor sich herschieben.
+- Nach dem Prep von JM-25-71/83 (30.08.) laufen deren 384 Punkt-Jobs an, sobald
+  die `long`-Partition frei wird; Queue-Limit bisher kein Problem.
+
+### Korrektur und Stand aller 192 JM-25-77-Laeufe (31.08., Auswertung der .out + restart_meta)
+
+Scan aller `.out`-Dateien und `restart_meta_*.json` (Skript im Chat-Protokoll):
+
+| Gruppe | s075 | s100 | Merkmal |
+|---|---:|---:|---|
+| gesund, `yielded_fraction_material` erreicht | 65 | 69 | 0-3 verworfene Schritte, strain_scale 5e-3 .. 1,3e-2 |
+| "Kriecher", noch kein Kriterium | 14 | 14 | 5-16 verworfene Schritte, nach ~75 Schritten erst bei t = 1-2e-3 |
+| `dt_below_minimum` | 17 | 13 | siehe unten |
+
+**Korrektur zur Hypothese von oben:** die 30 Abbrueche liegen **nicht** am
+Einsetzen der Plastizitaet, sondern im **ersten Schritt im rein elastischen
+Bereich** (sig_vm_avg = 0,00, yf = 0, e_p = 0; die "erfolgreichen" 3-14
+Schritte sind Artefakte bei dt ~ 1e-10 nach ~25 Halbierungen). Entscheidend:
+im ersten Schritt ist das Problem fuer sig_y = 75 und 100 **identisch** (linear
+elastisch), trotzdem scheitert ys_020/ys_022 nur bei s075 und laeuft bei s100
+sauber (59/67 Schritte, 0 Verwerfungen), ys_001 umgekehrt. Dieselbe lineare
+Gleichung konvergiert in einem Job und im anderen nie -> **nicht-deterministisch**:
+linearer Loeser (MUMPS-Workspace, partitionsabhaengig), defekter Knoten oder
+MPI/Speicher — nicht das Materialmodell. Die 28 Kriecher zeigen dasselbe
+Muster in milder Form (Verwerfungen im elastischen Bereich halten dt klein).
+Betroffen also 58 von 192, gesund 134.
+
+Offen (Pruefbefehle im Chat-Protokoll vom 31.08.): (a) Fehlertext des ersten
+verworfenen Schritts + "Default KSP/PC Type" im `.out`, (b) Knotenkorrelation
+ueber `sacct -o NodeList`, (c) Speicher.
+
+**Stand der Kriterien:** 134 Laeufe haben `yielded_fraction_material`
+(0,2 % des Materialvolumens plastisch) bei strain_scale 1,8e-3 .. 4e-3
+erreicht; **kein** Lauf hat `alpha_avg_material` oder das Primaerkriterium
+`eps_p_eq_macroscopic`. Die am weitesten fortgeschrittenen Laeufe stehen bei
+strain_scale ~1e-2 (Makrodehnung ~0,25 %) mit 15-26 % plastischem
+Materialvolumen, aber eps_p_mac ~ 1-3e-5 (Schwelle 2e-3, Faktor ~65) und
+<alpha> ~ 2-4e-4 (Faktor ~6). Physikalisch erwartbar (Volumenmittel ueber die
+Box mit rho_rel ~ 0,15 und Richtungsausloeschung), aber: das Primaerkriterium
+wird erst nahe der Traglast des RVE erreicht — bei `hard = 0` genau dort, wo
+die Tangente singulaer wird. Restlaufzeit nicht abschaetzbar (beschleunigt).
+
+**Was schon gesichert ist:** ein erreichtes Kriterium steht sofort in
+`[YIELD]`-Zeile des `.out`, im `restart_meta_*.json` (erzwungener Snapshot,
+enthaelt `yield_states` + komplette `averaged_history`) und am Ende in
+`yield_run_*.json -> yield_states`; `batch_collect_results.py` schreibt daraus
+je Kriterium eine Zeile in `yield_points_all.csv`, auch ohne
+`final_yield_state`. Nur beim Walltime-Stop fehlt die Summary-JSON, dann gilt
+`restart_meta`. Die 134 `yielded_fraction`-Zustaende sind damit bereits eine
+Erstfliess-Flaeche (Kriterium der Vorgaengerstudie, Schwelle 0,002 statt 0,02)
+und lassen sich jetzt aus den `restart_meta` nach
+`00_results/_packages/partial_yield_states_from_restart_meta.csv` ziehen
+(Skript im Chat-Protokoll).
+
+### Ursache gefunden: MUMPS-Faktorisierung scheitert (KSPSolve error 76) — Patch eingebaut
+
+Log des toten Punkts ys_020/s075 (Job 54430539): `Default KSP Type: preonly`,
+`Default PC Type: lu` (dolfinx-NewtonSolver-Default = parallele LU ueber
+MUMPS) und beim allerersten Schritt (dt = 1e-4, rein elastisch):
+
+```text
+Failed to successfully call PETSc function 'KSPSolve'. PETSc error code is: 76, Error in external library
+!!! NO CONVERGENCE => dt:  5e-05
+```
+
+Error 76 = Fehler in der externen Bibliothek = die MUMPS-Faktorisierung selbst
+(typisch INFOG(1) = -9: Workspace zu klein, oder -13/-17: Allokation). Die
+dt-Halbierung des Reglers aendert die Matrix im elastischen Schritt nicht,
+also scheitert jeder Wiederholungsversuch identisch (27-42 mal bis dt_min).
+
+Knotenkorrelation (`sacct -o NodeList`, jeder Job auf genau einem Knoten):
+tote und gesunde Jobs teilen sich Knoten (mpsc0617: 2 tot + 1 ok; mpsc0448,
+0452, 0453, 0458, 0470, 0472, 0504, 0505, 0546, 0551, 0571, 0577, 0585, 0597,
+0600, 0601, 0604, 0623: je 1 tot + 1 ok) -> **keine Hardware**. Es ist eine
+Eigenschaft des einzelnen Jobs (Partitionierung/Ordering beim Start ->
+MUMPS-Speicherschaetzung -> der Default-Zuschlag ICNTL(14) = 20 % reicht bei
+~16 % der Jobs nicht), deshalb deterministisch innerhalb eines Jobs und
+"zufaellig" zwischen Jobs mit identischer Matrix. Die 28 Kriecher sind
+derselbe Effekt intermittierend in spaeteren Schritten (Pivotierung aendert
+sich mit dem plastischen Zustand).
+
+**Patch (31.08.2026, auf dem Mac eingebaut, Backups in `_to_delete/*.vor_mumps_patch_20260831`):**
+
+1. `00_template/elastoplastic.py`, direkt nach `comm/rank`: globale
+   PETSc-Optionen mit dem NewtonSolver-Prefix `nls_solve_`:
+   `pc_factor_mat_solver_type = mumps`, `mat_mumps_icntl_14 = 200`
+   (Workspace-Zuschlag in %, statt 20), `mat_mumps_icntl_4 = 1` (MUMPS druckt
+   INFOG(1)/INFO(2) auf stdout). Ueberschreibbar/erweiterbar ueber
+   `yield_surface.petsc_options` in der Config (Schluessel ohne Prefix,
+   z. B. `{"mat_mumps_icntl_14": 300}` oder `{"ksp_view": true}` zur
+   Kontrolle). Das Skript druckt die gesetzten Optionen als
+   `PETSc options (prefix nls_solve_): {...}` ins `.out`.
+2. `dolfinx_alex/shared/utils/alex/solution.py::get_solver`: eine Zeile
+   `solver.krylov_solver.setFromOptions()` nach `solver.max_it`, damit die
+   Optionen sicher greifen, falls der dolfinx-Build sie nicht schon im
+   Konstruktor liest (sonst No-op).
+
+Wirkung: jeder Punkt-Job kopiert `00_template/*` beim Start (auch beim
+Fortsetzen) -> alle 576 wartenden Jobs und alle Resubmits nutzen den Patch,
+sobald er auf `$HPC_SCRATCH` liegt; laufende Jobs bleiben unveraendert.
+Speicher: ICNTL(14) = 200 erlaubt MUMPS bis zum 3-fachen der Schaetzung;
+bei `--mem-per-cpu=9000` und einem Knoten je Job vertretbar, und ein
+Speicherfehler steht jetzt als INFOG im Log statt stumm zu scheitern.
+
+**Neustart-Rezept (Cluster, nach Sync von Template und alex/solution.py):**
+
+```bash
+H="$HOME/meshing/Meshing/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS"
+S="$HPC_SCRATCH/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS"
+rsync -av "$H/00_template/" "$S/00_template/"               # nur das Template, keine Job-Neuerzeugung
+grep -c mat_mumps_icntl_14 "$S/00_template/elastoplastic.py" # 1
+grep -c "krylov_solver.setFromOptions" "$HOME/dolfinx_alex/shared/utils/alex/solution.py"   # 1
+
+# tote Punkte: Slim-Kopie beiseite (sonst gelten sie fuer resubmit als fertig)
+cd "$S"; mkdir -p 00_results/_failed_mumps_20260831
+for o in $(grep -l "dt too small" yield_surface_jobs/JM-25-77_*/n096/ys_*/*.out.*); do
+  d=$(dirname "$o"); sample=$(basename "$d"); combo=$(basename "$(dirname "$(dirname "$d")")"); sig=${combo##*sigy}
+  r="00_results/JM-25-77_les_r2/leS-r2-sigy${sig}/yield_surface/${sample}-std-tensor"
+  [ -d "$r" ] && mkdir -p "00_results/_failed_mumps_20260831/$combo" && mv -v "$r" "00_results/_failed_mumps_20260831/$combo/"
+done
+
+# frisch einreichen: MAX_CHAIN=1, weil YS_FORCE_FRESH=1 sonst auch jedes
+# Kettenglied den Stand verwerfen wuerde; Fortsetzungsketten spaeter OHNE die Variable
+DRY_RUN=1 INCLUDE_FAILED=1 YS_FORCE_FRESH=1 MAX_CHAIN=1 "$S/resubmit_yield_surface_timeouts_CLUSTER.sh" "$S/yield_surface_jobs/JM-25-77_sigy075/n096"   # 17 x "wuerde"
+DRY_RUN=1 INCLUDE_FAILED=1 YS_FORCE_FRESH=1 MAX_CHAIN=1 "$S/resubmit_yield_surface_timeouts_CLUSTER.sh" "$S/yield_surface_jobs/JM-25-77_sigy100/n096"   # 13 x "wuerde"
+# dann dieselben Zeilen ohne DRY_RUN=1
+```
+
+Kontrolle nach dem Start: `grep "PETSc options" <neues .out>` (Optionen
+aktiv), nach 1-2 h `grep -c "NO CONVERGENCE"` = 0 und wachsende Zahl
+`Computing solution`; scheitert MUMPS weiter, steht jetzt `INFOG(1)=...` im
+`.out` (dann ICNTL(14) hoeher oder ICNTL(23)/Speicher).
+
+Die 28 Kriecher laufen vorerst weiter (sie kommen voran). Option spaeter:
+`scancel` + `INCLUDE_FAILED=1 MAX_CHAIN=3 resubmit... <combo>/n096` **ohne**
+`YS_FORCE_FRESH` -> Fortsetzung vom letzten Snapshot (max. 12 h Verlust) mit
+dem gepatchten Template.
