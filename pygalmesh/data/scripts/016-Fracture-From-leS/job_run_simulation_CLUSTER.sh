@@ -22,6 +22,10 @@
 set -euo pipefail
 
 working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/016-Fracture-From-leS"
+# Immer aus dem Projektordner unter /work/scratch arbeiten - Apptainer haengt das
+# aktuelle Verzeichnis mit ein; ein cwd ausserhalb der Binds erzeugt die Warnung
+# "Error changing the container working directory" (siehe run_generate_mesh_CLUSTER.sh).
+cd "$working_directory"
 source "$working_directory/config.sh"
 
 CONFIG_ARG="${1:-${FRACTURE_SIM_CONFIG:-config-fracture-${SPECIMEN_NAME}-${DEFAULT_TIER}.json}}"

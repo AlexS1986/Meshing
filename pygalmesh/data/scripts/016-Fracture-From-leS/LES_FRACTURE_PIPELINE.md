@@ -267,6 +267,7 @@ zu kurz.
 | Symptom | Ursache | Gegenmittel |
 |---|---|---|
 | `Kein archiviertes Netz unter …` | Stufe 1 fehlt oder andere Config | `job_generate_mesh_CLUSTER.sh` mit **derselben** Config |
+| `can't open file '/work/scratch/…/A01_les_2_npy.py'` + `Error changing the container working directory` | srun-Step erbt das sbatch-Verzeichnis außerhalb der Binds; Apptainer hängt nur cwd, `/home` und `/data` ein | `run_generate_mesh_CLUSTER.sh` macht seit 2026-08-31 selbst `cd "$working_directory"` (wie 015). Alte Skriptversion: aus `$HPC_SCRATCH/…/016-Fracture-From-leS` heraus `sbatch` aufrufen |
 | `In … liegen 4 .leS-Dateien` | `A01_les_2_npy.input` zeigt auf den Ordner | `LES_FILENAME` in `config.sh` setzen, Config neu erzeugen |
 | `SDF surface is not watertight/manifold` in 03 | siehe Diagnosetabelle unten | |
 | `surface_open_edges > 0` | Isofläche am Domänenrand abgeschnitten | `sdf_pygalmesh_parameters.pad_width` erhöhen (Default hier 3); `sdf_sigma_voxels` **nicht** erhöhen |

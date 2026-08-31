@@ -199,3 +199,6 @@ Siehe `CLAUDE_PROJECT_NOTES.md`, Abschnitt „Offene Punkte" — kurz:
 - **Elementgröße gegen Stegdicke prüfen.** 400 µm können dicker sein als die
   Stege. `evaluate_pore_size_distribution.py` liegt im Ordner und misst das.
 - `02c` (scipy) und `03` (nanomesh/pygalmesh) sind lokal nicht lauffähig.
+- **Apptainer sieht Host-Pfade unter `/work/scratch` nur über das cwd.** Die
+  Runner machen deshalb `cd "$working_directory"` (aus 015 übernommen, in 016
+  am 31.08. nachgezogen). Nie entfernen.

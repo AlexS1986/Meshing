@@ -62,6 +62,19 @@ dieser Session. Alte `config-fracture-JM-25-88-*.json` in `_superseded_2026-08-3
 * **Nicht ausgeführt:** die Cluster-Kette. Vor dem ersten Lauf
   `02_create_folders_CLUSTER.sh` (synchronisiert die neuen Configs).
 
+### Nachtrag: erster Start nach der Korrektur schlug fehl
+
+`/usr/bin/python3: can't open file '/work/scratch/…/016-Fracture-From-leS/A01_les_2_npy.py'`
+plus `WARNING: Error changing the container working directory … chdir
+/home/as12vapa/meshing/Meshing/pygalmesh`. Ursache: `run_generate_mesh_CLUSTER.sh`
+hatte das `cd "$working_directory"` aus 015 nicht übernommen. Apptainer bindet
+nur `/home`, `/data` und das **aktuelle Verzeichnis**; wird `sbatch` aus
+`$HOME/meshing/Meshing/pygalmesh` abgeschickt (so steht es im README für den
+Sync-Schritt), sieht der Container die Host-Pfade unter `/work/scratch` nicht.
+Behoben: `cd "$working_directory"` in `run_generate_mesh_CLUSTER.sh` und
+`job_run_simulation_CLUSTER.sh`. Der erste 016-Lauf am 21./…08. ist vermutlich
+nur deshalb durchgelaufen, weil damals aus `$HPC_SCRATCH` heraus submittiert wurde.
+
 ### Beim nächsten Lauf prüfen
 
 1. `pfmfrac_function_log.txt`: Newton konvergiert in wenigen Iterationen (011: 3–4).
