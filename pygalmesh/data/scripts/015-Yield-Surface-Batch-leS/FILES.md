@@ -71,6 +71,7 @@ Acht Kombinationen: vier `.leS`-Datensaetze x zwei Anfangsfliessgrenzen
 
 | Datei | Zweck |
 |---|---|
+| **`health_check_CLUSTER.sh`** | schneller Gesundheits-Check: Queue je Kombination, Ergebnis-JSONs **ohne** `final_yield_state` (Alarm), MUMPS-Fehler/`dt too small`/Kriecher im neuesten `.out`, ob der MUMPS-Patch aktiv ist, Stand der drei Fließkriterien aus `restart_meta_*.json`. Exit 0/1/2 = OK/Warnung/Alarm. Optionen: `QUICK=1` (ohne Logscan), `DATASET=JM-25-77`, `CRAWL_LIMIT=n` |
 | `check_yield_surface_points.py` | prüft, welche Punkt-Jobs ein vollständiges `final_yield_state` haben |
 | `collect_yield_surface_points.py` | sammelt gültige Punkte in einer CSV |
 | `create_yield_surface_paraview.py`, `create_yield_surface_paraview.sh` | Punktwolken + Konvexhüllen als VTK für ParaView |

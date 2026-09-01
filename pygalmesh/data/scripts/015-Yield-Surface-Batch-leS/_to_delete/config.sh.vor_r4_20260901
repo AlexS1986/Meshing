@@ -23,10 +23,7 @@ BASE_PATH="/data/scripts/015-Yield-Surface-Batch-leS"
 #   64 x 5700 MB = 364800 MB     exakt das Knotenlimit, keine Reserve
 #   64 x 4000 MB = 256000 MB     genuegsam, falls MUMPS weniger braucht
 # Reicht das nicht: -C i02 (104 Kerne, 490000 MB) -> 64 x 7500 = 480000 MB.
-# Seit reduce=4 (01.09.2026): ~1,5-2 Mio. dofs, LU braucht geschaetzt < 50 GB.
-# 32 x 5600 MB = 179 GB -> zwei Punkt-Jobs je i01-Knoten; nach Messung von
-# MaxRSS der ersten Laeufe ggf. weiter senken (z. B. 24 x 3700 = 89 GB, vier je Knoten).
-YIELD_JOB_NTASKS="${YIELD_JOB_NTASKS:-32}"
+YIELD_JOB_NTASKS="${YIELD_JOB_NTASKS:-64}"
 YIELD_JOB_NODES="${YIELD_JOB_NODES:-1}"
 YIELD_JOB_MEM_PER_CPU="${YIELD_JOB_MEM_PER_CPU:-5600}"
 YIELD_JOB_CONSTRAINT="${YIELD_JOB_CONSTRAINT:-i01}"
@@ -36,11 +33,8 @@ YIELD_JOB_CONSTRAINT="${YIELD_JOB_CONSTRAINT:-i01}"
 # deshalb auf "long" stehen; sonst lehnt SLURM mit "Requested time limit is
 # invalid" ab. elastoplastic.py beendet sich vor dem Limit selbst und schreibt
 # davor einen Snapshot (siehe yield_surface.walltime in der Config).
-# Seit reduce=4: 1440 min in der Default-Partition (bessere Prioritaet als
-# "long"); laeuft ein Punkt laenger, uebernimmt die Fortsetzungskette
-# (resubmit_yield_surface_timeouts_CLUSTER.sh).
-YIELD_JOB_TIME="${YIELD_JOB_TIME:-1440}"
-YIELD_JOB_PARTITION="${YIELD_JOB_PARTITION:-}"
+YIELD_JOB_TIME="${YIELD_JOB_TIME:-10080}"
+YIELD_JOB_PARTITION="${YIELD_JOB_PARTITION:-long}"
 YIELD_SURFACE_POINTS="${YIELD_SURFACE_POINTS:-96}"
 YIELD_SURFACE_STRAIN_RADIUS="${YIELD_SURFACE_STRAIN_RADIUS:-0.25}"
 
@@ -54,7 +48,7 @@ PREP_JOB_PARTITION="${PREP_JOB_PARTITION:-mem}"
 # Standardpfad dieses Projekts: bereits segmentiertes Voxelbild im .leS-Format
 # statt DICOM. A01_les_2_npy.py ersetzt 00/01/02/02a.
 LES_ENABLED="${LES_ENABLED:-true}"
-LES_DATASET_ID="${LES_DATASET_ID:-JM-25-77_les_r4}"
+LES_DATASET_ID="${LES_DATASET_ID:-JM-25-77_les_r2}"
 # Ordner mit den .leS-Dateien (Container-Pfad).
 # Cluster: $HPC_SCRATCH/pygalmesh/data/resources/A01_segmented -> /data/resources/A01_segmented
 LES_RESOURCE_DIR="${LES_RESOURCE_DIR:-/data/resources/A01_segmented}"
@@ -64,13 +58,12 @@ LES_BASE_CONFIG="${LES_BASE_CONFIG:-config-A01-les.json}"
 LES_CONFIG_FILENAME="${LES_CONFIG_FILENAME:-config-A01-les.json}"
 # Aufloesung: reduce=N fasst NxNxN Voxel zusammen (Quelle: 16,7 um/Voxel).
 #   1 -> 1187x1188x886 = 1249 MVoxel (16,7 um)   nur mit Crop sinnvoll
-#   2 ->  593x594x443  =  156 MVoxel (33,4 um)   Studie bis 01.09.2026 (12-16 Mio. dofs,
-#                                                LU/MUMPS am Speicherlimit, abgebrochen)
-#   4 ->  296x297x221  =   19 MVoxel (66,8 um)   <- Default seit 01.09.2026
+#   2 ->  593x594x443  =  156 MVoxel (33,4 um)   <- Default
+#   4 ->  296x297x221  =   19 MVoxel (66,8 um)
 #   8 ->  148x148x110  =    2 MVoxel (133,6 um)  entspricht Bin4-reduce-2 der DICOM-Studie
 # (Die Zahlen gelten fuer JM-25-77; die anderen Datensaetze koennen andere
 #  Gittergroessen haben, die Voxelgroesse steht im jeweiligen .leS-Header.)
-LES_REDUCE_FACTOR="${LES_REDUCE_FACTOR:-4}"
+LES_REDUCE_FACTOR="${LES_REDUCE_FACTOR:-2}"
 LES_REDUCE_MODE="${LES_REDUCE_MODE:-majority}"
 LES_REDUCE_THRESHOLD="${LES_REDUCE_THRESHOLD:-0.5}"
 LES_SMOOTH_SIGMA="${LES_SMOOTH_SIGMA:-0.0}"
@@ -86,11 +79,10 @@ LES_SDF_PAD_WIDTH="${LES_SDF_PAD_WIDTH:-3}"
 # Zielkantenlaenge der Tetraeder in um (max_cell_circumradius). Das ist die
 # bevorzugte Angabe: sie ist unabhaengig von LES_REDUCE_FACTOR, weil der
 # Groessenfaktor aus der Voxelgroesse berechnet wird.
-#   75 um  -> 4-6 Mio. Tetraeder bei reduce=2, 12,3 Mio. dofs (JM-25-77) - zu gross fuer LU
-#  150 um  -> gleiches Verhaeltnis Element/Voxel (2,25) bei reduce=4, ~1/8 der dofs (Default seit 01.09.2026)
+#   75 um  -> erwartet 4-6 Mio. Tetraeder bei reduce=2  (Default)
 #   50 um  -> das zu feine Netz vom ersten Lauf (Faktor 1,4853 x 33,4 um)
 #  199 um  -> Elementgroesse der alten Bin4-reduce-2-Studie
-LES_MAX_ELEMENT_SIZE_UM="${LES_MAX_ELEMENT_SIZE_UM:-150}"
+LES_MAX_ELEMENT_SIZE_UM="${LES_MAX_ELEMENT_SIZE_UM:-75}"
 # Alternativen, falls LES_MAX_ELEMENT_SIZE_UM leer ist:
 #   direkter Faktor auf die Groessenparameter (Elementzahl ~ 1/scale^3)
 LES_MESH_SIZE_SCALE="${LES_MESH_SIZE_SCALE:-1.0}"
@@ -115,11 +107,10 @@ YIELD_PRIMARY_CRITERION="${YIELD_PRIMARY_CRITERION:-eps_p_eq_macroscopic}"
 
 # --- Randschale (02d) ---------------------------------------------------------
 # Dicke in Voxeln. Sie muss vom Netz aufloesbar bleiben: bei 33,4 um Voxeln und
-# 75 um Elementen waren 8/12 Voxel = 267/400 um rund 3,5/5,3 Elemente.
-# Seit reduce=4 / 150 um (01.09.2026): 6/9 Voxel = 401/601 um = 2,7/4 Elemente
-# (4/6 Voxel haetten die physische Dicke gehalten, aber nur 1,8 Elemente).
-LES_BOUNDARY_SHELL_XZ="${LES_BOUNDARY_SHELL_XZ:-6}"
-LES_BOUNDARY_SHELL_Y="${LES_BOUNDARY_SHELL_Y:-9}"
+# 75 um Elementen sind 8 Voxel = 267 um rund 3,5 Elemente. Die alten 3 Voxel
+# waeren nur 100 um bzw. 1,3 Elemente gewesen.
+LES_BOUNDARY_SHELL_XZ="${LES_BOUNDARY_SHELL_XZ:-8}"
+LES_BOUNDARY_SHELL_Y="${LES_BOUNDARY_SHELL_Y:-12}"
 # true = nur die groesste zusammenhaengende Aluminiumkomponente vernetzen.
 LES_KEEP_LARGEST_COMPONENT="${LES_KEEP_LARGEST_COMPONENT:-true}"
 # Optionaler Ausschnitt im Originalgitter, Format "start ende" (leer = alles)

@@ -53,7 +53,7 @@ if [[ -n "$mesh_job_id" ]]; then
 fi
 
 sim_job_id="$(submit "${dep_args[@]}" \
-  -t "$SIM_JOB_TIME" -n "$SIM_JOB_NTASKS" -N 1 \
+  -t "$SIM_JOB_TIME" -n "$SIM_JOB_NTASKS" \
   --mem-per-cpu="$SIM_JOB_MEM_PER_CPU" -C "$SIM_JOB_CONSTRAINT" \
   "$SCRIPT_DIR/job_run_simulation_CLUSTER.sh" "$CONFIG_ARG")"
 echo "Bruchsimulation eingereicht: $sim_job_id${mesh_job_id:+  (nach $mesh_job_id)}"

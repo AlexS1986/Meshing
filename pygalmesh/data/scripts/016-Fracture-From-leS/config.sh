@@ -174,13 +174,10 @@ FRACTURE_ELEMENT_ORDER="${FRACTURE_ELEMENT_ORDER:-1}"
 # Speicher. Uebernommen aus 015/012.
 MESH_JOB_TIME="${MESH_JOB_TIME:-1440}"
 MESH_JOB_PARTITION="${MESH_JOB_PARTITION:-mem}"
-# Bruchsimulation. i01: 96 Kerne, 364 800 MB -> NTASKS x MEM_PER_CPU muss
-# darunter bleiben, sonst passt der Job nicht auf einen Knoten (-N 1):
-# 96 x 4000 = 384 000 MB (011/012) wird abgelehnt, 96 x 3800 ist das Maximum.
-# Das coarse-Netz (~35k Tets, ~47k DOFs) braucht keine 96 Ranks; 24 reichen.
-# Fuer medium/fine (mehr Elemente) NTASKS und TIME anheben, z.B.
-#   SIM_JOB_NTASKS=48 SIM_JOB_TIME=10080 ./submit_fracture_pipeline_CLUSTER.sh
-SIM_JOB_NTASKS="${SIM_JOB_NTASKS:-24}"
-SIM_JOB_MEM_PER_CPU="${SIM_JOB_MEM_PER_CPU:-3800}"
-SIM_JOB_TIME="${SIM_JOB_TIME:-1440}"
+# Bruchsimulation: -n 96 x 4000 MB wie in 011/012, aber ohne -N 1 (Nutzer-
+# entscheidung 2026-08-31). 96 x 4000 = 384 000 MB passen nicht auf einen
+# i01-Knoten (364 800 MB); ohne -N 1 verteilt SLURM auf zwei Knoten.
+SIM_JOB_NTASKS="${SIM_JOB_NTASKS:-96}"
+SIM_JOB_MEM_PER_CPU="${SIM_JOB_MEM_PER_CPU:-4000}"
+SIM_JOB_TIME="${SIM_JOB_TIME:-10080}"
 SIM_JOB_CONSTRAINT="${SIM_JOB_CONSTRAINT:-i01}"

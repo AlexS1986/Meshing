@@ -107,10 +107,10 @@ nur deshalb durchgelaufen, weil damals aus `$HPC_SCRATCH` heraus submittiert wur
 `-n 96 × --mem-per-cpu=4000 = 384 000 MB` übersteigt die 364 800 MB eines
 i01-Knotens; mit `-N 1` ist der Job nicht platzierbar. In 011/012 stand
 dasselbe — vermutlich ist die Knotenkonfiguration seither anders bilanziert.
-Neu: `SIM_JOB_NTASKS=24`, `SIM_JOB_MEM_PER_CPU=3800`, `SIM_JOB_TIME=1440`
-(auch im SBATCH-Header). 96 × 3800 wäre das Maximum je Knoten. Bei medium/fine
-über die Umgebung hochsetzen. `submit_fracture_pipeline_CLUSTER.sh` gibt jetzt
-ebenfalls `-N 1` mit, damit Header und Kette dieselbe Zuteilung anfordern.
+**Entscheidung (Nutzer):** `-n 96 × 4000 MB` bleibt, **`-N 1` entfällt** —
+SLURM darf auf zwei Knoten verteilen. Header und `submit_fracture_pipeline_
+CLUSTER.sh` fordern dasselbe an (`-t 10080`). Die Zwischenlösung 24 × 3800
+auf einem Knoten wurde verworfen.
 
 ### Beim nächsten Lauf prüfen
 

@@ -68,10 +68,7 @@ run_container() {
   local bind_paths="$3"
   local container="$4"
   shift 4
-  # --kill-on-bad-exit=1: stirbt ein MPI-Rang (z. B. OOM-Killer), beendet SLURM
-  # den ganzen Step, statt dass die uebrigen Raenge bis zum Zeitlimit in einer
-  # MUMPS-Kollektive haengen (01.09.2026: 190 JM-25-88-Jobs so 26 h blockiert).
-  local srun_args=(-n "$ntasks" --kill-on-bad-exit=1 ${SRUN_LIMITS[@]+"${SRUN_LIMITS[@]}"})
+  local srun_args=(-n "$ntasks" ${SRUN_LIMITS[@]+"${SRUN_LIMITS[@]}"})
   if [[ -n "$chdir" ]]; then
     srun_args+=(--chdir="$chdir")
   fi

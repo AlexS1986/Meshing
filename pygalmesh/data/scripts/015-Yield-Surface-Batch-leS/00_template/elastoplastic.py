@@ -211,7 +211,7 @@ from petsc4py import PETSc
 
 _solver_opts = {
     "pc_factor_mat_solver_type": "mumps",
-    "mat_mumps_icntl_14": 200,   # Workspace-Zuschlag in %, PETSc-Default 20
+    "mat_mumps_icntl_14": 100,   # Workspace-Zuschlag in %, PETSc-Default 20 (200 war bei 358 GB/Knoten OOM-Risiko)
     "mat_mumps_icntl_4": 1,      # MUMPS: nur Fehler ausgeben (INFOG(1)/INFO(2))
 }
 _solver_opts.update(yield_config.get("petsc_options", {}) or {})

@@ -1148,3 +1148,155 @@ Die 28 Kriecher laufen vorerst weiter (sie kommen voran). Option spaeter:
 `scancel` + `INCLUDE_FAILED=1 MAX_CHAIN=3 resubmit... <combo>/n096` **ohne**
 `YS_FORCE_FRESH` -> Fortsetzung vom letzten Snapshot (max. 12 h Verlust) mit
 dem gepatchten Template.
+
+**Stand 31.08. (spaet):** Template auf Scratch, Dry-Run des Resubmit zeigt 17 + 13 tote Punkte; Einreichen ohne DRY_RUN steht aus. Kurzbericht: `Bericht_MUMPS_Fehlerquelle_20260831.md`.
+
+**Zweiter Patch (31.08., spaet) — projektweiter Default in `alex/solution.py`:**
+`DEFAULT_KSP_OPTIONS` (mumps, `icntl_14 = 200`, `icntl_4 = 1`) und
+`apply_default_ksp_options(ksp, comm)`; `get_solver()` ruft sie statt des
+blossen `setFromOptions()` auf. Setzt nur Optionen, die das Skript nicht schon
+selbst gesetzt hat (Prefix wird vom KSP gelesen, nicht hart kodiert), und
+druckt einmal `KSP options (prefix ...): defaults applied = {...}`. Wirkt fuer
+alle Skripte, die `solve_with_newton_adaptive_time_stepping` ohne eigenen
+`solver` nutzen; abschaltbar mit `sol.DEFAULT_KSP_OPTIONS.clear()`. Der
+explizite Block in `elastoplastic.py` bleibt (Config-steuerbar) und gewinnt.
+`solution.py` muss erneut nach `$HOME/dolfinx_alex/shared/utils/alex/` auf den
+Cluster. Backup der Vor-Version: `_to_delete/alex_solution.py.vor_mumps_patch_20260831`
+(Stand vor beiden Patches).
+
+**Eingereicht 31.08.:** `INCLUDE_FAILED=1 YS_FORCE_FRESH=1 MAX_CHAIN=1` je
+Kombination -> 17 (`s075`, Jobs 54434625-54434641) + 13 (`s100`, Jobs
+54434642-54434654) = 30 neue Punkt-Jobs, alle 162 laufenden als LAEUFT
+uebersprungen. Kontrolle nach dem Start: `PETSc options (prefix nls_solve_)`
+im `.out` (Template-Patch aktiv), `KSP options (prefix 'nls_solve_'): defaults
+applied` (nur wenn die neue `solution.py` auf dem Cluster liegt), nach 1-2 h
+`NO CONVERGENCE` = 0.
+
+### Neues Werkzeug: `health_check_CLUSTER.sh` (01.09.2026)
+
+Ein Aufruf beantwortet die Frage "ist auf dem Cluster alles in Ordnung?":
+
+```bash
+bash "$HPC_SCRATCH/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS/health_check_CLUSTER.sh"
+QUICK=1 bash .../health_check_CLUSTER.sh            # ohne Logfile-Scan (Sekunden)
+DATASET=JM-25-77 bash .../health_check_CLUSTER.sh   # nur ein Datensatz
+```
+
+Fuenf Abschnitte: (1) Queue je Kombination aus `squeue --me` mit ungekuerzten
+Jobnamen; (2) Ergebnis-JSONs je Kombination mit Spalte **OHNE PUNKT** — jede
+`yield_run_*.json` ohne `final_yield_state` ist ein Alarm und wird mit
+`stop_reason` aufgelistet; (3) erreichte Fliesskriterien aus den
+`restart_meta_*.json` (auch fuer **laufende** Jobs) plus die fuenf am weitesten
+fortgeschrittenen Laeufe mit Faktor bis zur Primaerschwelle; (4) Scan des
+jeweils neuesten `.out` je Punkt auf `error code is: 76`, `dt too small`,
+Zahl der verworfenen Schritte (Kriecher ab `CRAWL_LIMIT`, Default 5),
+Walltime-Stops und ob der MUMPS-Patch im Log auftaucht; (5) Fazit mit
+Exit-Code 0 (OK) / 1 (Warnungen) / 2 (Alarm) — damit auch fuer Cron/Watch
+geeignet.
+
+Getestet gegen eine synthetische Ordnerstruktur (gueltiger Punkt, kaputter
+Punkt, Kriecher) mit Python 3.10; bash- und Python-Syntax geprueft.
+
+## Session 01.09.2026 — JM-25-88/71 haengen im ersten Schritt: OOM, nicht MUMPS-Workspace
+
+Health-Check 14:58: JM-25-77 alt-Template 54+52/192 mit MUMPS-Fehler 76,
+72 Kriecher (28 -> 72 in einem Tag), 8-9 verworfene Faktorisierungen je Lauf.
+Gepatchte Laeufe (JM-25-88/71, 134): 0 Fehler 76 — aber **alle** JM-25-88
+(190, gepatcht und ungepatcht) und JM-25-71 (26) stehen nach bis zu 26 h bei
+"Schritte/Lauf = 1.0", d. h. im ersten Solve.
+
+Befund (ys_000 JM-25-88_s075): `.err` enthaelt mehrfach
+`bash: line 8: <pid> Killed  apptainer exec ...` -> einzelne MPI-Raenge vom
+OOM-Killer beendet, die uebrigen Raenge haengen in der MUMPS-Kollektive, der
+SLURM-Job bleibt RUNNING (kein `--kill-on-bad-exit`), bis das 7-d-Limit greift.
+Freiheitsgrade: JM-25-77 12,26 M, JM-25-88 14,22 M, JM-25-71 16,13 M
+(JM-25-83 noch unbekannt, groesste Oberflaeche). Ressourcen je Punkt-Job laut
+`config.sh`: 64 Tasks x 5600 MB = 358 GB auf einem i01-Knoten (364,8 GB) —
+JM-25-77 passt gerade, +16 % dofs (LU-Speicher ~N^{4/3}, +22 %) nicht mehr.
+Es sind also zwei Gesichter derselben Ursache: LU (MUMPS) am Speicherlimit —
+bei JM-25-77 reisst der Workspace-Zuschlag (Fehler -9, behebbar), bei den
+dichteren Datensaetzen der physische Speicher (OOM-Kill + Haenger).
+
+**Konsequenz fuer den Patch:** `mat_mumps_icntl_14 = 200` (Allokation bis
+3x der Schaetzung) ist bei 358 GB je Knoten gefaehrlich — kann die 30 neu
+eingereichten JM-25-77-Punkte selbst in den OOM treiben. Vor dem Start:
+Speicher-Headroom eines gesunden JM-25-77-Laufs messen (`sstat MaxRSS` des
+srun-Steps) und ICNTL(14) daran ausrichten (eher 50-80), zusaetzlich
+ICNTL(23) als Kappe je Prozess, damit MUMPS sauber mit -9 scheitert statt
+OOM-gekillt zu werden.
+
+Sofortmassnahmen (Befehle im Chat-Protokoll): Haenger verifizieren
+(`Killed` in `.err`, `sstat <job>.0`), haengende JM-25-88/71-Jobs `scancel`,
+wartende Jobs (JM-25-83/71/88 + 30 JM-25-77-Resubmits) `scontrol hold`;
+`--kill-on-bad-exit=1` in `run_container` (job_yield_surface_point_CLUSTER.sh),
+damit ein getoeteter Rang den Job beendet statt 7 Tage zu blockieren.
+
+Optionen fuer JM-25-88/71/83 (Entscheidung offen): (a) `-C i02`
+(104 Kerne, 490 GB) — reicht fuer 88/71, fuer 83 vermutlich nicht;
+(b) 2 Knoten je Job (`YIELD_JOB_NODES=2`, 128 Tasks, ~716 GB) — MUMPS
+verteilt, doppelte Kernstunden; (c) iterativer Loeser (CG/GMRES + AMG mit
+Starrkoerper-Nullraum) — Speicher ~1/10, vermutlich schneller je Schritt,
+aber Test der Konvergenz nahe der Traglast noetig; (d) `reduce = 4` fuer die
+dichten Datensaetze — aendert die Studie.
+
+## Session 01.09.2026 (2) — Studie auf reduce=4 / 150 um neu aufgesetzt
+
+**Entscheidung (Nutzer, 01.09.):** alle 768 r2-Punkt-Jobs abbrechen und die
+Studie mit deutlich kleinerem Problem neu aufsetzen. Begruendung: direkte LU
+(MUMPS) bei 12-16 Mio. dofs sitzt am Speicherlimit der i01-Knoten (358 GB je
+Job) — JM-25-77 reisst intermittierend der Workspace (72/192 Kriecher, 30
+tote Punkte), JM-25-88/71 werden OOM-gekillt und haengen; JM-25-83 waere noch
+groesser. Iterativer Loeser oder Mehrknoten-Jobs waeren die Alternativen
+gewesen (siehe Session 01.09. (1)), der Nutzer hat die Verkleinerung gewaehlt.
+
+Vor dem Abbruch gesichert: `00_results/_packages/partial_yield_states_r2_final_20260901.csv`
+(alle erreichten Kriterien der r2-Laeufe: 138 x yielded_fraction, 13 x alpha_avg;
+Stand 14:58). Die r2-Arbeitsordner (`yield_surface_runs/*_les_r2`, mit
+Snapshots) bleiben vorerst liegen — Aufloesungsvergleich r2 vs r4 fuer das
+Paper moeglich; Plattenplatz pruefen (`du -sh`).
+
+### Neue Parameter (config.sh, Backup `_to_delete/config.sh.vor_r4_20260901`)
+
+| Parameter | vorher (r2) | jetzt (r4) | Begruendung |
+|---|---|---|---|
+| `LES_REDUCE_FACTOR` | 2 (33,4 um) | **4 (66,8 um)** | 19 statt 156 MVoxel; rel. Dichte -0,08 pp (CLAUDE.md §6) |
+| `LES_MAX_ELEMENT_SIZE_UM` | 75 | **150** | gleiches Verhaeltnis Element/Voxel 2,25; dofs ~1/8 (JM-25-77 12,3 -> ~1,5 Mio., JM-25-71 16,1 -> ~2 Mio.) |
+| `LES_BOUNDARY_SHELL_XZ/Y` | 8/12 Voxel (267/400 um) | **6/9 Voxel (401/601 um)** | 2,7/4 Elemente; 4/6 haetten die Dicke gehalten, aber nur 1,8 Elemente |
+| `YIELD_JOB_NTASKS` | 64 | **32** | LU geschaetzt < 50 GB; 32 x 5600 MB = 179 GB, zwei Jobs je Knoten |
+| `YIELD_JOB_TIME` / `PARTITION` | 10080 / long | **1440 / Default (deflt)** | bessere Prioritaet; Fortsetzungskette faengt Ueberlaeufer |
+| `LES_DATASET_ID` | JM-25-77_les_r2 | JM-25-77_les_r4 | nur Einzellauf-Pfad |
+| `mat_mumps_icntl_14` (Template + alex-Default) | 200 | **100** | 200 = bis 3x Schaetzung, nahe Knotenlimit OOM-Risiko |
+| `run_container` (Punkt-Job) | `srun -n N` | `srun -n N --kill-on-bad-exit=1` | getoeteter Rang beendet den Job statt 7 d zu haengen |
+
+Namen der neuen Studie: run_id `<ds>_les_r4`, binning `leS-r4-sigy075|100`,
+Configs `config-<ds>-r4-sigy<XXX>.json`, Netzordner `<ds>_les_r4_segmented/`.
+Die Kombinations-/Jobordner `yield_surface_jobs/<ds>_sigy<XXX>/n096` tragen
+KEIN r — vor der Neuerzeugung auf Scratch nach `yield_surface_jobs_r2_20260901`
+verschieben, sonst mischen sich alte und neue Logs (Health-Check!).
+
+### Runbook Neustart (Cluster)
+
+```bash
+# 0) Mac -> $HOME/meshing (dein Weg): config.sh, job_yield_surface_point_CLUSTER.sh,
+#    00_template/elastoplastic.py, health_check_CLUSTER.sh; ausserdem alex/solution.py -> $HOME/dolfinx_alex/shared/utils/alex/
+H="$HOME/meshing/Meshing/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS"
+S="$HPC_SCRATCH/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS"
+squeue --me -h -o "%j" | grep -c -- "-ys[0-9]*$"                 # muss 0 sein
+mv "$S/yield_surface_jobs" "$S/yield_surface_jobs_r2_20260901"   # alte Jobs/Logs archivieren
+du -sh "$S/yield_surface_runs" "$S/00_results"                    # r2-Rechenstand (behalten/loeschen)
+grep -n "kill-on-bad-exit" "$H/job_yield_surface_point_CLUSTER.sh"          # 1 Treffer
+grep -c "apply_default_ksp_options" "$HOME/dolfinx_alex/shared/utils/alex/solution.py"   # 1
+cd "$HOME/meshing/Meshing/pygalmesh"
+data/scripts/015-Yield-Surface-Batch-leS/batch_create_folders_CLUSTER.sh   # r4-Configs + Jobs + rsync
+# Kontrolle der erzeugten Dateien
+python3 -c "import json;c=json.load(open('$S/config-JM-25-77-r4-sigy075.json'));print('reduce',c['A01_les_2_npy']['reduce']['factor'])"
+grep -n '"max_element_size_um"\|"x_min"' "$S/config-JM-25-77-r4-sigy075.json" | head -3     # 150 / 6
+grep -h '^#SBATCH' "$S"/yield_surface_jobs/JM-25-77_sigy075/n096/ys_000_*/job_*.sh          # -n 32, -t 1440, kein -p long
+ls "$S"/config-*-r4-sigy*.json | wc -l                                                        # 8
+"$S/batch_submit_CLUSTER.sh"        # 4 Netzvorbereitungen (mem, 1440) + 768 Punkt-Jobs (afterok)
+```
+
+Nach der Netzvorbereitung pruefen: `<ds>_les_r4_segmented/.../mesh.quality.txt`
+(`mesh_tetrahedra`, erwartet ~0,5-1 Mio.), Prep-Log `verdict: good`; nach den
+ersten Punkt-Jobs `solving fem problem with ... dofs` (erwartet 1-2,5 Mio.),
+Schrittdauer und `sstat MaxRSS` -> ggf. `YIELD_JOB_NTASKS` weiter senken.

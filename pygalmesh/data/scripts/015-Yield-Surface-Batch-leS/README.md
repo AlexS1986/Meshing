@@ -14,7 +14,7 @@ Ergebnisse zum Herunterladen einpackt.
 | Punkte je Kombination | **96** (Fibonacci-Sphere, `YIELD_SURFACE_POINTS`) |
 | Punkt-Jobs gesamt | 768 |
 | Netzvorbereitungen | **4** — eine je Datensatz, nicht je Kombination |
-| Zeitlimit je Punkt-Job | **`-t 10080`** Minuten (7 d) auf der Partition **`long`** |
+| Zeitlimit je Punkt-Job | seit 01.09.2026 **`-t 1440`** in der Default-Partition, 32 Tasks (Fortsetzungskette bei Ueberlauf); vorher `-t 10080` auf `long` mit 64 Tasks |
 
 > **Warum nur vier Netzvorbereitungen?** Das Netz haengt nicht von der
 > Fliessgrenze ab. Beide sig_y-Varianten eines Datensatzes bekommen dieselbe
@@ -22,7 +22,7 @@ Ergebnisse zum Herunterladen einpackt.
 > Getrennt werden die Laeufe ueber `binning.label` (`leS-r2-sigy075` bzw.
 > `leS-r2-sigy100`), das in allen Ergebnispfaden auftaucht.
 
-> **Warum `-p long`?** Die Default-Partition `deflt` erlaubt hoechstens 1440
+> **(Historisch, r2-Studie bis 01.09.2026) Warum `-p long`?** Die Default-Partition `deflt` erlaubt hoechstens 1440
 > Minuten. `-t 10080` (7 d) wuerde dort mit *"Requested time limit is invalid"*
 > abgelehnt. `long` hat dieselben i01-Knoten und laesst genau diese 7 Tage zu —
 > mehr ist nicht moeglich, laengere Rechnungen laufen ueber die
@@ -333,3 +333,14 @@ eine einzelne Config mit ihren Punkt-Jobs ein.
 | `CLAUDE_PROJECT_NOTES.md` | Protokoll der Entscheidungen, auch die dieser Studie |
 | `PIPELINE_ANNAHMEN_DICOM_TO_FEM.md` | Algorithmen und Annahmen von den Voxeln bis zum FE-Netz |
 | `CLAUDE.md` | Arbeitsweise und Ordnerkonventionen des Projekts |
+
+
+## Neustart 01.09.2026: reduce=4 / 150 um / 32 Tasks / 1440 min
+
+Die r2-Studie wurde am 01.09.2026 abgebrochen (LU/MUMPS am Speicherlimit,
+Details `CLAUDE_PROJECT_NOTES.md` Session 01.09.2026). Neue Defaults in
+`config.sh`: `LES_REDUCE_FACTOR=4`, `LES_MAX_ELEMENT_SIZE_UM=150`,
+Randschale 6/9, `YIELD_JOB_NTASKS=32`, `YIELD_JOB_TIME=1440`, Default-Partition.
+Namen: `<ds>_les_r4`, `leS-r4-sigy<XXX>`, `config-<ds>-r4-sigy<XXX>.json`.
+Vor `batch_create_folders_CLUSTER.sh` den alten Jobordner auf Scratch
+archivieren: `mv yield_surface_jobs yield_surface_jobs_r2_20260901`.
