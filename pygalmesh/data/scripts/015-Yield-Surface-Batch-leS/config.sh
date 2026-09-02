@@ -44,11 +44,14 @@ YIELD_JOB_PARTITION="${YIELD_JOB_PARTITION:-}"
 YIELD_SURFACE_POINTS="${YIELD_SURFACE_POINTS:-96}"
 YIELD_SURFACE_STRAIN_RADIUS="${YIELD_SURFACE_STRAIN_RADIUS:-0.25}"
 
-# Netzvorbereitung. Der SBATCH-Header in job_prepare_mesh_CLUSTER.sh ist fest;
-# batch_submit_CLUSTER.sh ueberschreibt Zeit und Partition auf der
-# sbatch-Kommandozeile (CLI schlaegt Header).
-PREP_JOB_TIME="${PREP_JOB_TIME:-1440}"
-PREP_JOB_PARTITION="${PREP_JOB_PARTITION:-mem}"
+# Netzvorbereitung. Der SBATCH-Header in job_prepare_mesh_CLUSTER.sh ist fest
+# (deflt, -C i01, -n 8, --mem-per-cpu=15000 = 120 GB); batch_submit_CLUSTER.sh
+# ueberschreibt Zeit und Partition auf der sbatch-Kommandozeile (CLI schlaegt
+# Header). Seit 02.09.2026: 120 min statt 1440 und deflt statt mem — die
+# Vorbereitung braucht 13-18 min (r4) und 24-34 GB (r2), ein kurzes Limit
+# macht sie zum Backfill-Kandidaten, waehrend mem tagelang wartete.
+PREP_JOB_TIME="${PREP_JOB_TIME:-120}"
+PREP_JOB_PARTITION="${PREP_JOB_PARTITION:-deflt}"
 
 # --- .leS-Pipeline (A01) -----------------------------------------------------
 # Standardpfad dieses Projekts: bereits segmentiertes Voxelbild im .leS-Format
@@ -150,6 +153,15 @@ BATCH_SIG_Y="${BATCH_SIG_Y:-75 100}"
 ONLY_DATASETS="${ONLY_DATASETS:-}"
 ONLY_SIG_Y="${ONLY_SIG_Y:-}"
 
-# Obergrenze fuer gleichzeitig eingereichte Jobs (Account p0023647:
-# MaxSubmit = 1000, MaxJobs = 400). batch_submit_CLUSTER.sh prueft das vorher.
+# SLURM-Account fuer alle Jobs (Prep + Punkt-Jobs). p0023647 ist seit 12/2025
+# ohne Kontingent (csreport: Granted 0) -> FairShare 0,016, Jobs starten nicht.
+# l0003507 (Lichtenberg small project, 30k Kernstunden/Monat, geteilt) traegt
+# die Netzvorbereitung und Messtranchen, NICHT den vollen Batch (768 x 32 Kerne
+# x T h). Bulk: p0025962 = aktuelle Phase des HyPo-Projekts (01.12.2025-
+# 30.11.2026); sobald die SLURM-Assoziation eingetragen ist (Ralf/JARDS,
+# Anfrage 02.09.2026), hier JOB_ACCOUNT=p0025962 setzen.
+JOB_ACCOUNT="${JOB_ACCOUNT:-l0003507}"
+
+# Obergrenze fuer gleichzeitig eingereichte Jobs (l0003507: MaxSubmit = 1000,
+# MaxJobs = 200; p0023647 hatte MaxJobs = 400). batch_submit_CLUSTER.sh prueft das vorher.
 BATCH_MAX_SUBMIT="${BATCH_MAX_SUBMIT:-1000}"

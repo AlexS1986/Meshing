@@ -327,7 +327,7 @@ LES_REDUCE_FACTOR=8 ./create_les_config.sh --output config-A01-les-r8.json
 
 | Job | Wo eingestellt | Default | Begründung |
 |---|---|---:|---|
-| Netzvorbereitung | SBATCH-Header in `job_prepare_mesh_CLUSTER.sh` und `run_prepare_mesh_CLUSTER.sh` | `-n 32`, `--mem-per-cpu=45000`, `--nodes=1` | Es arbeitet nur **ein** Task (`run_container 1` = `srun -n 1`); die Zuteilung dient dem Speicher. 32 × 45 GB = 1,44 TB — genauso viel wie beim erfolgreichen Lauf mit 96 × 15 GB, nur ohne 64 brachliegende Kerne. |
+| Netzvorbereitung | SBATCH-Header in `job_prepare_mesh_CLUSTER.sh` und `run_prepare_mesh_CLUSTER.sh`; `PREP_JOB_TIME`/`PREP_JOB_PARTITION` in `config.sh` | `-p deflt`, `-C i01`, `-n 8`, `--mem-per-cpu=15000`, `--nodes=1`, `-t 120` | Es arbeitet nur **ein** Task (`run_container 1` = `srun -n 1`); die Zuteilung dient dem Speicher. 8 × 15 GB = 120 GB gegen gemessene 24–34 GB (r2). Seit 02.09.2026 nicht mehr auf `mem` (Constraint `m01&mem1536g`, wartete tagelang mit `Priority`): kleiner Fußabdruck plus kurzes Limit (Bedarf r4: 13–18 min) macht den Job zum Backfill-Kandidaten. |
 | Fließflächen-Punkte | `YIELD_JOB_*` in `config.sh` | `-n 96`, kein `-N`, `--mem-per-cpu=9000`, `-C i01` | Der elasto-plastische Solve ist der rechenintensive Teil. `job_yield_surface_point_CLUSTER.sh` liest die Taskzahl über `SLURM_NTASKS`, es genügt also, den Header zu ändern. `YIELD_JOB_NODES=0` lässt `-N` weg, damit SLURM die Tasks über mehrere Knoten verteilen darf. |
 
 **Log-Dateien:** jeder Punkt-Job bekommt `#SBATCH -e/-o` auf seinen **eigenen**

@@ -184,6 +184,11 @@ def build_config(base, args):
                 if key in block and block[key]:
                     block[key] = float(block[key]) * scale
         mesh["mesh_size_scale_applied"] = scale
+    # Metadatum immer aus Faktor x aktueller Voxelgroesse ableiten - auch wenn der
+    # Faktor unveraendert bleibt (z. B. reduce 2 -> 4 bei 75 -> 150 um: gleicher
+    # Faktor 2,2455, aber andere Voxelgroesse). Vorher blieb hier der Wert der
+    # Basisconfig stehen (Fix aus 015 vom 01.09.2026, in 016 am 02.09. nachgezogen).
+    if pygal_blocks:
         mesh["max_element_size_um"] = pygal_blocks[-1]["max_element_size_factor"] * voxel_um
 
     # Randschale (02d): muss vom Netz aufloesbar bleiben, sonst traegt sie die

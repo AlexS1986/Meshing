@@ -95,74 +95,77 @@ Daraus folgt die Kopplung, die dieses Projekt bestimmt:
   `1 − 8/eps_factor`. Mit 8 greift sie **nirgends** (freie Starrkörpermoden —
   genau das zeigte der erste 016-Lauf am 31.08.). 011/012 verwendeten 20
   (BC auf 60 % der Höhe); 016 steht seit dem 31.08. ebenfalls auf **20**.
-* Ly folgt aus `Ly ≥ 2·h·eps_factor`: bei h = 400 µm und eps_factor 20 sind
-  das 16 mm → `epsilon ≈ 0,84 mm` (inkl. Schale), 2,1 Elemente je epsilon in
-  der Stufe `coarse`.
+* Ly folgt aus `Ly ≥ 2·h·eps_factor`. Seit 2026-09-02 ist Ly die ganze
+  Probenhöhe (20,64 mm inkl. Schale) → `epsilon = 1,03 mm`; mit 200-µm-
+  Elementen sind das 5,2 Elemente je epsilon.
 
 `create_fracture_config.py` schreibt `fracture_geometry_check.elements_per_epsilon`
 und `surfing_bc_band_fraction` in jede Config, warnt unter 2 Elementen je
 epsilon und **bricht bei `eps_factor ≤ 8` ab**; `job_run_simulation_CLUSTER.sh`
 prüft beides beim Start noch einmal.
 
-**Offener Punkt:** `epsilon ≈ 0,84 mm` ist größer als die Stegdicke des Schaums.
+**Offener Punkt:** `epsilon ≈ 1,03 mm` ist größer als die Stegdicke des Schaums.
 Der Riss wird damit über mehrere Stege verschmiert — das ist die bewusst in Kauf
 genommene Folge der groben Auflösung. Siehe `CLAUDE_PROJECT_NOTES.md`, Abschnitt
 „Offene Punkte".
 
 ---
 
-## 5. Probengeometrie (entschieden)
+## 5. Probengeometrie (entschieden, Stand 2026-09-02)
 
 Die Surfing-Randbedingungen setzen den Rissstart bei `x = 0,2·Lx` und lassen den
 Riss nach `+x` laufen. Das Gebiet muss deshalb in x deutlich länger sein als in
 y und z.
 
-**Entscheidung (Stand 2026-08-31):** Riegel direkt aus dem `.leS`-Volumen
-geschnitten — x voll (≈ 19,8 mm), **y = 16 mm**, z = 4 mm, mittig platziert;
-außen eine 0,4-mm-Aluminiumschale (`02f`, wie 011) → Box ≈ 20,6 × 16,7 × 4,8 mm.
-Die ursprünglichen 8 mm Höhe waren mit `eps_factor = 20` und 400-µm-Elementen
-nicht vereinbar (Abschnitt 4). `Lx/Ly ≈ 1,2` ist deutlich kürzer als in 011
-(4,9); die Risslauflänge von ≈ 16 mm entspricht 19 epsilon.
+**Entscheidung (Nutzer, 2026-09-02): kein Ausschnitt.** Die **ganze Probe**
+(JM-25-77: 19,8 × 19,8 × 14,8 mm) wird modelliert, als Voxelvolumen **einmal in
+x gespiegelt** (`02e`, `2·Nx − 1`, Spiegelkopie an `x_min`) und außen in eine
+**homogene Aluminiumschale** eingebettet (`02f`: 0,4 mm in y/z, **4 mm
+Endblöcke in x** wie 011). Ergebnis: Schaum 39,5 × 19,8 × 14,8 mm, Box
+≈ 47,5 × 20,6 × 15,6 mm, `Lx/Ly = 2,3`, Kerbspitze bei 9,5 mm (5,5 mm im
+Schaum), Risslauf ≈ 35 epsilon. Die Spiegelebene liegt bei x ≈ 23,7 mm.
 
-Anders als in 012: dort war das CT-Teilvolumen zu klein und wurde voxelseitig
-zweimal in x gespiegelt (`4·Nx − 3`). Das `.leS`-Volumen ist groß genug, die
-künstliche Symmetrie entfällt. Die Spiegel-Route (`02e`/`02f`/`11`) ist
-mitkopiert und über `enabled` weiterhin zuschaltbar.
+Das ist die Route aus 011/012 (dort `4·Nx − 3`, weil das CT-Teilvolumen klein
+war). Der Riegel-Ausschnitt der Session 2026-08-31 (x voll, y = 16, z = 4 mm)
+bleibt über `LES_BAR_Y_MM`/`LES_BAR_Z_MM` verfügbar; zweimal spiegeln über
+`LES_MIRROR_X_REPETITIONS = 2`.
 
-Steuerung: `LES_BAR_X_MM` / `LES_BAR_Y_MM` / `LES_BAR_Z_MM` in `config.sh`.
+Steuerung in `config.sh`: `LES_BAR_X/Y/Z_MM` (leer = ganze Achse),
+`LES_MIRROR_X_REPETITIONS`, `LES_SHELL_UM` (y/z), `LES_SHELL_X_UM` (Endblöcke).
 
 ---
 
-## 6. Auflösungsfamilie (entschieden)
+## 6. Auflösungsfamilie (entschieden, Stand 2026-09-02)
 
-Deutlich gröber als 015 (dort 75 µm bei reduce = 2). `MESH_TIERS` in `config.sh`:
+**Alle Stufen auf `reduce = 4`** (66,8 µm Voxel). `reduce = 8` hatte per
+Majority-Vote Stege unter ~70 µm gelöscht, bevor überhaupt vernetzt wurde —
+das war der eigentliche Grund für „zu grob", nicht die Elementgröße.
+`MESH_TIERS` in `config.sh`:
 
-| Stufe | reduce | Voxelgröße* | Elementgröße | Elemente je epsilon** |
-|---|---:|---:|---:|---:|
-| **coarse** (Default) | 8 | 133,6 µm | **400 µm** | 2,1 |
-| medium | 4 | 66,8 µm | 267 µm | 3,1 |
-| fine | 4 | 66,8 µm | 200 µm | 4,2 |
+| Stufe | reduce | Voxelgröße* | Elementgröße | Elemente je epsilon** | Tets (Schätzung) |
+|---|---:|---:|---:|---:|---:|
+| coarse | 4 | 66,8 µm | 250 µm | 4,1 | ~2,5 Mio |
+| **medium** (Default) | 4 | 66,8 µm | **200 µm** | 5,2 | ~5 Mio |
+| fine | 4 | 66,8 µm | 150 µm | 6,9 | ~12 Mio — Speicher prüfen |
 
 \* für JM-25-77 (16,7 µm/Voxel).
-\** bei `Ly ≈ 16,7 mm` (inkl. Schale) und `eps_factor = 20`, also `epsilon ≈ 0,84 mm`.
+\** bei `Ly = 20,64 mm` (inkl. Schale) und `eps_factor = 20`, also `epsilon = 1,03 mm`.
 
-Zum Vergleich: 011 rechnete mit Voxel 134 µm und `max_element_size_factor = 3,0`
-= 402 µm (nicht 199 µm, wie früher notiert), epsilon 0,71 mm, ~1,8 Elemente je
-epsilon — `coarse` ist also die 011-Auflösung. 015 rechnete mit 75 µm.
-`epsilon` bleibt über alle drei Stufen gleich — die Familie ist damit eine
-saubere Netzkonvergenzstudie und keine Variation der Physik.
+`epsilon` ist über alle Stufen gleich — die Familie ist eine Netzkonvergenz-
+studie. Rund die Hälfte der Elemente sitzt in der massiven Schale (Endblöcke).
+Zum Vergleich: 011 rechnete mit 134-µm-Voxeln und 402-µm-Elementen
+(~1,8 Elemente je epsilon); die 016-Familie bis 2026-09-02 war 400/267/200 µm
+auf einem 16 × 4-mm-Riegel.
 
 `max_facet_distance = max_element_size / 3` wie in 011 (`LES_FACET_DISTANCE_RATIO`).
-Die 015-Basis hätte 24 µm Facettenabstand unter 400-µm-Elementen ergeben.
 
-**Randschale (seit 2026-08-31 wie 011): extern.** `02f_add_voxel_shell` fügt
-außen `LES_SHELL_UM = 400 µm` Aluminium an (3 Voxel coarse, 6 Voxel medium/fine —
-mindestens eine Elementgröße dick), der innere Seal aus 02d ist **aus**. Der
-Seal hatte im ersten Lauf 1,2 / 1,9 / 1,2 mm Schaum je Seite überschrieben.
-`04_scale_and_translate_mesh_mod.py` ist deshalb die **011-Version** (mit
-`--npy`), die die Schale beim Positionieren herausrechnet; `10_snap_mesh_to_crop_boundary`
-zieht Randknoten exakt auf die Box-Flächen. `LES_SHELL_MODE=seal` schaltet
-auf die alte Variante zurück.
+**Randschale (wie 011): extern.** `02f_add_voxel_shell` fügt außen Aluminium an
+(Wert 0): `LES_SHELL_UM = 400` in y/z (6 Voxel bei reduce 4), `LES_SHELL_X_UM =
+4000` an den x-Enden (60 Voxel). Der innere Seal aus 02d ist **aus**.
+`04_scale_and_translate_mesh_mod.py` ist die **011-Version** (mit `--npy`), die
+Spiegelung und Schale beim Positionieren herausrechnet; `10_snap_mesh_to_crop_boundary`
+zieht Randknoten exakt auf die Box-Flächen. `LES_SHELL_MODE=seal` schaltet auf
+die alte Variante zurück.
 
 ---
 
@@ -196,8 +199,8 @@ Siehe `CLAUDE_PROJECT_NOTES.md`, Abschnitt „Offene Punkte" — kurz:
 - **Erster Lauf mit der korrigierten BC steht aus.** Prüfliste in
   `CLAUDE_PROJECT_NOTES.md` (Session 2026-08-31): uY muss antisymmetrisch in y
   sein, Schale außen, Tetraederzahl.
-- **Elementgröße gegen Stegdicke prüfen.** 400 µm können dicker sein als die
-  Stege. `evaluate_pore_size_distribution.py` liegt im Ordner und misst das.
+- **Elementgröße gegen Stegdicke prüfen.** Bei 200 µm sind dünne Stege ein
+  Element dick. `evaluate_pore_size_distribution.py` liegt im Ordner und misst das.
 - `02c` (scipy) und `03` (nanomesh/pygalmesh) sind lokal nicht lauffähig.
 - **Apptainer sieht Host-Pfade unter `/work/scratch` nur über das cwd.** Die
   Runner machen deshalb `cd "$working_directory"` (aus 015 übernommen, in 016

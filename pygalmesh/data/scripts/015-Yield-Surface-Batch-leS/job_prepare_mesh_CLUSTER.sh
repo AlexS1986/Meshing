@@ -1,16 +1,20 @@
 #!/bin/bash
 
 #SBATCH -J prep-ys-mesh
-#SBATCH -A p0023647
-#SBATCH -t 1440
-#SBATCH -p mem
+#SBATCH -A l0003507
+# Account: batch_submit_CLUSTER.sh ueberschreibt ihn mit JOB_ACCOUNT aus config.sh
+# (CLI schlaegt Header). p0023647 ist seit 12/2025 ohne Kontingent.
+#SBATCH -t 120
+#SBATCH -p deflt
 # Es arbeitet nur ein Task (run_container 1 = srun -n 1); die Zuteilung
-# dient dem Speicher. 32 x 45000 MB = 1,44 TB, wie beim erfolgreichen Lauf
-# mit 96 x 15000 MB.
+# dient dem Speicher. 8 x 15000 MB = 120 GB auf einem i01-Knoten (365 GB).
+# Gemessen (r2, 02.09.2026): MaxRSS 24-34 GB, Laufzeit r4 13-18 min.
+# Kleiner Fussabdruck + kurzes Limit => Backfill-Kandidat auf deflt; die
+# mem-Partition (m01, 1,5 TB) wartete tagelang (Reason=Priority).
 #SBATCH --nodes=1
-#SBATCH -n 32
+#SBATCH -n 8
 #SBATCH --mem-per-cpu=15000
-#SBATCH -C "m01&mem1536g"
+#SBATCH -C i01
 #SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS/%x.err.%j
 #SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS/%x.out.%j
 #SBATCH --mail-type=END

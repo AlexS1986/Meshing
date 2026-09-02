@@ -11,7 +11,7 @@ Herkunft: **015** = unverändert aus `015-Yield-Surface-Batch-leS`,
 |---|---|---|
 | `config.sh` | neu | Alle Steuervariablen: Datensatz, Riegel, Auflösungsfamilie `MESH_TIERS`, Bruchparameter, Job-Ressourcen. Wird von allen `*_CLUSTER.sh` und von `create_fracture_config.sh` eingelesen. |
 | `config-A01-les-base.json` | 015 | 1:1-Kopie der in 015 gelaufenen `config-A01-les.json`. **Basis für alle Ableitungen** — nicht von Hand ändern. |
-| `create_fracture_config.py` | neu | Erzeugt eine Bruch-Config: Riegel-Crop in mm → Indizes, `fracture`-Block, `mesh_resolution`, `fracture_geometry_check`; entfernt `yield_surface`. Nutzt `create_les_dataset_config.py` als Bibliothek. |
+| `create_fracture_config.py` | neu | Erzeugt eine Bruch-Config: optionaler Riegel-Crop in mm → Indizes, Spiegelung (`--mirror-x-repetitions`), externe Schale mit Endblöcken (`--shell-um`, `--shell-x-um`), `fracture`-Block, `mesh_resolution`, `fracture_geometry_check`; entfernt `yield_surface`. Nutzt `create_les_dataset_config.py` als Bibliothek. |
 | `create_fracture_config.sh` | neu | Wrapper: liest `config.sh`, holt das Gitter aus dem `.leS`-Header, erzeugt alle Stufen aus `MESH_TIERS`. |
 | `create_les_dataset_config.py` | 015 | Der Generator aus 015. Wird von `create_fracture_config.py` importiert, nicht direkt aufgerufen. |
 | `config-fracture-<Probe>-{coarse,medium,fine}.json` | erzeugt | Die drei Auflösungsstufen. Werden von `02_create_folders_CLUSTER.sh` vor dem Sync neu erzeugt. |
@@ -27,7 +27,7 @@ Herkunft: **015** = unverändert aus `015-Yield-Surface-Batch-leS`,
 | `02b_build_subvolume_arrays.py` | 015 | Teilvolumen (`xy_divisions`). | `02b_build_subvolume_arrays` |
 | `02c_voxel_topology_cleanup.py` | 015 | Komponenten-/Kavitäten-Audit; Cleanup im Default aus. | `02c_voxel_topology_cleanup` |
 | `02d_axis_aligned_cuboid_crop.py` | 015 | Innerer Rand-Seal (Wert 0). **Seit 2026-08-31 aus** — ersetzt durch die externe Schale `02f` (siehe unten). | `02d_axis_aligned_cuboid_crop` |
-| `02e_mirror_extrude_voxel.py` | 012 | Optional: Voxelvolumen in x spiegeln. **Default aus** — der Riegel kommt direkt aus dem Volumen. | `02e_mirror_extrude_voxel` |
+| `02e_mirror_extrude_voxel.py` | 012 | Voxelvolumen in x spiegeln (`2·Nx − 1` je Wiederholung). **Seit 2026-09-02 an** (`LES_MIRROR_X_REPETITIONS = 1`): die ganze Probe wird gespiegelt, wie in 011. | `02e_mirror_extrude_voxel` |
 | `02f_add_voxel_shell.py` | 012 | Externe Aluminiumschale (Wert 0), außen an den Ausschnitt angefügt, frisst keinen Schaum. **Seit 2026-08-31 Default an** (`LES_SHELL_UM = 400`), trägt die Dirichlet-Ränder der Surfing-BC wie in 011. | `02f_add_voxel_shell` |
 | `03_mesh_3D_array_pygalmesh.py` | 015 | SDF → Marching Cubes → CGAL-Tetraeder. Enthält die automatische Oberflächenreparatur. | `03_mesh_3D_array` |
 | `04_scale_and_translate_mesh_mod.py` | **011** (seit 2026-08-31; 015-Stand als `*.from015.bak`) | Netz auf mm skalieren und positionieren; rechnet mit `--npy` die externe Schale (02f) und eine Spiegelung (02e) in den Ursprung ein. | `03_mesh_3D_array`, `02f_add_voxel_shell`, `02e_mirror_extrude_voxel` |

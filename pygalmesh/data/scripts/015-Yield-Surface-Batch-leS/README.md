@@ -173,7 +173,7 @@ SKIP_GENERATE=1 .../batch_create_folders_CLUSTER.sh    # nur synchronisieren
    ```
 
 2. **Netzvorbereitung je Datensatz** (`job_prepare_mesh_CLUSTER.sh`, Partition
-   `mem`, `-n 32`, `--mem-per-cpu=45000`). Existiert das fertige
+   `deflt`, `-C i01`, `-n 8`, `--mem-per-cpu=15000`, 120 min). Existiert das fertige
    `dlfx_mesh.xdmf` schon, wird sie uebersprungen (`AUTO_SKIP_PREPARE=0`
    erzwingt sie trotzdem). Jobname: `prep-JM-25-77`.
 

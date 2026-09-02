@@ -4,7 +4,8 @@
 #
 #   ./create_fracture_config.sh                 # alle Stufen aus MESH_TIERS
 #   ONLY_TIERS="coarse" ./create_fracture_config.sh
-#   LES_BAR_Y_MM=12 ./create_fracture_config.sh  # anderer Riegel
+#   LES_BAR_Y_MM=12 LES_BAR_Z_MM=4 ./create_fracture_config.sh  # Riegel statt ganzer Probe
+#   LES_MIRROR_X_REPETITIONS=2 ./create_fracture_config.sh      # zweimal spiegeln wie 011
 #
 # Gitter und Voxelgroesse werden, wenn moeglich, aus der .leS-Datei gelesen.
 # Ist die Datei hier nicht erreichbar (z.B. auf dem Mac), muessen LES_GRID und
@@ -42,8 +43,13 @@ else
   echo "Gitter: ${grid[*]}   Voxelgroesse: $LES_VOXEL_SIZE_M m"
 fi
 
-bar_args=(--bar-y-mm "$LES_BAR_Y_MM" --bar-z-mm "$LES_BAR_Z_MM")
+# Riegel-Ausschnitt: leer = ganze Achse. Seit 2026-09-02 ist der Default die
+# GANZE Probe (alle drei leer), gespiegelt ueber LES_MIRROR_X_REPETITIONS.
+bar_args=()
 [[ -n "$LES_BAR_X_MM" ]] && bar_args+=(--bar-x-mm "$LES_BAR_X_MM")
+[[ -n "$LES_BAR_Y_MM" ]] && bar_args+=(--bar-y-mm "$LES_BAR_Y_MM")
+[[ -n "$LES_BAR_Z_MM" ]] && bar_args+=(--bar-z-mm "$LES_BAR_Z_MM")
+[[ -n "$LES_MIRROR_X_REPETITIONS" ]] && bar_args+=(--mirror-x-repetitions "$LES_MIRROR_X_REPETITIONS")
 
 shell_args=()
 [[ -n "$LES_BOUNDARY_SHELL_XZ" ]] && shell_args+=(--boundary-shell-xz "$LES_BOUNDARY_SHELL_XZ")
@@ -56,6 +62,7 @@ keep_args=()
 shell_mode_args=(--shell-mode "$LES_SHELL_MODE")
 [[ -n "$LES_SHELL_UM" ]] && shell_mode_args+=(--shell-um "$LES_SHELL_UM")
 [[ -n "$LES_SHELL_VOXELS" ]] && shell_mode_args+=(--shell-voxels "$LES_SHELL_VOXELS")
+[[ -n "$LES_SHELL_X_UM" ]] && shell_mode_args+=(--shell-x-um "$LES_SHELL_X_UM")
 [[ -n "$LES_SHELL_VOXELS_X" ]] && shell_mode_args+=(--shell-voxels-x "$LES_SHELL_VOXELS_X")
 [[ "$LES_SNAP_MESH_TO_BOX" == "true" ]] && shell_mode_args+=(--snap-mesh-to-box) || shell_mode_args+=(--no-snap-mesh-to-box)
 shell_mode_args+=(--facet-distance-ratio "$LES_FACET_DISTANCE_RATIO")

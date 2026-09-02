@@ -20,7 +20,7 @@
 #                          fertige dlfx_mesh.xdmf schon existiert (Default 1)
 #   ONLY_DATASETS="JM-25-77 JM-25-83"
 #   ONLY_SIG_Y="100"
-#   PREP_JOB_TIME=2880     Zeitlimit der Netzvorbereitung (Minuten)
+#   PREP_JOB_TIME=240      Zeitlimit der Netzvorbereitung (Minuten, Default 120)
 #   FORCE=1                Queue-Limit-Pruefung uebergehen
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -123,8 +123,9 @@ for ds in "${DATASETS[@]}"; do
     continue
   fi
 
-  prep_args=(--parsable --time="${PREP_JOB_TIME:-1440}")
+  prep_args=(--parsable --time="${PREP_JOB_TIME:-120}")
   [[ -n "${PREP_JOB_PARTITION:-}" ]] && prep_args+=(-p "$PREP_JOB_PARTITION")
+  [[ -n "${JOB_ACCOUNT:-}" ]] && prep_args+=(-A "$JOB_ACCOUNT")
   prep_args+=(-J "prep-$ds")
   if [[ "${DRY_RUN:-0}" == "1" ]]; then
     echo "[dry-run] sbatch ${prep_args[*]} $SCRIPT_DIR/job_prepare_mesh_CLUSTER.sh $cfg"

@@ -21,6 +21,7 @@ SETUP_ARGS+=(
   --job-constraint "${YIELD_JOB_CONSTRAINT:-i01}"
   --job-time "${YIELD_JOB_TIME:-10080}"
   --job-partition "${YIELD_JOB_PARTITION:-}"
+  --job-account "${JOB_ACCOUNT:-l0003507}"
 )
 
 if [[ -n "${YIELD_JOB_NAME_PREFIX:-}" ]]; then

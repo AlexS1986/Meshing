@@ -3,8 +3,7 @@
 # Steuervariablen des Projekts 016 (Phasenfeld-Bruch aus .leS-Daten).
 #
 #   * Der LES_*-Block ist derselbe wie in 015, nur mit anderen Defaults:
-#     ganze Probe, in x gespiegelt und in eine homogene Schale eingebettet
-#     (Route aus 011), reduce = 4 mit 200-um-Elementen (seit 2026-09-02).
+#     Riegel-Crop statt Vollvolumen und eine deutlich groebere Netzfeinheit.
 #     Datensatz seit 2026-08-31: JM-25-77 (Gitter in 014 verifiziert).
 #   * Der FRACTURE_*-Block ersetzt den YIELD_*-Block aus 015: dieses Projekt
 #     rechnet keine Fliessflaeche, sondern eine Phasenfeld-Bruchsimulation
@@ -51,30 +50,27 @@ LES_XY_DIVISIONS="${LES_XY_DIVISIONS:-1}"
 LES_SDF_PAD_WIDTH="${LES_SDF_PAD_WIDTH:-3}"
 LES_KEEP_LARGEST_COMPONENT="${LES_KEEP_LARGEST_COMPONENT:-true}"
 
-# --- Probengeometrie: ganze Probe, in x gespiegelt (seit 2026-09-02) ---------
+# --- Probengeometrie: langer Riegel ------------------------------------------
 # Die Surfing-Randbedingungen in 00_template/pfmfrac_function.py setzen den
 # Rissstart bei x = 0,2*Lx und lassen den Riss nach +x laufen. Das Gebiet muss
 # deshalb in x deutlich laenger sein als in y und z.
 #
-# Entscheidung 2026-09-02 (Nutzer): KEIN Riegel-Ausschnitt mehr. Die ganze
-# Probe (JM-25-77: 19,8 x 19,8 x 14,8 mm) wird modelliert, als Voxelvolumen
-# in x gespiegelt (02e, Route aus 011/012) und aussen in eine homogene
-# Aluminiumschale eingebettet (02f, wie 011: 0,4 mm in y/z, 4 mm Endbloecke
-# in x). Mit einer Spiegelung: Schaum 39,6 x 19,8 x 14,8 mm, Box inkl. Schale
-# ca. 47,5 x 20,6 x 15,6 mm, Lx/Ly = 2,3, Risslauf ca. 35 epsilon.
-# Die Spiegelebene liegt in der Mitte des Schaums (x = Lx_Schaum/2).
+# Anders als in 012 (dort war das CT-Teilvolumen zu klein und wurde zweimal in x
+# gespiegelt, 4*Nx-3) ist das .leS-Volumen gross genug: JM-25-77 misst
+# 19,8 x 19,8 x 14,8 mm. Der Riegel wird also direkt herausgeschnitten.
 #
-# Der Riegel-Ausschnitt aus der Session 2026-08-31 (x voll, y = 16, z = 4 mm)
-# bleibt ueber LES_BAR_*_MM verfuegbar: leer = volle Ausdehnung der Achse.
-# Ein Ausschnitt wird mittig platziert und auf Vielfache von reduce gekuerzt.
-# Die externe Schale (02f) kommt AUSSEN dazu.
+# Hoehe Ly (2026-08-31): 16 mm statt 8 mm. Grund: die Surfing-BC wirkt nur bei
+# |y - y_mid| >= 4*epsilon (alex.boundaryconditions), und epsilon = Ly/eps_factor
+# muss von den groben Elementen aufgeloest werden (>= 2 Elemente je epsilon).
+# Beides zusammen: Ly >= 2 * h * eps_factor = 2 * 0,4 mm * 20 = 16 mm.
+# 011 zum Vergleich: Ly = 14,2 mm, epsilon = 0,71 mm, ~1,8 Elemente je epsilon.
+#
+# Angaben in mm; leer = volle Ausdehnung der Achse. Der Ausschnitt wird
+# mittig im Volumen platziert und auf Vielfache des reduce-Faktors gekuerzt.
+# Die externe Schale (LES_SHELL_VOXELS) kommt AUSSEN dazu.
 LES_BAR_X_MM="${LES_BAR_X_MM:-}"       # leer = volle Laenge in x (Risslaufrichtung)
-LES_BAR_Y_MM="${LES_BAR_Y_MM:-}"       # leer = volle Hoehe (19,8 mm); vorher 16.0
-LES_BAR_Z_MM="${LES_BAR_Z_MM:-}"       # leer = volle Dicke (14,8 mm); vorher 4.0
-# Spiegelung des Voxelvolumens in x vor der Schale (02e): 0 = aus,
-# 1 = einmal (2*Nx-1, Default), 2 = zweimal (4*Nx-3, wie 011). Jede weitere
-# Spiegelung verdoppelt den Schaumanteil des Netzes.
-LES_MIRROR_X_REPETITIONS="${LES_MIRROR_X_REPETITIONS:-1}"
+LES_BAR_Y_MM="${LES_BAR_Y_MM:-16.0}"   # Hoehe, bestimmt ueber eps_factor epsilon (s.o.)
+LES_BAR_Z_MM="${LES_BAR_Z_MM:-4.0}"    # Dicke
 
 # Gitter und Voxelgroesse des .leS-Datensatzes. Werden sie leer gelassen, liest
 # create_fracture_config.sh sie mit A04_les_header_info.py aus der Datei - das
@@ -101,12 +97,7 @@ LES_SHELL_MODE="${LES_SHELL_MODE:-external}"   # external | seal | none
 # 6 Voxel bei medium/fine. Entspricht 011 (3 x 134 um).
 LES_SHELL_UM="${LES_SHELL_UM:-400}"
 LES_SHELL_VOXELS="${LES_SHELL_VOXELS:-}"       # alternativ fest in Voxeln (leer = aus LES_SHELL_UM)
-# Homogene Endbloecke an den x-Enden, in um. 011: 30 Voxel x 134 um = 4 mm -
-# dort liegen Kerb-Anfang und Auslauf der Surfing-BC in Vollmaterial. Die
-# Bloecke sind massiv und kosten Elemente (bei 200 um rund ein Viertel des
-# Netzes); 2000 spart davon die Haelfte. Leer = wie LES_SHELL_UM.
-LES_SHELL_X_UM="${LES_SHELL_X_UM:-4000}"
-LES_SHELL_VOXELS_X="${LES_SHELL_VOXELS_X:-}"   # alternativ fest in Voxeln (ueberschreibt LES_SHELL_X_UM)
+LES_SHELL_VOXELS_X="${LES_SHELL_VOXELS_X:-}"   # abweichend an den x-Enden (Voxel); leer = wie uebrige
 # 10_snap_mesh_to_crop_boundary wie in 011: Knoten nahe der Box-Flaechen exakt auf
 # die Flaeche ziehen, damit die BC-Suche (atol = 2 % Lx) den Rand sauber findet.
 LES_SNAP_MESH_TO_BOX="${LES_SNAP_MESH_TO_BOX:-true}"
@@ -122,34 +113,29 @@ LES_BOUNDARY_SHELL_ELEMENTS="${LES_BOUNDARY_SHELL_ELEMENTS:-3}"
 # --- Aufloesungsfamilie -------------------------------------------------------
 # Je Zeile:  <tier>|<reduce>|<max_element_size_um>
 #
-# Entscheidung 2026-09-02 (Nutzer: "Vernetzung deutlich zu grob"): alle Stufen
-# auf reduce = 4 (66,8 um Voxel). reduce = 8 (133,6 um) hatte per Majority-Vote
-# bereits Stege unter ~70 um geloescht und um 130 um verklumpt, bevor ueberhaupt
-# vernetzt wurde. reduce = 4 ist der Kompromiss: 19 MVoxel je Probe, rel. Dichte
-# -0,08 Prozentpunkte (015, CLAUDE.md), Stege ab ~130 um bleiben erhalten.
+# Bewusst deutlich groeber als 015 (dort 75 um bei reduce=2). Massgeblich fuer
+# den Phasenfeld-Bruch ist nicht die Voxelgroesse, sondern die Regularisierungs-
+# laenge epsilon = Ly / FRACTURE_EPS_FACTOR_PARAM: das Netz muss epsilon
+# aufloesen, sonst ist das Ergebnis netzabhaengig. Bei Ly = 16 mm (+ Schale)
+# und eps_factor = 20 ist epsilon = 0,84 mm, also 2,1 / 3,1 / 4,2 Elemente je
+# epsilon.
 #
-# Massgeblich fuer den Phasenfeld-Bruch bleibt die Regularisierungslaenge
-# epsilon = Ly / FRACTURE_EPS_FACTOR_PARAM. Bei ganzer Probe (Ly = 19,8 mm
-# + 2 x 0,4 mm Schale = 20,6 mm) und eps_factor = 20 ist epsilon = 1,03 mm.
+#   tier    reduce  Voxel*     Elementgroesse   Elemente je epsilon
+#   coarse    8     133,6 um       400 um            2,1
+#   medium    4      66,8 um       267 um            3,1
+#   fine      4      66,8 um       200 um            4,2
+#   (* Voxelgroesse fuer eine Quelle mit 16,7 um, wie JM-25-77.)
 #
-#   tier    reduce  Voxel*    Elementgroesse  El./epsilon  Tets (Schaetzung**)
-#   coarse    4     66,8 um      250 um           4,1         ~2,5 Mio
-#   medium    4     66,8 um      200 um           5,2         ~5 Mio   (Default)
-#   fine      4     66,8 um      150 um           6,9         ~12 Mio  (Speicher!)
-#   (*  Voxelgroesse fuer eine Quelle mit 16,7 um, wie JM-25-77.)
-#   (** ganze Probe, 1x gespiegelt, 4-mm-Endbloecke; kalibriert an 011
-#       (381k Tets bei 400 um) und 015 (12,3 Mio dofs bei 75 um/reduce 2).
-#       Etwa die Haelfte der Elemente sitzt in der massiven Schale.)
-#
-# Frueher (bis 2026-09-02): coarse 8|400, medium 4|267, fine 4|200 auf einem
-# Riegel 19,8 x 16 x 4 mm; 011 rechnete mit 134-um-Voxeln und 402-um-Elementen.
+# Zum Vergleich: 011 rechnete mit Voxel 134 um und max_element_size_factor 3,0
+# (= 402 um), epsilon = 0,71 mm -> ~1,8 Elemente je epsilon; 015 mit 75 um.
+# Die Stufe coarse entspricht damit der 011-Aufloesung.
 MESH_TIERS=(
-  "coarse|4|250"
-  "medium|4|200"
-  "fine|4|150"
+  "coarse|8|400"
+  "medium|4|267"
+  "fine|4|200"
 )
 # Welche Stufe die Jobskripte ohne Argument verwenden.
-DEFAULT_TIER="${DEFAULT_TIER:-medium}"
+DEFAULT_TIER="${DEFAULT_TIER:-coarse}"
 # Filter fuer einzelne Aufrufe, z.B. ONLY_TIERS="coarse" ./create_fracture_config.sh
 ONLY_TIERS="${ONLY_TIERS:-}"
 

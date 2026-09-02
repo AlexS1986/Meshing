@@ -1300,3 +1300,16 @@ Nach der Netzvorbereitung pruefen: `<ds>_les_r4_segmented/.../mesh.quality.txt`
 (`mesh_tetrahedra`, erwartet ~0,5-1 Mio.), Prep-Log `verdict: good`; nach den
 ersten Punkt-Jobs `solving fem problem with ... dofs` (erwartet 1-2,5 Mio.),
 Schrittdauer und `sstat MaxRSS` -> ggf. `YIELD_JOB_NTASKS` weiter senken.
+
+**Eingereicht 01.09.2026 (r4):** `batch_submit_CLUSTER.sh` -> Netzvorbereitungen
+54447979 (JM-25-77), 54447980 (JM-25-71), 54447981 (JM-25-83), 54447982
+(JM-25-88) auf Partition `mem`; 768 Punkt-Jobs mit `afterok` daran,
+Header `-n 32 --mem-per-cpu=5600 -t 1440 -p deflt -C i01`. Alter Jobordner
+auf Scratch nach `yield_surface_jobs_r2_20260901` archiviert. Kontrolle vorab:
+8 r4-Configs, reduce 4, Faktor 2,2455 x 66,8 um = 150 um, Randschale 6/9,
+768 Punktordner, Template mit `icntl_14 = 100` und `--kill-on-bad-exit` auf Scratch.
+Nebenbefund: `create_les_dataset_config.py` liess das Metadatum
+`max_element_size_um` bei unveraendertem Faktor stehen (zeigte 75.0 in der
+150-um-Config; Mesher nutzt nur den Faktor) -> behoben, Metadatum wird jetzt
+immer aus Faktor x Voxelgroesse abgeleitet. rsync-Code 23 beim Sync des
+gesamten pygalmesh-Ordners noch ungeklaert (Studie-Dateien nachweislich da).

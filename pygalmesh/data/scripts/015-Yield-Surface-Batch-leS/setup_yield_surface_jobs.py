@@ -71,7 +71,7 @@ def main():
                              "Maximum der Partition long; deflt erlaubt nur 1440")
     parser.add_argument("--job-partition", default="",
                         help="SBATCH -p; leer = Default-Partition (deflt, max. 24 h)")
-    parser.add_argument("--job-account", default="p0023647")
+    parser.add_argument("--job-account", default="l0003507")
     parser.add_argument("--job-name-prefix", default="",
                         help="Kurzes Praefix fuer den SLURM-Jobnamen, z.B. 'JM-25-77_s075'. "
                              "Der Jobname wird dann '<praefix>-ysNNN' statt der langen "
@@ -113,7 +113,7 @@ def main():
     submit_lines = [
         "#!/usr/bin/env bash",
         f"#SBATCH -J ys-submit-n{args.points:03d}",
-        "#SBATCH -A p0023647",
+        f"#SBATCH -A {args.job_account}",
         "#SBATCH -t 1440",
         "#SBATCH --mem-per-cpu=9000",
         "#SBATCH -n 1",

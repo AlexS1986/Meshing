@@ -111,11 +111,10 @@ def build_parser():
                             "Mit A04_les_header_info.py auslesen.")
     group.add_argument("--bar-x-mm", type=float, default=None,
                        help="Laenge des Riegels in x (Risslaufrichtung); leer = ganze Achse")
-    group.add_argument("--bar-y-mm", type=float, default=None,
-                       help="Hoehe des Riegels in y; bestimmt ueber eps_factor epsilon; "
-                            "leer = ganze Achse (seit 2026-09-02 Default: ganze Probe)")
-    group.add_argument("--bar-z-mm", type=float, default=None,
-                       help="Dicke des Riegels in z; leer = ganze Achse")
+    group.add_argument("--bar-y-mm", type=float, default=8.0,
+                       help="Hoehe des Riegels in y; bestimmt ueber eps_factor epsilon")
+    group.add_argument("--bar-z-mm", type=float, default=4.0,
+                       help="Dicke des Riegels in z")
     group.add_argument("--fracture-materials", nargs="*", default=["std"])
     group.add_argument("--fracture-directions", nargs="*", default=["y"])
     group.add_argument("--fracture-mesh-file", default="dlfx_mesh")
@@ -145,14 +144,6 @@ def build_parser():
                             "sonst loest das Netz die Schale nicht auf. 011: 3 * 134 um = 400 um")
     group.add_argument("--shell-voxels-x", type=int, default=None,
                        help="(--shell-mode external) abweichende Dicke an den x-Enden")
-    group.add_argument("--shell-x-um", type=float, default=None,
-                       help="(--shell-mode external) Dicke der homogenen Endbloecke an den "
-                            "x-Enden in um; Voxel = ceil(um / Voxelgroesse). 011: 30 * 134 um "
-                            "= 4 mm. Wird von --shell-voxels-x ueberschrieben.")
-    group.add_argument("--mirror-x-repetitions", type=int, default=0,
-                       help="Voxelvolumen vor der Schale in x spiegeln (02e, Route aus 011/012): "
-                            "0 = aus, 1 = einmal (2*Nx-1), 2 = zweimal (4*Nx-3, wie 011). "
-                            "Die Spiegelkopie wird an x_min angesetzt (plane = min).")
     group.add_argument("--snap-mesh-to-box", dest="snap_mesh_to_box", action="store_true", default=True,
                        help="10_snap_mesh_to_crop_boundary aktivieren (wie 011): Knoten nahe "
                             "der Box-Flaechen werden exakt auf die Flaeche gezogen")
@@ -204,8 +195,6 @@ def main():
     voxel_um = voxel_size_m * 1e6 * args.reduce
     if args.shell_mode == "external" and args.shell_um:
         args.shell_voxels = int(math.ceil(float(args.shell_um) / voxel_um))
-    if args.shell_mode == "external" and args.shell_x_um and args.shell_voxels_x is None:
-        args.shell_voxels_x = int(math.ceil(float(args.shell_x_um) / voxel_um))
     if args.shell_mode == "external" and args.max_element_size_um:
         if args.shell_voxels * voxel_um < float(args.max_element_size_um) - 1e-9:
             print(f"WARNUNG: externe Schale {args.shell_voxels * voxel_um:.0f} um ist duenner als "
@@ -263,30 +252,7 @@ def main():
         seal_cfg["enabled"] = False
         config["02f_add_voxel_shell"] = {"enabled": False, "use_shell_for_meshing": False}
 
-    mirror_reps = int(args.mirror_x_repetitions or 0)
-    if mirror_reps > 0:
-        # Route aus 011/012: das Voxelvolumen wird VOR der Schale in x gespiegelt
-        # (an x_min, doppelte Ebene verworfen -> 2*Nx-1 je Wiederholung). 04_scale_
-        # and_translate_mesh_mod.py (011-Version) rechnet Spiegelung und Schale
-        # ueber --npy heraus.
-        config["02e_mirror_extrude_voxel"] = {
-            "enabled": True,
-            "axis": "x",
-            "plane": "min",
-            "material_value": 1,
-            "output_filename": f"volume_mirrored_x{mirror_reps}.npy",
-            "report_filename": f"volume_mirrored_x{mirror_reps}.txt",
-            "use_mirrored_for_meshing": True,
-            "drop_duplicate_plane": True,
-            "repetitions": mirror_reps,
-            "comment": (
-                "Spiegelung in x wie 011 (dort repetitions = 2). Die Spiegelebene liegt "
-                "im Schaum; der Riss laeuft darueber hinweg. material_value ist hier "
-                "nur fuer den Report (Pipeline-Konvention: 1 = Pore)."
-            ),
-        }
-    else:
-        config["02e_mirror_extrude_voxel"] = {"enabled": False, "use_mirrored_for_meshing": False}
+    config.setdefault("02e_mirror_extrude_voxel", {"enabled": False, "use_mirrored_for_meshing": False})
     config.setdefault("11_mirror_extrude_mesh", {"enabled": False})
     config["10_snap_mesh_to_crop_boundary"] = {
         "enabled": bool(args.snap_mesh_to_box),
@@ -314,22 +280,9 @@ def main():
     config["dataset"]["specimen"] = specimen
 
     # --- 4. fracture-Block -----------------------------------------------------
-    def reduced_count(rng, n):
-        # A01 kuerzt den Ausschnitt auf ein Vielfaches von reduce und teilt dann.
-        count = (rng[1] - rng[0]) if rng else n
-        return count // args.reduce
-
-    voxel_mm_reduced = voxel_size_m * 1e3 * args.reduce
-    nx_red = reduced_count(args.x_range, args.grid[0]) if args.grid else 0
-    ny_red = reduced_count(args.y_range, args.grid[1]) if args.grid else 0
-    nz_red = reduced_count(args.z_range, args.grid[2]) if args.grid else 0
-    nx_foam = nx_red
-    for _ in range(mirror_reps if nx_red else 0):
-        nx_foam = 2 * nx_foam - 1
-    x_len = nx_foam * voxel_mm_reduced
-    y_len = ny_red * voxel_mm_reduced
-    z_len = nz_red * voxel_mm_reduced
-    foam_extent = {"x": x_len or None, "y": y_len or None, "z": z_len or None}
+    x_len = axis_length_mm(args.x_range, args.grid[0] if args.grid else 0, voxel_size_m)
+    y_len = axis_length_mm(args.y_range, args.grid[1] if args.grid else 0, voxel_size_m)
+    z_len = axis_length_mm(args.z_range, args.grid[2] if args.grid else 0, voxel_size_m)
 
     # Externe Schale vergroessert die Box; epsilon wird in pfmfrac_function.py aus
     # der Bounding-Box des NETZES gebildet, also inklusive Schale.
@@ -396,11 +349,6 @@ def main():
             if args.grid else "unbekannt - kein Riegel-Crop gesetzt"
         ),
         "bar_extent_mm": {"x": x_len or None, "y": y_len or None, "z": z_len or None},
-        "foam_extent_mm": foam_extent,
-        "mirror_x_repetitions": mirror_reps,
-        "foam_voxels_reduced": {"x": nx_foam or None, "y": ny_red or None, "z": nz_red or None},
-        "crack_start_x_mm": (0.2 * x_len) if x_len else None,
-        "crack_start_in_foam_mm": ((0.2 * x_len) - shell_x * voxel_mm) if x_len else None,
         "epsilon_mm": epsilon_mm,
         "element_size_um": element_um,
         "elements_per_epsilon": elements_per_epsilon,
@@ -415,7 +363,6 @@ def main():
             if args.shell_mode == "seal" else None
         ),
         "shell_thickness_mm": (args.shell_voxels * voxel_mm) if args.shell_mode == "external" else None,
-        "shell_x_thickness_mm": (shell_x * voxel_mm) if args.shell_mode == "external" else None,
         "comment": (
             "Richtwerte: mindestens 2 Elemente je epsilon, besser 4. Ist der Wert "
             "kleiner, ist das Bruchergebnis netzabhaengig - dann Elemente verfeinern "
@@ -444,11 +391,7 @@ def main():
     print(f"  Crop (Originalgitter): x={section['crop']['x_range']} "
           f"y={section['crop']['y_range']} z={section['crop']['z_range']}")
     if x_len:
-        print(f"  Schaum (nach Spiegelung): {foam_extent['x']:.2f} x {foam_extent['y']:.2f} x {foam_extent['z']:.2f} mm"
-              + (f"  [{mirror_reps}x in x gespiegelt, 02e]" if mirror_reps else ""))
-        print(f"  Box inkl. Schale   : {x_len:.2f} x {y_len:.2f} x {z_len:.2f} mm  (Lx/Ly = {x_len / y_len:.2f})")
-        print(f"  Kerbspitze         : x = 0,2*Lx = {0.2 * x_len:.2f} mm, "
-              f"{0.2 * x_len - shell_x * voxel_mm:.2f} mm im Schaum")
+        print(f"  Riegel inkl. Schale: {x_len:.2f} x {y_len:.2f} x {z_len:.2f} mm")
     print(f"  Elementgroesse     : "
           f"{config['03_mesh_3D_array'].get('max_element_size_um', float('nan')):.1f} um "
           f"(Faktor {pg['max_element_size_factor']:.4f} x dx)")
@@ -456,8 +399,7 @@ def main():
           f"= {pg['max_facet_distance_factor'] * voxel_um:.0f} um")
     if args.shell_mode == "external":
         print(f"  Randschale         : extern (02f), {args.shell_voxels} Voxel = "
-              f"{args.shell_voxels * voxel_mm * 1000:.0f} um (x-Enden: {shell_x} Voxel = "
-              f"{shell_x * voxel_mm:.2f} mm); 02d-Seal aus")
+              f"{args.shell_voxels * voxel_mm * 1000:.0f} um (x-Enden: {shell_x} Voxel); 02d-Seal aus")
     elif args.shell_mode == "seal":
         print(f"  Randschale         : innen (02d-Seal), x/z = {seal.get('x_min')}, y = {seal.get('y_min')} Voxel")
     else:

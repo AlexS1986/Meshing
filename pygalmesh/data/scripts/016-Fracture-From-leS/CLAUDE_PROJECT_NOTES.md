@@ -6,6 +6,93 @@ Laufendes Protokoll. Neueste Session oben.
 
 ---
 
+## Session 2026-09-02 — Ganze Probe statt Riegel, reduce = 4, Route aus 011
+
+### Auftrag (Nutzer)
+
+1. „Die Vernetzung ist deutlich zu grob" → sinnvollen Kompromiss finden,
+   Vorschlag reduce = 4.
+2. Es soll **nichts herausgeschnitten** werden: die ganze Probe modellieren,
+   als Voxel spiegeln, in eine homogene Randschicht einbetten und dann
+   vernetzen — wie in 011.
+
+### Befund zur Grobheit
+
+Das Problem lag vor der Vernetzung: `coarse` lief auf `reduce = 8`
+(133,6-µm-Voxel). Der Majority-Vote über 8³ Voxel löscht Stege unter ~70 µm
+und verklumpt solche um 130 µm; `sdf_sigma_voxels = 1` glättet danach noch
+einmal um ein Voxel. Bei 85,55 % Porosität sind die Stege vermutlich nur ein
+paar hundert µm dick — vernetzt wurde also eine bereits stark vereinfachte
+Geometrie, und darauf saß ein 400-µm-Element je Stegdicke.
+
+### Entscheidungen (Nutzer, nach Vorschlag)
+
+| Frage | Entscheidung | Alternativen |
+|---|---|---|
+| Ausschnitt | **keiner** — ganze Probe 19,8 × 19,8 × 14,8 mm (`LES_BAR_*_MM` leer) | Riegel 16 × 4 mm bleibt über `LES_BAR_Y_MM`/`_Z_MM` verfügbar |
+| Spiegelung | **1× in x** (`LES_MIRROR_X_REPETITIONS = 1`, 02e, `2·Nx − 1`) → Schaum 39,5 mm lang, `Lx/Ly = 2,3`, Risslauf ≈ 35 epsilon | 2× wie 011 (`4·Nx − 3`, `Lx/Ly ≈ 4`): ~1,7-fache Elementzahl |
+| Endblöcke x | **4 mm** homogenes Aluminium wie 011 (`LES_SHELL_X_UM = 4000` → 60 Voxel bei reduce 4); Kerbspitze bei 0,2·Lx = 9,5 mm liegt 5,5 mm im Schaum | 2 mm spart ~¼ der Elemente |
+| y/z-Schale | 0,4 mm wie bisher (6 Voxel) | — |
+| Auflösung | **reduce = 4** in allen Stufen; Elemente **250 / 200 / 150 µm** (coarse/medium/fine), **Default `medium` = 200 µm** | 150 µm ≈ 12 Mio Tets, vermutlich zu teuer (015 lief bei 12 Mio dofs ans Speicherlimit) |
+| `eps_factor` | 20 unverändert → `epsilon = 20,64 mm / 20 = 1,03 mm`, 4,1 / 5,2 / 6,9 Elemente je epsilon | — |
+
+Die Kostenschätzung (kalibriert an 011: 381 k Tets bei 402 µm auf 4300 mm³
+Material; 015: 12,3 Mio dofs bei 75 µm/reduce 2 auf der ganzen Probe):
+
+| Stufe | Tets (Schätzung) | dofs (u, s) | Anmerkung |
+|---|---:|---:|---|
+| coarse 250 µm | ~2,5 Mio | ~2 Mio | Stege teils 1 Element dick |
+| **medium 200 µm** | ~5 Mio | ~3,7 Mio | Default |
+| fine 150 µm | ~12 Mio | ~9 Mio | Speicher/Laufzeit prüfen, bevor er eingereicht wird |
+
+Rund die Hälfte der Elemente sitzt in der massiven Schale (Endblöcke
+2 × 4 × 20,6 × 15,6 mm³ ≈ 2570 mm³ gegen ≈ 1670 mm³ Schaummaterial) — pygalmesh
+kennt keine regionale Elementgröße. Laufzeit-Anhaltspunkt: 011 brauchte für
+0,4 Mio dofs 66 min (191 Schritte, 96 Kerne); bei ~3,7 Mio dofs und
+LU-Skalierung ~N² wären das Tage. `-t 10080` bleibt.
+
+### Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `config.sh` | `LES_BAR_*_MM` leer (ganze Probe), neu `LES_MIRROR_X_REPETITIONS = 1`, `LES_SHELL_X_UM = 4000`; `MESH_TIERS` → `coarse|4|250`, `medium|4|200`, `fine|4|150`; `DEFAULT_TIER = medium`. Backup `config.sh.bak_20260902`. |
+| `create_fracture_config.py` | neu `--mirror-x-repetitions` (schreibt den `02e`-Block wie 011, `plane = min`, `drop_duplicate_plane`), `--shell-x-um`; `--bar-y-mm`/`--bar-z-mm` ohne Default (leer = ganze Achse); `fracture_geometry_check` enthält jetzt `foam_extent_mm`, `mirror_x_repetitions`, `foam_voxels_reduced`, `crack_start_x_mm`, `crack_start_in_foam_mm`, `shell_x_thickness_mm`; `bar_extent_mm.x` rechnet die Spiegelung ein (voxelgenau `2n − 1`). Backup `create_fracture_config.py.bak_20260902`. |
+| `create_fracture_config.sh` | `--bar-*-mm` nur noch, wenn gesetzt; reicht `LES_MIRROR_X_REPETITIONS` und `LES_SHELL_X_UM` durch. |
+| `create_les_dataset_config.py` | Fix aus 015 (01.09.) nachgezogen: `03_mesh_3D_array.max_element_size_um` wird immer aus Faktor × Voxelgröße abgeleitet. Vorher stand in der 150-µm-Config „75.0" (gleicher Faktor 2,2455 wie die 75-µm-Basis bei reduce 2). Der Mesher nutzt nur den Faktor — kein Netz war falsch, nur das Metadatum. |
+| `config-fracture-JM-25-77-{coarse,medium,fine}.json` | neu erzeugt (lokal, Gitter aus `config.sh`). |
+
+`run_generate_mesh_CLUSTER.sh` brauchte keine Änderung: die Kette
+`02b → 02c → 02e → 02f → 03 → 04 (--npy) → 10 → 05/08/09` ist seit 015/011 da
+und hängt nur an den `enabled`-Flags. `04_scale_and_translate_mesh_mod.py`
+(011-Version) rechnet Spiegelung und Schale über `--npy` heraus — geprüft im
+Code (`transformed_voxel_bounds`).
+
+### Verifikationsstand
+
+- `create_fracture_config.sh` lokal gelaufen (Python 3.10): drei Configs,
+  `A01.crop` = `null/null/null`, `02e` an (`repetitions = 1`), `02f`
+  60/6/6 Voxel, `02d` aus, `10` an, `11` aus, `keep_largest_component = true`,
+  `pad_width = 3`. Box 47,49 × 20,64 × 15,56 mm, Schaum 39,48 × 19,84 × 14,76 mm
+  (591 × 297 × 221 reduzierte Voxel), epsilon 1,032 mm.
+- Nicht lokal prüfbar: `A01` auf dem vollen Volumen mit `crop = null`
+  (015 hat genau das mit `LES_BOUNDS_MODE = full` gemacht), `02e` auf
+  19 MVoxel, Speicher/Laufzeit von `03`.
+
+### Beim nächsten Lauf prüfen
+
+1. `volume_mirrored_x1.txt`: `mirrored_shape = (591, 297, 221)`,
+   `material_multiplier ≈ 2`.
+2. `volume_external_shell.txt`: `shelled_shape = (711, 309, 233)`.
+3. `04`-Log: `origin_vox`/`shape` ohne die Warnung „differs from meshed npy shape".
+4. `mesh.quality.txt`: `mesh_tetrahedra` gegen die Schätzung (~5 Mio bei medium).
+5. Simulationslog: Anzahl dofs; erste Schritte: `uY` antisymmetrisch in y,
+   Kerb bei x < 9,5 mm; `x_tip` folgt `xtip_soll`.
+6. Der Riss überquert die Spiegelebene bei x = 4 + 19,74 = 23,7 mm — dort im
+   J-Verlauf auf Symmetrieartefakte achten.
+7. `job_run_simulation_CLUSTER.sh` hat keine `-p`-Zeile bei `-t 10080`; der
+   erste 016-Lauf wurde trotzdem angenommen. Falls SLURM den Job jetzt wegen
+   des Zeitlimits ablehnt: `#SBATCH -p long` (015-Erfahrung: `deflt` max 1440 min).
+
 ## Session 2026-08-31 — Erster Cluster-Lauf ausgewertet: drei Fehler, drei Korrekturen
 
 ### Befund des ersten Laufs (JM-25-88, coarse)
@@ -231,20 +318,22 @@ Alles andere ist unverändert aus 015, 012 oder 011 kopiert — siehe `FILES.md`
    ```bash
    python3 A04_les_header_info.py /data/resources/A01_segmented/<datei>.leS --format shell
    ```
-2. **Elementgröße gegen Stegdicke prüfen.** 400 µm können in der Größenordnung
-   der Stege selbst liegen. Dann bildet das Netz die Struts nicht mehr ab und
-   die effektive Steifigkeit fällt. Messen mit
-   `evaluate_pore_size_distribution.py`; danach entweder die Elementgröße
-   senken oder bewusst dokumentieren, dass gerechnet wird, was aufgelöst ist.
-3. **`epsilon ≈ 0,84 mm` ist größer als die Stegdicke.** Der Riss wird damit über
+2. **Elementgröße gegen Stegdicke prüfen.** Seit 02.09. reduce = 4 mit
+   200 µm (Default) — Stege ab ~130 µm bleiben im Voxelbild erhalten, sind im
+   Netz aber teils nur ein Element dick. Messen mit
+   `evaluate_pore_size_distribution.py`; danach bewusst dokumentieren, was
+   aufgelöst ist.
+3. **`epsilon ≈ 1,03 mm` ist größer als die Stegdicke.** Der Riss wird damit über
    mehrere Stege verschmiert; die Simulation bildet eher einen effektiven
    Bruchvorgang im homogenisierten Schaum ab als das Versagen einzelner Stege.
-   Das ist die bewusst in Kauf genommene Folge der groben Auflösung — beim
-   Auswerten und im Paper klar benennen.
-4. **Riegelmaße.** `epsilon/Ly = 1/20` wie 011, aber `Lx/Ly ≈ 1,2` statt 4,9.
-   Ob die 19 epsilon Lauflänge für einen stationären J-Verlauf reichen, zeigt
-   der erste Lauf; sonst `02e`-Spiegelung (011-Route) erwägen.
-5. **Tetraederzahl ist nur geschätzt.** Nach dem ersten Netz nachziehen:
+   Mit 5 Elementen je epsilon (medium) wäre jetzt Spielraum, `eps_factor` auf
+   30–40 zu erhöhen (epsilon 0,5–0,7 mm, BC-Band 73–80 %) — das rückt näher
+   an das Versagen einzelner Stege. Erst nach dem ersten Lauf entscheiden.
+4. **Geometrie.** Ganze Probe, 1× gespiegelt: `Lx/Ly = 2,3` (011: 4,9),
+   Risslauf ≈ 35 epsilon. Reicht das nicht für einen stationären J-Verlauf,
+   `LES_MIRROR_X_REPETITIONS = 2`. Die Spiegelebene bei x ≈ 23,7 mm ist eine
+   künstliche Symmetrie — im J-Verlauf darauf achten.
+5. **Tetraederzahl ist nur geschätzt** (~5 Mio medium). Nach dem ersten Netz nachziehen:
    ```bash
    grep mesh_tetrahedra .../subvolume_x0_y0/mesh.quality.txt
    ```
@@ -257,5 +346,8 @@ Alles andere ist unverändert aus 015, 012 oder 011 kopiert — siehe `FILES.md`
    10.1016/j.ijmecsci.2021.106868, Bereich 6,0–8,4). Ob der Wert für die
    Stege eines geschäumten Bauteils gilt, ist offen.
 8. **Rechenzeit unbekannt.** `-t 10080` (7 Tage) ist aus 012 übernommen, dort
-   für ein deutlich kleineres Gebiet. Nach dem ersten Lauf mit `sacct`
-   nachmessen.
+   für ein deutlich kleineres Gebiet. Anhaltspunkt: 011 brauchte 66 min für
+   0,4 Mio dofs; bei ~3,7 Mio dofs (medium) sind Tage zu erwarten. Nach dem
+   ersten Lauf mit `sacct` nachmessen; `fine` (≈ 9 Mio dofs) erst danach.
+9. **Schale dominiert das Netz.** Die 4-mm-Endblöcke und die 0,4-mm-Hülle sind
+   rund die Hälfte der Elemente. Wenn Kosten drücken: `LES_SHELL_X_UM=2000`.

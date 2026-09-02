@@ -22,8 +22,8 @@
     "meshing_method": "sdf_pygalmesh",
     "mesh_output_path": "/data/scripts/016-Fracture-From-leS/JM-25-77_les_fracture_fine_segmented/mesh.xdmf",
     "pygalmesh_parameters": {
-      "max_element_size_factor": 2.9940119760479043,
-      "max_facet_distance_factor": 0.9980039920159681,
+      "max_element_size_factor": 2.245508982035928,
+      "max_facet_distance_factor": 0.7485029940119761,
       "exude_time_limit": 30,
       "exude_sliver_bound": 0.0,
       "lloyd": false,
@@ -84,8 +84,8 @@
       "surface_decimation_boundary_vertex_deletion": false,
       "min_surface_component_faces": 0,
       "pygalmesh_parameters": {
-        "max_element_size_factor": 2.9940119760479043,
-        "max_facet_distance_factor": 0.9980039920159681,
+        "max_element_size_factor": 2.245508982035928,
+        "max_facet_distance_factor": 0.7485029940119761,
         "exude_time_limit": 30,
         "exude_sliver_bound": 0.0,
         "lloyd": false,
@@ -100,8 +100,8 @@
         "verbose": true
       }
     },
-    "mesh_size_scale_applied": 1.3333333333333333,
-    "max_element_size_um": 200.0,
+    "mesh_size_scale_applied": 1.5118132648988705,
+    "max_element_size_um": 150.0,
     "facet_distance_ratio_applied": 3.0
   },
   "02a_rotate_pic_to_align_with_axis": {
@@ -229,14 +229,8 @@
     "voxel_size_unit": "mm",
     "crop": {
       "x_range": null,
-      "y_range": [
-        116,
-        1072
-      ],
-      "z_range": [
-        320,
-        560
-      ]
+      "y_range": null,
+      "z_range": null
     },
     "reduce": {
       "factor": 4,
@@ -254,8 +248,8 @@
     "use_shell_for_meshing": true,
     "thickness": 6,
     "thicknesses": {
-      "x_min": 6,
-      "x_max": 6,
+      "x_min": 60,
+      "x_max": 60,
       "y_min": 6,
       "y_max": 6,
       "z_min": 6,
@@ -264,8 +258,16 @@
     "comment": "Wert 0 = Aluminium (Pipeline-Konvention). Externe Schale wie in 011 (dort 3 Voxel in y/z). 04_scale_and_translate_mesh_mod.py (011-Version) rechnet die Verschiebung des Ursprungs heraus."
   },
   "02e_mirror_extrude_voxel": {
-    "enabled": false,
-    "use_mirrored_for_meshing": false
+    "enabled": true,
+    "axis": "x",
+    "plane": "min",
+    "material_value": 1,
+    "output_filename": "volume_mirrored_x1.npy",
+    "report_filename": "volume_mirrored_x1.txt",
+    "use_mirrored_for_meshing": true,
+    "drop_duplicate_plane": true,
+    "repetitions": 1,
+    "comment": "Spiegelung in x wie 011 (dort repetitions = 2). Die Spiegelebene liegt im Schaum; der Riss laeuft darueber hinweg. material_value ist hier nur fuer den Report (Pipeline-Konvention: 1 = Pore)."
   },
   "11_mirror_extrude_mesh": {
     "enabled": false
@@ -331,7 +333,7 @@
     "tier": "fine",
     "reduce": 4,
     "voxel_size_um": 66.8,
-    "max_element_size_um": 200.0,
+    "max_element_size_um": 150.0,
     "comment": "Aufloesungsfamilie nach dem Vorbild von 012 (coarse/medium/fine)."
   },
   "fracture_geometry_check": {
@@ -343,23 +345,37 @@
     "voxel_size_m_used": 1.67e-05,
     "grid_source": "aus --grid uebergeben (Herkunft pruefen: A04_les_header_info.py)",
     "bar_extent_mm": {
-      "x": 20.6245,
-      "y": 16.7668,
-      "z": 4.809599999999999
+      "x": 47.4948,
+      "y": 20.6412,
+      "z": 15.564400000000001
     },
-    "epsilon_mm": 0.83834,
-    "element_size_um": 200.0,
-    "elements_per_epsilon": 4.1917,
+    "foam_extent_mm": {
+      "x": 39.4788,
+      "y": 19.8396,
+      "z": 14.7628
+    },
+    "mirror_x_repetitions": 1,
+    "foam_voxels_reduced": {
+      "x": 591,
+      "y": 297,
+      "z": 221
+    },
+    "crack_start_x_mm": 9.49896,
+    "crack_start_in_foam_mm": 5.49096,
+    "epsilon_mm": 1.03206,
+    "element_size_um": 150.0,
+    "elements_per_epsilon": 6.8804,
     "surfing_bc_band_fraction": 0.6,
-    "surfing_bc_band_mm_per_side": 5.03004,
+    "surfing_bc_band_mm_per_side": 6.19236,
     "crack_start_x_fraction": 0.2,
     "shell_mode": "external",
     "shell_voxels": {
-      "x": 6,
+      "x": 60,
       "y": 6,
       "z": 6
     },
     "shell_thickness_mm": 0.4008,
+    "shell_x_thickness_mm": 4.008,
     "comment": "Richtwerte: mindestens 2 Elemente je epsilon, besser 4. Ist der Wert kleiner, ist das Bruchergebnis netzabhaengig - dann Elemente verfeinern oder den Riegel hoeher machen (LES_BAR_Y_MM). eps_factor_param NICHT unter 12 senken: die Surfing-BC wirkt nur bei |y-y_mid| >= 4*epsilon (surfing_bc_band_fraction = 1 - 8/eps_factor). bar_extent_mm enthaelt die externe Schale. Werte gelten nur, wenn --grid gesetzt war."
   }
 }

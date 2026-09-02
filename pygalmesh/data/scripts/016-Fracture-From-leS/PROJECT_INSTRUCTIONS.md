@@ -75,9 +75,11 @@ Harte Fakten, die nie verletzt werden dürfen:
   sondern epsilon = (y_max - y_min) / eps_factor_param. Mindestens 2, besser
   4 Elemente je epsilon.
 - eps_factor_param nie <= 8: die Surfing-BC wirkt nur bei |y - y_mid| >= 4*epsilon
-  (Anteil der Höhe 1 - 8/eps_factor). Grobe Elemente über LES_BAR_Y_MM auffangen.
-- Randschale extern (02f, 0,4 mm), 02d-Seal aus; 04_scale_and_translate_mesh_mod.py
-  ist die 011-Version und braucht --npy.
+  (Anteil der Höhe 1 - 8/eps_factor).
+- Geometrie seit 2026-09-02: ganze Probe (kein Crop), 1x in x gespiegelt (02e),
+  externe Schale 0,4 mm y/z + 4 mm Endblöcke x (02f), 02d-Seal aus; reduce = 4,
+  200 µm Elemente (Stufe medium). 04_scale_and_translate_mesh_mod.py ist die
+  011-Version und braucht --npy.
 ```
 
 ---
@@ -94,5 +96,6 @@ Ordner gerade nicht verbunden ist.
 > mir in fünf Sätzen zusammen, was der aktuelle Stand ist und was als nächstes
 > zu tun wäre.
 
-Wenn die Antwort den Datensatz JM-25-77, `eps_factor = 20` mit dem 4·epsilon-BC-Band
-und die externe 0,4-mm-Schale nennt, ist das Projekt richtig aufgesetzt.
+Wenn die Antwort den Datensatz JM-25-77, die ganze gespiegelte Probe mit
+4-mm-Endblöcken, reduce = 4 / 200 µm und `eps_factor = 20` mit dem
+4·epsilon-BC-Band nennt, ist das Projekt richtig aufgesetzt.

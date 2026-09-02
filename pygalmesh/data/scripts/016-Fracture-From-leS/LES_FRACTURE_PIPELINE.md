@@ -10,15 +10,16 @@ getroffenen Entscheidungen: `CLAUDE.md`. Für den Voxel→FEM-Teil im Detail:
 
 ```text
 JM-25_77_85p55.leS  (ASCII, 1 = Material)
-        │  A01_les_2_npy.py      Crop (Riegel) + reduce + Phaseninversion
+        │  A01_les_2_npy.py      ganze Probe (kein Crop) + reduce 4 + Phaseninversion
         ▼
-segmented_3D_volume.npy  (uint8, 1 = Pore, 0 = Aluminium)
+segmented_3D_volume.npy  (uint8, 1 = Pore, 0 = Aluminium; 296 × 297 × 221)
         │  02b_build_subvolume_arrays.py     Teilvolumen (xy_divisions = 1)
         │  02c_voxel_topology_cleanup.py     nur Audit (cleanup aus)
+        │  02e_mirror_extrude_voxel.py       1x in x spiegeln (2·Nx − 1 = 591), wie 011
         │  02d_axis_aligned_cuboid_crop.py   AUS (innerer Seal, bis 2026-08-31)
-        │  02f_add_voxel_shell.py            externe Aluminiumschale 0,4 mm (wie 011)
+        │  02f_add_voxel_shell.py            externe Aluminiumschale: 0,4 mm y/z, 4 mm Endbloecke x (wie 011)
         ▼
-volume_external_shell.npy
+volume_external_shell.npy  (711 × 309 × 233)
         │  03_mesh_3D_array_pygalmesh.py     SDF + Marching Cubes + CGAL
         │  04_scale_and_translate_mesh_mod.py  auf mm skalieren, Schale herausrechnen (011-Version)
         │  10_snap_mesh_to_crop_boundary.py  Randknoten auf die Box-Flächen ziehen
@@ -48,9 +49,10 @@ bei einem erneuten Lauf wieder.
 cd "$HPC_SCRATCH/pygalmesh/data/scripts/016-Fracture-From-leS"
 
 ./create_fracture_config.sh                    # alle Stufen aus MESH_TIERS
-ONLY_TIERS="coarse" ./create_fracture_config.sh
-LES_BAR_Y_MM=12 ./create_fracture_config.sh    # höherer Riegel
-LES_MAX_ELEMENT_SIZE_UM=600 ONLY_TIERS="coarse" ./create_fracture_config.sh
+ONLY_TIERS="medium" ./create_fracture_config.sh
+LES_MIRROR_X_REPETITIONS=2 ./create_fracture_config.sh   # zweimal spiegeln wie 011
+LES_SHELL_X_UM=2000 ./create_fracture_config.sh          # duennere Endbloecke
+LES_BAR_Y_MM=16 LES_BAR_Z_MM=4 ./create_fracture_config.sh   # Riegel-Ausschnitt statt ganzer Probe
 ```
 
 Das Skript liest `config.sh`, holt Gitter und Voxelgröße aus dem `.leS`-Header
@@ -81,7 +83,7 @@ Zusätzlich zu allem, was schon aus 015 kommt:
 |---|---|
 | `fracture` | Materialsätze, `Gc`-Sätze, `eps_factor_param`, `element_order` — gelesen von `00_template/script.py` |
 | `mesh_resolution` | Stufe, reduce, Voxel- und Elementgröße |
-| `fracture_geometry_check` | Riegelmaße in mm (inkl. Schale), `epsilon`, Elemente je epsilon, `surfing_bc_band_fraction`, Schale, verwendetes Gitter — Dokumentation und Warnquelle |
+| `fracture_geometry_check` | Box- und Schaummaße in mm (`bar_extent_mm` inkl. Schale, `foam_extent_mm` nach Spiegelung), `mirror_x_repetitions`, Kerbspitze (`crack_start_x_mm`), `epsilon`, Elemente je epsilon, `surfing_bc_band_fraction`, Schale (`shell_x_thickness_mm`), verwendetes Gitter — Dokumentation und Warnquelle |
 | `dataset.specimen` | Probenname für den Archivpfad |
 
 Der `yield_surface`-Block aus 015 wird entfernt.
@@ -133,9 +135,9 @@ Innerhalb der Jobs laufen `srun`-Steps:
 | Job | Steps | wie viele |
 |---|---|---:|
 | Netzerzeugung | `A01`, `02b` | 2 |
-| | je Teilvolumen: `02c`, `02d`, `03`, `04`, `05`, `08`, `09` | 7 |
+| | je Teilvolumen: `02c`, `02e`, `02f`, `03`, `04`, `10`, `05`, `08`, `09` | 9 |
 | | `make_mesh_dlfx_compatible` | 1 |
-| | **Summe** bei `xy_divisions = 1` | **10** |
+| | **Summe** bei `xy_divisions = 1` | **12** |
 | Bruchsimulation | `script.py`, je Teilvolumen × Material × Richtung | **1** |
 
 Alle Steps der Netzerzeugung laufen mit `srun -n 1` — der Job fordert 32 Tasks
@@ -146,8 +148,8 @@ Die Zahlen skalieren mit:
 * `02b_build_subvolume_arrays.xy_divisions` — bei 2 wären es 4 Teilvolumen und
   damit 4 × 7 + 3 = 31 Netz-Steps und 4 Simulations-Steps. Default ist 1.
 * `fracture.materials` × `fracture.directions` — Default `["std"] × ["y"]` = 1.
-* Die `enabled`-Flags von `02e`, `02f`, `10`, `11`. Diese vier Blöcke fehlen in
-  der Config, `config_bool` liefert dafür 0 — sie laufen also nicht.
+* Die `enabled`-Flags von `02e`, `02f`, `10`, `11`. Seit 2026-09-02 sind `02e`
+  (Spiegelung), `02f` (Schale) und `10` (Snap) an, `11` (Netz-Spiegelung) aus.
 
 Die Config-Abfragen (`config_bool`, `config_value_default`) laufen **auf dem
 Host**, nicht über `srun`. In 015 gingen sie noch durch den Container und
@@ -209,9 +211,11 @@ sacct -j <jobid> --format=JobID,JobName,AllocCPUS,MaxRSS,Elapsed
   Ausgabe in `pfmfrac_function_graphs.txt` und `pfmfrac_function.xdmf`
   (jeder 5. erfolgreiche Schritt).
 
-**Warum der Riegel in x lang sein muss:** der Riss startet bei `0,2·Lx` und
+**Warum das Gebiet in x lang sein muss:** der Riss startet bei `0,2·Lx` und
 läuft bis `x_max`. Ist `Lx` klein, ist die Rissbahn kurz und die Surfing-BC hat
-kaum Weg.
+kaum Weg. Deshalb wird die Probe in x gespiegelt (`02e`); die 4-mm-Endblöcke
+aus Vollmaterial nehmen Kerb-Anfang und BC-Auslauf auf. Die Spiegelebene
+(x ≈ 23,7 mm) ist eine künstliche Symmetrie.
 
 ### Material
 
@@ -277,7 +281,8 @@ zu kurz.
 | Wenige Poren, dicke Vollmaterialwände | innerer 02d-Seal frisst den Schaum (9/14/9 Voxel = 1,2/1,9/1,2 mm bei 134-µm-Voxeln) | `LES_SHELL_MODE=external` (Default seit 2026-08-31): 02f fügt die Schale außen an |
 | Netz um die Schale gestaucht (z um ~20 % zu kurz) | 015-Version von `04_scale_and_translate_mesh_mod.py` kennt 02f nicht | 011-Version verwenden (liegt jetzt hier), Aufruf mit `--npy` |
 | `More processors requested than permitted` | `srun`-Step fordert mehr Speicher je CPU als der Job hat | Step erbt die Werte — `SRUN_MEM_PER_CPU` leer lassen |
-| Weniger als 2 Elemente je epsilon | Netz zu grob für `epsilon` | Elemente verfeinern **oder** Riegel höher (`LES_BAR_Y_MM`). **Nicht** `eps_factor` senken (siehe oben) |
+| Weniger als 2 Elemente je epsilon | Netz zu grob für `epsilon` | Elemente verfeinern. **Nicht** `eps_factor` senken (siehe oben) |
+| Netz viel größer als geschätzt / Speicher in 03 | ganze Probe + Spiegelung + massive Endblöcke | `LES_SHELL_X_UM=2000`, Stufe `coarse` (250 µm); `fine` erst nach gemessenem `medium` |
 
 Gemessen in 014 an einem 300³-Ausschnitt bei reduce = 2: `pad_width = 1` mit
 `sigma = 1,25` erzeugt 7180 offene Kanten; mit `pad_width = 3` keine. Deshalb ist
