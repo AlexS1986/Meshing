@@ -1313,3 +1313,75 @@ Nebenbefund: `create_les_dataset_config.py` liess das Metadatum
 150-um-Config; Mesher nutzt nur den Faktor) -> behoben, Metadatum wird jetzt
 immer aus Faktor x Voxelgroesse abgeleitet. rsync-Code 23 beim Sync des
 gesamten pygalmesh-Ordners noch ungeklaert (Studie-Dateien nachweislich da).
+
+## Session 03.09.2026 — Punkt-Jobs nicht mehr auf i01 beschraenkt
+
+**Anlass:** HRZ-Support (Gabriele): der aeltere Clusterteil i01 ist wegen
+geringer Auslastung im Vormonat voruebergehend abgeschaltet (`csinfo`: 39744
+von 40992 i01-Kernen offline; i02 49088 Kerne, davon 39209 belegt). Unsere
+768 r4-Punkt-Jobs warteten mit `#SBATCH -C i01` auf Knoten, die es gerade
+nicht gibt. Empfehlung: `-C i01` entfernen.
+
+**Befund vorab:** alle Punkt-Jobs haben `-N 1` (32 Tasks x 5600 MB = 179 GB,
+passt auf i01 365 GB und i02 490 GB) -> kein Mischbetrieb i01/i02 innerhalb
+eines Jobs moeglich, Constraint kann ersatzlos weg. Fruehere
+Konvergenzprobleme auf i02 (Erinnerung Nutzer, nicht dokumentiert) sind seit
+icntl_14/kill-on-bad-exit/r4 ohnehin unter anderen Bedingungen — Versuch mit
+Ueberwachung.
+
+**Umgesetzt (Cluster):**
+- `scontrol update JobId=<id> Features=` fuer alle 768 wartenden Jobs
+  (leert den Constraint: `Features=(null)`, `Reason=None`).
+- Scratch: in allen 768 `job_ys_*_CLUSTER.sh` `#SBATCH -C i01` ->
+  `## SBATCH -C i01 (entfernt 03.09.2026 ...)` — noetig, weil
+  `resubmit_yield_surface_timeouts_CLUSTER.sh` diese Dateien erneut einreicht.
+
+**Umgesetzt (Quellen, Home-Kopie auf dem Cluster UND Mac, identisch):**
+| Datei | vorher | jetzt |
+|---|---|---|
+| `config.sh:32` | `YIELD_JOB_CONSTRAINT="${YIELD_JOB_CONSTRAINT:-i01}"` | Default leer (Backup `config.sh.vor_i02_20260903`) |
+| `setup_yield_surface_jobs.sh:21` | `"${YIELD_JOB_CONSTRAINT:-i01}"` | `"${YIELD_JOB_CONSTRAINT-}"` — **ohne `:`**, sonst faellt ein leerer Wert auf i01 zurueck |
+| `setup_yield_surface_jobs.py:68` | `default="i01"` | `default=""` (leer = `-C`-Zeile weglassen, Logik ab Z. 179) |
+| `setup_yield_surface_jobs.py:122` | festes `"#SBATCH -C i01"` im Header von `submit_all_yield_surface_points.sh` | Zeile entfernt |
+| `job_prepare_mesh_CLUSTER.sh:17`, `run_prepare_mesh_CLUSTER.sh:17` | `#SBATCH -C i01` | auskommentiert |
+
+`YIELD_JOB_CONSTRAINT=i01` (oder `i02`) in `config.sh` bzw. als Env beim
+Aufruf von `batch_setup_jobs.sh` stellt den Constraint bei Bedarf wieder her.
+
+**Prioritaetslage 03.09.:** eigene Jobs 127 058 (FairShare 25 271, vorher
+15 883; Age 1 788; Partition 100 000), Backfill-Schwelle Platz 128 = 131 287;
+i02: 94 idle/mixed-Knoten mit >= 32 freien Kernen. Age waechst ~1 000/Tag ->
+Start voraussichtlich in 3-4 Tagen. Entscheidung Nutzer: keine Messtranche auf
+`l0003507`, alles bleibt auf `p0023647`.
+
+**Nebenbefund (zunaechst falsch eingeordnet):** `54459737 mesh-les-frac` in
+`squeue --me` gehoert zu `016-Fracture-From-leS` (Partition `mem`,
+`m01&mem1536g` dort erfuellbar) — nicht anfassen. Vor Urteilen ueber fremde
+Jobs `Partition`/`Command` pruefen.
+
+**Naechster Schritt, sobald Jobs laufen:** `health_check_CLUSTER.sh` +
+`sacct -u $USER -S 2026-09-03 -o JobID%14,JobName%28,State,Elapsed,NodeList%12`;
+Laeufe auf `mpsd*` (i02) gezielt auf `NO CONVERGENCE` / `dt_below_minimum` /
+`Killed` pruefen. Sauber -> i02-Problem als erledigt vermerken; sonst
+`Features=i01` zuruecksetzen, sobald i01 wieder online ist.
+
+### 05.09.2026 — Erste Jobs laufen; neuer Health-Check je Knotentyp
+
+Neu: `health_check_nodes_CLUSTER.sh` (neben `health_check_CLUSTER.sh`, das
+unveraendert bleibt). Beantwortet "laeuft es auf i02 so sauber wie auf i01?"
+und prueft alle Fehlerbilder aus r2 auf einmal, gruppiert nach Knotentyp
+(`mpsc*` = i01, `mpsd*` = i02, aus `sacct NodeList`):
+
+| Abschnitt | Quelle | prueft |
+|---|---|---|
+| A | `sacct -S START` (Default 2026-09-03) | Zustaende je Knotentyp; FAILED/OOM/NODE_FAIL/TIMEOUT = Alarm; ExitCode 3 = kontrollierter Walltime-Stop (nur Warnung + Hinweis auf Resubmit) |
+| B | laufende Jobs, neueste `.out.<jobid>`/`.err.<jobid>`, `sstat` | Zeitschritte, verworfene Schritte, s/Schritt, Alter des letzten Log-Eintrags (`STALE_MIN`, Default 90 -> HAENGER?), `Killed` im .err (OOM-Killer), MaxRSS je Rang gegen 5600 MB |
+| C | alle Logs seit START | je Knotentyp: Schritte, NO CONVERGENCE, Kriecher (>= 5), MUMPS (error 76 / INFOG(1)=-9), `dt too small`, Killed, erreichte Kriterien, dofs (Warnung ausserhalb 0,8-3 Mio), s/Schritt |
+| D | `00_results/**/yield_run_*.json` (mtime >= START) | beendet ohne `final_yield_state` (dt_below_minimum) |
+| E | Fazit | Alarm-/Warnliste, i02-Urteil |
+
+Aufruf: `bash $S/health_check_nodes_CLUSTER.sh`; Optionen `START=`, `STALE_MIN=`,
+`DATASET=`, `MEM_PER_TASK_MB=`, `DOFS_MIN/MAX=`. Exit 0/1/2 = ok/Warnung/Alarm.
+Log-Zuordnung ueber die JobID im Dateinamen (`%x.out.%j`), daher nur fuer Jobs
+mit `#SBATCH -e/-o` (alle 015-Punkt-Jobs). Mit Mock-Daten getestet (Haenger,
+OOM, Walltime-Stop, dt_below_minimum werden erkannt).

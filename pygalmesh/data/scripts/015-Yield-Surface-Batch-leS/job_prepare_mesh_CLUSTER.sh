@@ -14,7 +14,7 @@
 #SBATCH --nodes=1
 #SBATCH -n 8
 #SBATCH --mem-per-cpu=15000
-#SBATCH -C i01
+## SBATCH -C i01   (entfernt 03.09.2026: i01 vom HRZ abgeschaltet)
 #SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS/%x.err.%j
 #SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS/%x.out.%j
 #SBATCH --mail-type=END

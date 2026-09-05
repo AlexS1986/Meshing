@@ -18,7 +18,7 @@ SETUP_ARGS+=(
   --job-ntasks "${YIELD_JOB_NTASKS:-96}"
   --job-nodes "${YIELD_JOB_NODES:-0}"
   --job-mem-per-cpu "${YIELD_JOB_MEM_PER_CPU:-9000}"
-  --job-constraint "${YIELD_JOB_CONSTRAINT:-i01}"
+  --job-constraint "${YIELD_JOB_CONSTRAINT-}"
   --job-time "${YIELD_JOB_TIME:-10080}"
   --job-partition "${YIELD_JOB_PARTITION:-}"
   --job-account "${JOB_ACCOUNT:-l0003507}"

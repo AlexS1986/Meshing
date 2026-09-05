@@ -29,7 +29,7 @@ BASE_PATH="/data/scripts/015-Yield-Surface-Batch-leS"
 YIELD_JOB_NTASKS="${YIELD_JOB_NTASKS:-32}"
 YIELD_JOB_NODES="${YIELD_JOB_NODES:-1}"
 YIELD_JOB_MEM_PER_CPU="${YIELD_JOB_MEM_PER_CPU:-5600}"
-YIELD_JOB_CONSTRAINT="${YIELD_JOB_CONSTRAINT:-}"   # 03.09.2026: leer = i01 oder i02 (i01 vom HRZ abgeschaltet)
+YIELD_JOB_CONSTRAINT="${YIELD_JOB_CONSTRAINT:-i01}"
 # Zeitlimit je Punkt-Job in Minuten (oder d-hh:mm:ss).
 # 10080 min = 7 d = das Maximum der Partition "long" (gleiche i01-Knoten).
 # Die Default-Partition "deflt" erlaubt nur 1440 min, YIELD_JOB_PARTITION muss

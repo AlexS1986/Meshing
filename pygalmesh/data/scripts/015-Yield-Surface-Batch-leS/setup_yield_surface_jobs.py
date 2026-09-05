@@ -65,7 +65,7 @@ def main():
                         help="SBATCH -N; 0 = weglassen, dann verteilt SLURM frei")
     parser.add_argument("--job-mem-per-cpu", type=int, default=5600,
                         help="MB je Task; 64 x 5600 = 358400 MB passen auf einen i01-Knoten (364800 MB)")
-    parser.add_argument("--job-constraint", default="i01", help="SBATCH -C; leer = weglassen")
+    parser.add_argument("--job-constraint", default="", help="SBATCH -C; leer = weglassen")
     parser.add_argument("--job-time", default="10080",
                         help="SBATCH -t (Minuten oder d-hh:mm:ss). Default 10080 = 7 d = "
                              "Maximum der Partition long; deflt erlaubt nur 1440")
@@ -119,7 +119,6 @@ def main():
         "#SBATCH -n 1",
         "#SBATCH -N 1",
         "#SBATCH --mail-type=END",
-        "#SBATCH -C i01",
         "",
         "set -euo pipefail",
         "SCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"",
