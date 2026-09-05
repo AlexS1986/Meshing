@@ -27,6 +27,14 @@ SIM_BIND="$HOME/dolfinx_alex/shared:/home,$HPC_SCRATCH/pygalmesh/data:/data"
 export OPENBLAS_CORETYPE="${OPENBLAS_CORETYPE:-SkylakeX}"
 export APPTAINERENV_OPENBLAS_CORETYPE="$OPENBLAS_CORETYPE"
 export SINGULARITYENV_OPENBLAS_CORETYPE="$OPENBLAS_CORETYPE"
+# 05.09.2026: Newton-/Restart-Steuerung (alex/solution.py get_solver,
+# elastoplastic.py Restart) sicher in den Container durchreichen. Beispiel:
+#   sbatch --export=ALL,NEWTON_MAX_IT=30,NEWTON_RTOL=1e-8,YIELD_RESUME_DT=1e-4 job.sh
+for _v in NEWTON_MAX_IT NEWTON_RTOL NEWTON_ATOL NEWTON_CONVERGENCE NEWTON_RELAXATION YIELD_RESUME_DT; do
+  if [[ -n "${!_v:-}" ]]; then
+    export "APPTAINERENV_${_v}=${!_v}" "SINGULARITYENV_${_v}=${!_v}"
+  fi
+done
 SOURCE_DIR="$working_directory/00_template"
 sim_ntasks="${SLURM_NTASKS:-32}"
 # Ohne explizite Vorgabe erbt der srun-Step die Zuteilung des Jobs. Feste Werte

@@ -674,6 +674,14 @@ if not args.fresh and deg_quad == 1:
         _dt_resume = _rst["dt_last"]
         if _dt_resume is None or not np.isfinite(_dt_resume) or _dt_resume <= 0.0:
             _dt_resume = dt_value
+        # 05.09.2026: Nach einem Abbruch durch Newton-Nichtkonvergenz steht im
+        # Snapshot ein winziges dt (bis 1e-11). Beim Wiederanlauf mit anderen
+        # Newton-Einstellungen (NEWTON_MAX_IT usw.) darf man von einem
+        # brauchbaren Schritt aus neu starten: YIELD_RESUME_DT=<float>
+        # ueberschreibt das gespeicherte dt (wird auf dt_max gekappt).
+        _env_dt = os.environ.get("YIELD_RESUME_DT")
+        if _env_dt:
+            _dt_resume = float(_env_dt)
         _dt_resume = min(float(_dt_resume), float(dt_max.value))
         dt_global.value = _dt_resume
         t.value = _t_state + _dt_resume

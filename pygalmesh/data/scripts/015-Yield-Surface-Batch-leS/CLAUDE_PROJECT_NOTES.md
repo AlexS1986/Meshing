@@ -1424,3 +1424,38 @@ korrektem BLAS — nur NaN/kein NaN aussagekraeftig), `scratch/mesh_components.p
 (BLAS-Selbsttest) — haette zwei Tage gespart. (2) Knotentyp und Netzgeneration
 nie konfundieren (r2 nur i01, r4 nur i02). (3) `sbatch --parsable` liefert hier
 Plugin-Text mit. (4) Cluster-Checkout ist Git: Aenderungen nur ueber Git.
+
+### 05.09.2026 (3) — Kriecher im plastischen Bereich: Newton max_it = 8
+
+Nach dem OpenBLAS-Fix laufen 55 Jobs auf i02 sauber (0 MUMPS-Fehler). Vier davon
+(ys070: 24/45 Schritte verworfen, ys058 19/61, ys075 8/35, ys084 6/32) haengen aber:
+`Newton solver did not converge because maximum number of iterations reached`,
+dt-Halbierung bis 1e-11 hilft nicht. Alle vier haben `yielded_fraction` bereits
+erreicht (Sekundaerkriterium gesichert), das Primaerkriterium
+`eps_p_eq_macroscopic` nicht. Ursache: `alex/solution.py` `max_iters = 8`
+(Default von `solve_with_newton_adaptive_time_stepping`), gesunde plastische
+Schritte brauchen 5-6 -> bei wachsender plastischer Zone reissen 8; dolfinx-
+Defaults rtol 1e-9/atol 1e-10 (Residuum) nahe der Traglast kaum erreichbar.
+Nebenbefund: dt waechst nur bei iters < min_iters = 4, im plastischen Bereich
+also nie -> nach einem Restart aus dem Snapshot bliebe dt winzig.
+
+**Aenderungen (Mac, noch nicht auf dem Cluster):**
+- `dolfinx_alex/shared/utils/alex/solution.py` `get_solver`: Umgebungsvariablen
+  `NEWTON_MAX_IT`, `NEWTON_RTOL`, `NEWTON_ATOL`, `NEWTON_CONVERGENCE`
+  (residual|incremental), `NEWTON_RELAXATION` ueberschreiben die Defaults;
+  Einstellungen werden einmal geloggt ("Newton settings: ..."). Backup
+  `solution.py.vor_newton_env_20260905`. Ohne Variablen unveraendertes Verhalten.
+- `00_template/elastoplastic.py` Restart: `YIELD_RESUME_DT=<float>` ersetzt das
+  im Snapshot gespeicherte dt (gekappt auf dt_max).
+- `job_yield_surface_point_CLUSTER.sh`: reicht NEWTON_* und YIELD_RESUME_DT als
+  `APPTAINERENV_*` in den Container durch.
+
+**Geplantes Vorgehen:** solution.py auf den Cluster (`$HOME/dolfinx_alex/shared/
+utils/alex/`, ist per Bind `/home/utils/alex` im Container), pygalmesh per Git.
+Die vier Kriecher sterben von selbst an dt_below_minimum (JSON mit
+final_yield_state=null). Danach: Slim-Ergebnisse nach `00_results/_failed_newton_20260905/`
+verschieben (Rezept Bericht_MUMPS 31.08.), Restart aus dem Snapshot mit
+`--export=ALL,NEWTON_MAX_IT=30,NEWTON_RTOL=1e-8,YIELD_RESUME_DT=1e-4` (kein
+YS_FORCE_FRESH -> setzt am letzten guten Schritt auf). Erst an EINEM Punkt
+testen (ys070), dann die uebrigen; falls Kriecher haeufig bleiben, Defaults
+fuer alle neuen Jobs setzen (z. B. in config.sh exportieren).
