@@ -18,6 +18,15 @@ CONTAINER_PATH="$HOME/meshing/Meshing/pygalmesh/pygalmesh.sif"
 BIND_PATHS="$HOME/meshing/Meshing/pygalmesh/data:/home,$HPC_SCRATCH/pygalmesh/data:/data"
 SIM_CONTAINER="$HOME/dolfinx_alex/alex-dolfinx.sif"
 SIM_BIND="$HOME/dolfinx_alex/shared:/home,$HPC_SCRATCH/pygalmesh/data:/data"
+
+# 05.09.2026: OpenBLAS 0.3.20 im Container waehlt auf Sapphire-Rapids-Knoten
+# (i02, Xeon Platinum 8470Q) den fehlerhaften "Cooperlake"-Kernel -> jede
+# Faktorisierung liefert Unsinn (MUMPS INFO(1)=-10 / NaN). SkylakeX-Kernel
+# erzwingen; auf i01 unschaedlich. Nachweis: scratch/mumps_sanity/blas_check.py,
+# Doku: CLAUDE.md (Publikationsordner) §16.
+export OPENBLAS_CORETYPE="${OPENBLAS_CORETYPE:-SkylakeX}"
+export APPTAINERENV_OPENBLAS_CORETYPE="$OPENBLAS_CORETYPE"
+export SINGULARITYENV_OPENBLAS_CORETYPE="$OPENBLAS_CORETYPE"
 SOURCE_DIR="$working_directory/00_template"
 sim_ntasks="${SLURM_NTASKS:-32}"
 # Ohne explizite Vorgabe erbt der srun-Step die Zuteilung des Jobs. Feste Werte

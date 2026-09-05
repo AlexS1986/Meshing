@@ -1385,3 +1385,42 @@ Aufruf: `bash $S/health_check_nodes_CLUSTER.sh`; Optionen `START=`, `STALE_MIN=`
 Log-Zuordnung ueber die JobID im Dateinamen (`%x.out.%j`), daher nur fuer Jobs
 mit `#SBATCH -e/-o` (alle 015-Punkt-Jobs). Mit Mock-Daten getestet (Haenger,
 OOM, Walltime-Stop, dt_below_minimum werden erkannt).
+
+## Session 05.09.2026 (2) — Ursache der r4-Abbrueche: OpenBLAS-Kernel auf i02, plus Netzfragmente
+
+**Symptom:** Alle r4-Punkt-Jobs (nur auf i02 gelaufen, i01 abgeschaltet) scheitern im
+ersten elastischen Schritt: MUMPS INFO(1)=-10 (numerisch singulaer), dt bis
+dt_below_minimum, danach Traceback in `postprocessing.print_graphs_plot` (leere
+Historie) und haengender Step (`--kill-on-bad-exit` greift nicht) bis zum Zeitlimit.
+
+**Diagnoseweg (Testjobs ys_000 JM-25-77_sigy075 auf i02):** A 32 Raenge + frischer
+JIT-Cache: Fehler. B seriell: Fehler (-10 nach 1916 Pivots, deterministisch) -> MPI
+ausgeschlossen. C1/C2 (FI_PROVIDER=tcp, NOLOCAL): Fehler. Netzanalyse: r4-Netze
+haben frei schwebende Fragmente (JM-25-77: 22 Komponenten/2918 Knoten, 71: 9/719,
+83: 8/270, 88: 5/281) -> Fragmentfilter in `make_mesh_dlfx_compatible_cluster.py`
+(behalten: groesste Komponente + alle mit Kontakt zur Bounding-Box innerhalb
+`--boundary-tol` 0,4 mm; Report `dlfx_mesh.components.txt`; alte Netze in
+`_dlfx_mesh_mit_fragmenten_20260905/`). Test D mit bereinigtem Netz: **weiter Fehler**.
+Positivkontrolle (Nutzer-Idee): `scratch/mumps_sanity/blas_check.py` im Container auf
+mpsd0001 (Xeon Platinum 8470Q, Sapphire Rapids): **OpenBLAS 0.3.20 DYNAMIC_ARCH
+waehlt `Cooperlake` und rechnet falsch** (dgemm-Abweichung 21,9 statt 1e-12, dgesv
+5,5e4). Mit `OPENBLAS_CORETYPE=SkylakeX` (oder Haswell): 5e-13 / 3e-13.
+Test E (bereinigtes Netz + `OPENBLAS_CORETYPE=SkylakeX`, 32 Raenge, i02):
+**3 Schritte, 0 verworfen, Converged True mit 1 Newton-Iteration** -> geloest.
+
+**Fix (Mac-Kopie, per Git auf den Cluster):** `job_yield_surface_point_CLUSTER.sh` und
+`run_prepare_mesh_CLUSTER.sh` exportieren `OPENBLAS_CORETYPE=SkylakeX` (+
+`APPTAINERENV_`/`SINGULARITYENV_`) vor den Container-Aufrufen; ueberschreibbar per
+Env. Auf i01 unschaedlich. Langfristig Container mit OpenBLAS >= 0.3.24.
+Fragmentfilter bleibt aktiv (Fragmente sind physikalisch lastfrei, 0,03-0,33 % der Knoten).
+
+**Sanity-Werkzeuge:** `scratch/mumps_sanity/blas_check.py` (dgemm/dgesv-Selbsttest,
+belastbar), `poisson_mumps.py` (Referenzloesung fehlerhaft, L2=1,03 auch mit
+korrektem BLAS — nur NaN/kein NaN aussagekraeftig), `scratch/mesh_components.py`
+(Knoten-Zusammenhang vs. Randschale), `scratch/mesh_face_components.py`
+(Flaechen-Zusammenhang; nicht mehr benoetigt).
+
+**Lehren:** (1) Bei plattformabhaengigen Solverfehlern zuerst Positivkontrolle
+(BLAS-Selbsttest) — haette zwei Tage gespart. (2) Knotentyp und Netzgeneration
+nie konfundieren (r2 nur i01, r4 nur i02). (3) `sbatch --parsable` liefert hier
+Plugin-Text mit. (4) Cluster-Checkout ist Git: Aenderungen nur ueber Git.
