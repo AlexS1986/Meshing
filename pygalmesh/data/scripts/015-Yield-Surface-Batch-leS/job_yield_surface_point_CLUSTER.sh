@@ -30,7 +30,12 @@ export SINGULARITYENV_OPENBLAS_CORETYPE="$OPENBLAS_CORETYPE"
 # 05.09.2026: Newton-/Restart-Steuerung (alex/solution.py get_solver,
 # elastoplastic.py Restart) sicher in den Container durchreichen. Beispiel:
 #   sbatch --export=ALL,NEWTON_MAX_IT=30,NEWTON_RTOL=1e-8,YIELD_RESUME_DT=1e-4 job.sh
-for _v in NEWTON_MAX_IT NEWTON_RTOL NEWTON_ATOL NEWTON_CONVERGENCE NEWTON_RELAXATION YIELD_RESUME_DT; do
+# 06.09.2026: Newton-Defaults der Studie 015 (CLAUDE.md §17): 272/272 Punkte
+# scheiterten mit max_it=8 an dt_below_minimum. Per Umgebung ueberschreibbar.
+export NEWTON_MAX_IT="${NEWTON_MAX_IT:-30}"
+export NEWTON_RTOL="${NEWTON_RTOL:-1e-8}"
+export NEWTON_MIN_ITERS="${NEWTON_MIN_ITERS:-8}"
+for _v in NEWTON_MAX_IT NEWTON_MIN_ITERS NEWTON_RTOL NEWTON_ATOL NEWTON_CONVERGENCE NEWTON_RELAXATION YIELD_RESUME_DT YIELD_HARDENING; do
   if [[ -n "${!_v:-}" ]]; then
     export "APPTAINERENV_${_v}=${!_v}" "SINGULARITYENV_${_v}=${!_v}"
   fi

@@ -2,7 +2,12 @@
 # BLAS-Selbsttest (aus 015, scratch/mumps_sanity/blas_check.py, 05.09.2026).
 # Kriterium sind NUR die dgemm/dgesv-Zeilen. Auf i02 ohne OPENBLAS_CORETYPE=SkylakeX:
 # core Cooperlake, dgemm ~22 (falsch). Mit Fix: core SkylakeX, dgemm/dgesv ~1e-13.
-#   srun -p deflt -C i02 -n 1 --mem-per-cpu=8000 -t 5 apptainer exec <container>.sif python3 tools/blas_check.py
+# Aufruf (Apptainer bindet nur cwd, /home, /data -> Container-Pfad benutzen!):
+#   sbatch -A p0023647 -p deflt -C i02 -n 1 --mem-per-cpu=8000 -t 10 -J blas-mit \
+#     --export=ALL,OPENBLAS_CORETYPE=SkylakeX,APPTAINERENV_OPENBLAS_CORETYPE=SkylakeX \
+#     --wrap "apptainer exec --bind $HPC_SCRATCH/pygalmesh/data:/data $HOME/dolfinx_alex/alex-dolfinx.sif \
+#             python3 /data/scripts/016-Fracture-From-leS/tools/blas_check.py"
+#   (ohne Fix: --export=NONE und die beiden Variablen weglassen)
 import numpy as np, ctypes, os
 try:
     lib = ctypes.CDLL("libopenblas.so.0"); lib.openblas_get_config.restype = ctypes.c_char_p; lib.openblas_get_corename.restype = ctypes.c_char_p

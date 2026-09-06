@@ -1459,3 +1459,42 @@ verschieben (Rezept Bericht_MUMPS 31.08.), Restart aus dem Snapshot mit
 YS_FORCE_FRESH -> setzt am letzten guten Schritt auf). Erst an EINEM Punkt
 testen (ys070), dann die uebrigen; falls Kriecher haeufig bleiben, Defaults
 fuer alle neuen Jobs setzen (z. B. in config.sh exportieren).
+
+### 06.09.2026 — Newton-Defaults fuer alle Punkt-Jobs
+
+Befund frueh: 272/272 beendete r4-Punkte enden mit `dt_below_minimum`, 0x
+`final_yield_state` (yielded_fraction 134x, alpha_avg 3x, eps_p_eq_mac 0x) —
+identisch zum r2-Muster. Ursache: max_it = 8 plus dt-Regler (Scale-up nur bei
+< min_iters = 4 Iterationen; plastische Schritte brauchen 5-6 -> dt sinkt nach
+jeder Verwerfung dauerhaft). Neu in `alex/solution.py`
+(`solve_with_newton_adaptive_time_stepping`): `NEWTON_MIN_ITERS` per Umgebung.
+**Entscheidung Nutzer 06.09.:** Defaults `NEWTON_MAX_IT=30`, `NEWTON_RTOL=1e-8`,
+`NEWTON_MIN_ITERS=8` im Jobskript (`job_yield_surface_point_CLUSTER.sh`, Mac
+und Scratch; Backup `.vor_newton_defaults_20260906` auf Scratch) — gilt fuer
+alle ab jetzt startenden Jobs (204 wartend). Laufende (292) behalten alte
+Werte; Fortsetzung spaeter aus Snapshot mit `YIELD_RESUME_DT=1e-4`.
+`NEWTON_MIN_ITERS` wirkt erst, wenn die neue solution.py auf dem Cluster liegt.
+Restart-Test ys070 (54482376, nur MAX_IT/RTOL) wartet trotz `scontrol top`
+(Prio 128 327 < alte Jobs) — die ersten regulaer startenden Jobs mit neuen
+Defaults uebernehmen die Testfunktion.
+
+### 06.09.2026 (2) — Befund Fliessbeginn + Verfestigung als Regularisierung
+
+Neue Newton-Defaults (max_it 30, rtol 1e-8, MIN_ITERS 8) verhindern die
+Kriecher NICHT (neu <50 Schritte: 38/145 Kriecher; alt: 32/167) -> echte
+Nichtkonvergenz, keine Iterationsgrenze. Snapshots (r2 und r4): Laeufe sterben
+bei 0,1-0,35 % Dehnung, yielded_fraction 0,03-0,18 %, alpha_avg ~1e-6,
+eps_p_eq_mac ~1e-7 -> **Primaerkriterium 0,002 liegt 4-5 Groessenordnungen
+entfernt und ist in diesem Dehnungsbereich unerreichbar** (tensorielle Mittelung
+hebt Biege-Plastizitaet auf). Newton scheitert genau beim EINSETZEN der
+Plastizitaet: ideale Plastizitaet H = 0 -> singulaere konsistente Tangente,
+Return-Mapping-Ecke, Oszillation elastisch/plastisch.
+Massnahme (Nutzer-Idee): kleine lineare Verfestigung. `hard` in
+`material_sets.<mat>.hard` (Config, MPa; f = |s| - sqrt(2/3)(sig_y + H alpha),
+plasticity.py 685ff) ist bisher 0.0. Neu: `YIELD_HARDENING` (Env) ueberschreibt
+`hard` in `elastoplastic.py` (Log `[MATERIAL] hard aus Umgebung ...`), Jobskript
+reicht es durch. Empfehlung H = 70 MPa (H/E = 1e-3); Einfluss auf die
+Fliessbeginn-Kriterien < 1 % (alpha ~1e-3 an den Fliesspunkten -> +0,07 MPa).
+Nicht mischen: alle Punkte mit demselben H. Fuer den Produktivbetrieb H in die
+768 Punkt-Configs schreiben (`material_sets.std.hard`) bzw. in den
+Config-Generator (`LES_HARDENING`, offen).

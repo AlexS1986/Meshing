@@ -47,9 +47,38 @@ also per Umgebung überschreibbar (Test mit `Haswell`, neuer Container). `SINGUL
 wie in 015 zusätzlich gesetzt. `bash -n` aller vier Skripte ok. Wartende Scratch-Jobs:
 keine vorhanden, nichts zu patchen.
 
-### Schritt 3 — Positivkontrolle
+### Schritt 3 — Positivkontrolle (Cluster, 06.09.2026)
 
-_ausstehend_ (BLAS-Selbsttest ohne/mit Fix auf i02, dann kurzer 016-Lauf auf i02).
+Commit `8c7ca66` (Mac → GitHub → `$HOME/meshing` → Scratch via `SKIP_CONFIGS=1
+02_create_folders_CLUSTER.sh`; der rsync-Fehler zu einem Symlink in 009 ist unerheblich).
+
+**Teil 1 — BLAS-Selbsttest mit `alex-dolfinx.sif` auf i02 (`mpsd0001`), `sbatch --wrap`:**
+
+| Job | Variante | OpenBLAS-Kern | dgemm | dgesv |
+|---|---|---|---|---|
+| 54484151 | ohne Fix (`--export=NONE`) | Cooperlake | **21,9** | **5,5e4** |
+| 54484152 | `OPENBLAS_CORETYPE=SkylakeX` | SkylakeX | 5,4e-13 | 2,6e-13 |
+
+→ 016-Container betroffen, Workaround greift. Fehlbild identisch zu 015 (05.09.).
+
+Stolpersteine dabei (für nächstes Mal):
+- `srun`/`sbatch` ohne `-A` landen im Default-Projekt `project02338` (MaxSubmit 0) →
+  `AssocMaxSubmitJobLimit`. Immer `-A p0023647` angeben. Dort dann
+  `AssocMaxJobsLimit`, solange die 015-Punktjobs die 400 laufenden Jobs füllen —
+  kleine Jobs starten trotzdem nach wenigen Minuten.
+- Apptainer bindet nur cwd, `/home`, `/data`: `python3 $HPC_SCRATCH/.../blas_check.py`
+  scheitert mit „can't open file" (Jobs 54484137/38). Richtig:
+  `apptainer exec --bind $HPC_SCRATCH/pygalmesh/data:/data … python3
+  /data/scripts/016-Fracture-From-leS/tools/blas_check.py` (steht jetzt so im Kopf
+  von `tools/blas_check.py`).
+- Interaktives `srun` blockiert das Terminal beim Warten; `sbatch --wrap` mit
+  `-o scratch/blas_check/<variante>.%j.out` ist die bessere Form.
+
+**Teil 2 — echter 016-Lauf auf i02:** Job 54484380, `config-fracture-JM-25-77-medium.json`
+(einziges Archiv: medium vom 03.09., 2 638 497 Tets; coarse existiert nicht),
+`-C i02 -t 90 -n 96 --mem-per-cpu=4000`. Walltime-begrenzt, weil `script.py` keinen
+Schrittzahl-Schalter hat (`Tend = 1000·dt` fest) und Solverparameter nicht angefasst
+werden. Ergebnis: _siehe unten_.
 
 ### Lehre (aus 015, gilt auch hier)
 

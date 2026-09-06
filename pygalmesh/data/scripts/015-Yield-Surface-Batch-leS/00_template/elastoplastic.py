@@ -510,6 +510,14 @@ E_mod = float(mat.get("E", 2.5))
 nu = float(mat.get("nu", 0.25))
 sig_y_value = float(mat.get("sig_y", 1.0))
 hard_value = float(mat.get("hard", 0.01))
+# 06.09.2026: lineare isotrope Verfestigung H (MPa, f = |s| - sqrt(2/3)(sig_y + H*alpha))
+# per Umgebung ueberschreibbar, z. B. YIELD_HARDENING=70 (H/E = 1e-3) zur
+# numerischen Regularisierung des elastisch-plastischen Uebergangs (ideale
+# Plastizitaet H = 0 -> singulaere Tangente, Newton scheitert beim Fliessbeginn).
+if os.environ.get("YIELD_HARDENING"):
+    hard_value = float(os.environ["YIELD_HARDENING"])
+    if rank == 0:
+        print(f"[MATERIAL] hard aus Umgebung YIELD_HARDENING = {hard_value} (Config: {mat.get('hard')})")
 
 lam = dlfx.fem.Constant(domain, le.get_lambda(E_mod, nu))
 mu = dlfx.fem.Constant(domain, le.get_mu(E_mod, nu))
