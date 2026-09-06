@@ -117,7 +117,13 @@ for pat in patterns:
                    alpha_last=h[-1]["alpha_avg_reduced_material_volume"], yf_last=h[-1]["yielded_fraction_reduced_material_volume"],
                    eps_p_mac_last=h[-1].get("eps_p_eq_macroscopic", ""), source=os.path.relpath(path, a.root))
         E0, tr_end = tangent_ratio(e, sv, e[-1]); row["E0_vm"] = E0; row["tangent_ratio_last"] = tr_end
-        sinf, ec, r2 = plateau_fit(e, sv); row["plateau_sig_vm_fit"] = sinf; row["plateau_e_c"] = ec; row["plateau_fit_r2"] = r2
+        sinf, ec, r2 = plateau_fit(e, sv)
+        # Gueltig nur, wenn die Kurve schon deutlich gekruemmt ist (Tangente am Ende
+        # < 25 % der Anfangssteigung) und der Fit gut ist; sonst extrapoliert die
+        # Saettigungsfunktion ins Blaue (06.09.2026: 40-50 MPa "Plateaus" bei jungen Laeufen).
+        plateau_ok = (not math.isnan(tr_end)) and tr_end < 0.25 and (not math.isnan(r2)) and r2 > 0.99
+        row["plateau_sig_vm_fit"] = sinf if plateau_ok else ""; row["plateau_e_c"] = ec if plateau_ok else ""
+        row["plateau_fit_r2"] = r2; row["plateau_valid"] = plateau_ok
         for label, k, thr in (("alpha", "alpha_avg_reduced_material_volume", a.alpha), ("yf", "yielded_fraction_reduced_material_volume", a.yf)):
             c = crossing(h, k, thr)
             row[f"reached_{label}"] = c is not None
@@ -147,12 +153,12 @@ def write(path, rs):
 write(os.path.join(out, f"yield_points_{a.tag}_all.csv"), rows)
 combos = sorted({(r["dataset"], r["sigy"]) for r in rows})
 print(f"{len(rows)} Laeufe ausgewertet -> {out}")
-print(f"{'KOMBINATION':20s} {'LAEUFE':>6s} {'alpha>=%g' % a.alpha:>10s} {'yf>=%g' % a.yf:>9s} {'Plateau-Fit R2>0.99':>19s} {'sig_vm@alpha median':>20s} {'Plateau median':>15s}")
+print(f"{'KOMBINATION':20s} {'LAEUFE':>6s} {'alpha>=%g' % a.alpha:>10s} {'yf>=%g' % a.yf:>9s} {'Plateau gueltig':>15s} {'sig_vm@alpha median':>20s} {'Plateau median':>15s}")
 for ds, sy in combos:
     rs = [r for r in rows if r["dataset"] == ds and r["sigy"] == sy]
     write(os.path.join(out, f"yield_points_{ds}_sigy{sy}.csv"), rs)
     na = sum(r["reached_alpha"] for r in rs); ny = sum(r["reached_yf"] for r in rs)
-    good = sum(1 for r in rs if isinstance(r["plateau_fit_r2"], float) and r["plateau_fit_r2"] > 0.99)
-    sa = sorted(r["alpha_sig_vm"] for r in rs if r["reached_alpha"]); sp = sorted(r["plateau_sig_vm_fit"] for r in rs if isinstance(r["plateau_sig_vm_fit"], float) and not math.isnan(r["plateau_sig_vm_fit"]))
+    good = sum(1 for r in rs if r["plateau_valid"])
+    sa = sorted(r["alpha_sig_vm"] for r in rs if r["reached_alpha"]); sp = sorted(r["plateau_sig_vm_fit"] for r in rs if r["plateau_valid"])
     med = lambda v: f"{v[len(v)//2]:.2f}" if v else "-"
     print(f"{ds+'_sigy'+sy:20s} {len(rs):6d} {na:10d} {ny:9d} {good:19d} {med(sa):>20s} {med(sp):>15s}")
