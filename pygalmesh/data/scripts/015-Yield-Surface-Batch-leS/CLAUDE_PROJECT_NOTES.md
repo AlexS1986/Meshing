@@ -1498,3 +1498,33 @@ Fliessbeginn-Kriterien < 1 % (alpha ~1e-3 an den Fliesspunkten -> +0,07 MPa).
 Nicht mischen: alle Punkte mit demselben H. Fuer den Produktivbetrieb H in die
 768 Punkt-Configs schreiben (`material_sets.std.hard`) bzw. in den
 Config-Generator (`LES_HARDENING`, offen).
+
+### 06.09.2026 (3) — Kriterien und Verfestigung umgesetzt (Entscheidung Nutzer)
+
+Datenlage (r4-Snapshots, 714 Laeufe): alpha_avg 1e-3 bei median 1,9 % Boxdehnung
+(22 Laeufe), 2e-3 bei 2,9 % (5 Laeufe, 30-50 % gefliesst, Plateau); Tangente
+dSig/dE faellt langsam: 10 % der Anfangssteigung bei ~2 %, 5 % bei 3,5-5 %,
+2 % bei keinem Lauf bis 5 % -> hartes Plateau-Kriterium im Lauf unpraktikabel.
+**Entscheidung:** Abbruch bei `alpha_avg_material >= 1e-3` (~2 % Dehnung,
+Tangente ~10 %, Small-Strain-Gueltigkeit: Stegrotationen 1-3 Grad),
+`eps_p_eq_macroscopic` und `yielded_fraction_material` nur aufzeichnen;
+Plateauspannung (makroskopisches Fliessen) offline per saettigendem Fit
+(Voce/Ramberg-Osgood) aus der Historie extrapolieren; zusaetzlich Tangenten- und
+Offset-Definition aus derselben Historie. Verfestigung H = 70 MPa (E/1000).
+Keine Large-Strain-Plastizitaet in dolfinx_alex (nur small strain J2 +
+Ramberg-Osgood; hyperelastic.py rein elastisch) — fuer A02 nicht noetig, A01
+deckt grosse Deformationen ab.
+
+**Umsetzung:**
+- `create_les_dataset_config.py`: `--alpha-avg-threshold`, `--blocking primary|all`
+  (Default primary), `--hardening H`; `--primary-criterion` Default jetzt
+  `alpha_avg_material`. `create_les_config.sh` reicht `YIELD_ALPHA_AVG_THRESHOLD`,
+  `YIELD_BLOCKING`, `LES_HARDENING` durch; `config.sh` Defaults: alpha_avg_material,
+  1e-3, primary, H = 70.
+- `patch_yield_criteria_CLUSTER.py` (neu): patcht bestehende Datensatz- und
+  Punkt-Configs auf Scratch (Backup `.vor_kriterien_20260906`, Eintrag in
+  `yield_surface.history`). Laufende Jobs behalten ihre kopierte config.json;
+  wartende lesen die gepatchte beim Start.
+- Offen: Verfestigungstest ys070 (54484651) abwarten; dann Sammel-Restart der
+  gestorbenen/laufenden Punkte aus Snapshots (H-Wechsel mitten im Lauf: Einfluss
+  < 0,1 MPa, dokumentieren) oder frisch (YS_FORCE_FRESH) — Entscheidung nach Test.

@@ -208,23 +208,34 @@ def build_config(base, args):
                 ys["material_sets"][name]["sig_y"] = float(args.sig_y)
 
     threshold = float(args.plastic_strain_threshold)
+    alpha_threshold = float(args.alpha_avg_threshold) if args.alpha_avg_threshold is not None else threshold
     ys["primary_criterion"] = args.primary_criterion
+    # 06.09.2026: Nur das Primaerkriterium bricht ab (--blocking primary, Default);
+    # die uebrigen werden aufgezeichnet (CLAUDE.md Publikationsordner §19).
+    def _blocking(name):
+        return True if args.blocking == "all" else (name == args.primary_criterion)
+    # 06.09.2026: kleine lineare Verfestigung H [MPa] als numerische Regularisierung
+    if args.hardening is not None:
+        for name, m in ys.get("material_sets", {}).items():
+            m["hard"] = float(args.hardening)
     ys["criteria"] = [
         {"name": "eps_p_eq_macroscopic",
          "quantity": "eps_p_eq_macroscopic",
-         "threshold": threshold, "blocking": True,
+         "threshold": threshold, "blocking": _blocking("eps_p_eq_macroscopic"),
          "comment": "sqrt(2/3 E_p:E_p), E_p = Volumenmittel des plastischen Dehnungstensors "
-                    "ueber das reduzierte RVE-Volumen -> Rp0,2-Analogon"},
+                    "ueber das reduzierte RVE-Volumen; in Schaeumen durch Aufhebung der "
+                    "Biegeplastizitaet sehr klein -> nur Dokumentation"},
         {"name": "alpha_avg_material",
          "quantity": "alpha_avg_reduced_material_volume",
-         "threshold": threshold, "blocking": True,
-         "comment": "<alpha> (akkumulierte aequivalente plastische Dehnung) ueber die Materialphase"},
+         "threshold": alpha_threshold, "blocking": _blocking("alpha_avg_material"),
+         "comment": "<alpha> (akkumulierte aequivalente plastische Dehnung) ueber die Materialphase; "
+                    "1e-3 entspricht ~2 % Boxdehnung, Tangente ~10 % der Anfangssteigung (r4, 06.09.2026)"},
         {"name": "yielded_fraction_material" if args.yielded_volume_reference == "material"
                  else "yielded_fraction_rve",
          "quantity": "yielded_fraction_reduced_material_volume"
                      if args.yielded_volume_reference == "material"
                      else "yielded_fraction_reduced_volume",
-         "threshold": float(args.yielded_volume_fraction), "blocking": True,
+         "threshold": float(args.yielded_volume_fraction), "blocking": _blocking("yielded_fraction_material" if args.yielded_volume_reference == "material" else "yielded_fraction_rve"),
          "comment": ("Kriterium der bisherigen Studie: Anteil des Materialvolumens mit "
                      "alpha > alpha_yield_tolerance"
                      if args.yielded_volume_reference == "material"
@@ -281,8 +292,16 @@ def build_parser():
                         choices=["material", "rve"],
                         help="Bezugsvolumen des Volumenanteil-Kriteriums: Materialphase "
                              "(porositaetsunabhaengig) oder reduziertes RVE-Volumen")
-    parser.add_argument("--primary-criterion", default="eps_p_eq_macroscopic",
-                        help="Kriterium, dessen Zustand als final_yield_state ausgegeben wird")
+    parser.add_argument("--primary-criterion", default="alpha_avg_material",
+                        help="Kriterium, dessen Zustand als final_yield_state ausgegeben wird "
+                             "(seit 06.09.2026 Default alpha_avg_material)")
+    parser.add_argument("--alpha-avg-threshold", type=float, default=None,
+                        help="Schwelle fuer alpha_avg_material (Default: --plastic-strain-threshold)")
+    parser.add_argument("--blocking", default="primary", choices=["primary", "all"],
+                        help="Welche Kriterien den Lauf beenden: nur das Primaerkriterium (Default) oder alle")
+    parser.add_argument("--hardening", type=float, default=None,
+                        help="lineare isotrope Verfestigung H in MPa fuer alle material_sets "
+                             "(numerische Regularisierung; z. B. 70 = E/1000)")
     parser.add_argument("--max-element-size-um", type=float, default=None,
                         help="Zielkantenlaenge der Elemente in um (max_cell_circumradius). "
                              "Setzt die Groessenfaktoren passend zur Voxelgroesse; hat Vorrang.")

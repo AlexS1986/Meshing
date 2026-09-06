@@ -29,7 +29,9 @@ ARGS=(
   --plastic-strain-threshold "${YIELD_PLASTIC_STRAIN_THRESHOLD:-0.002}"
   --yielded-volume-fraction "${YIELD_YIELDED_VOLUME_FRACTION:-0.02}"
   --yielded-volume-reference "${YIELD_YIELDED_VOLUME_REFERENCE:-material}"
-  --primary-criterion "${YIELD_PRIMARY_CRITERION:-eps_p_eq_macroscopic}"
+  --primary-criterion "${YIELD_PRIMARY_CRITERION:-alpha_avg_material}"
+  --alpha-avg-threshold "${YIELD_ALPHA_AVG_THRESHOLD:-0.001}"
+  --blocking "${YIELD_BLOCKING:-primary}"
 )
 
 if [[ -n "${LES_MAX_ELEMENT_SIZE_UM:-}" ]]; then
@@ -41,6 +43,7 @@ if [[ -n "${LES_CURRENT_TETS:-}" && -n "${LES_TARGET_TETS:-}" ]]; then
 fi
 
 if [[ "${LES_KEEP_LARGEST_COMPONENT:-false}" == "true" ]]; then ARGS+=(--keep-largest-component); fi
+if [[ -n "${LES_HARDENING:-}" ]]; then ARGS+=(--hardening "$LES_HARDENING"); fi
 
 if [[ -n "${LES_X_RANGE:-}" ]]; then ARGS+=(--x-range ${LES_X_RANGE}); fi
 if [[ -n "${LES_Y_RANGE:-}" ]]; then ARGS+=(--y-range ${LES_Y_RANGE}); fi

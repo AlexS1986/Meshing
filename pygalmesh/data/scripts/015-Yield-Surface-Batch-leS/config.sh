@@ -114,7 +114,16 @@ YIELD_PLASTIC_STRAIN_THRESHOLD="${YIELD_PLASTIC_STRAIN_THRESHOLD:-0.002}"
 YIELD_YIELDED_VOLUME_FRACTION="${YIELD_YIELDED_VOLUME_FRACTION:-0.002}"
 YIELD_YIELDED_VOLUME_REFERENCE="${YIELD_YIELDED_VOLUME_REFERENCE:-material}"
 # Welches Kriterium final_yield_state fuellt (collect_/create_yield_surface_*).
-YIELD_PRIMARY_CRITERION="${YIELD_PRIMARY_CRITERION:-eps_p_eq_macroscopic}"
+# 06.09.2026 (CLAUDE.md §19): alpha_avg_material ist Primaer- und einziges Abbruch-
+# kriterium (Schwelle 1e-3 ~ 2 % Boxdehnung, Tangente ~10 % der Anfangssteigung);
+# eps_p_eq_macroscopic und yielded_fraction werden nur aufgezeichnet.
+YIELD_PRIMARY_CRITERION="${YIELD_PRIMARY_CRITERION:-alpha_avg_material}"
+YIELD_ALPHA_AVG_THRESHOLD="${YIELD_ALPHA_AVG_THRESHOLD:-0.001}"
+YIELD_BLOCKING="${YIELD_BLOCKING:-primary}"
+# Kleine lineare Verfestigung H [MPa] = E/1000 als numerische Regularisierung des
+# elastisch-plastischen Uebergangs (ideale Plastizitaet: singulaere Tangente, Newton
+# scheitert beim Fliessbeginn). Einfluss auf die Fliesskriterien < 1 %.
+LES_HARDENING="${LES_HARDENING:-70}"
 
 # --- Randschale (02d) ---------------------------------------------------------
 # Dicke in Voxeln. Sie muss vom Netz aufloesbar bleiben: bei 33,4 um Voxeln und
