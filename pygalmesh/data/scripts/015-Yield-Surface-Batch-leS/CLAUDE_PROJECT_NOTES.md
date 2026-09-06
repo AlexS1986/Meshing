@@ -1528,3 +1528,24 @@ deckt grosse Deformationen ab.
 - Offen: Verfestigungstest ys070 (54484651) abwarten; dann Sammel-Restart der
   gestorbenen/laufenden Punkte aus Snapshots (H-Wechsel mitten im Lauf: Einfluss
   < 0,1 MPa, dokumentieren) oder frisch (YS_FORCE_FRESH) — Entscheidung nach Test.
+
+### 06.09.2026 (4) — Fliesspunkte offline aus der Historie; 14 Jobs abgeschlossen
+
+Befund: jeder Eintrag der `averaged_history` (restart_meta_*.json / yield_run_*.json)
+enthaelt `sigma_avg_reduced_volume` (voller makroskopischer Spannungstensor),
+`eps_mac_eigenvalues_current`, `reaction_force`, `alpha_avg_*`, `yielded_fraction_*`,
+`eps_p_eq_macroscopic`, `sig_vm_avg_reduced_volume`, `dt`, `iterations` — je
+Zeitschritt. Der Fliesspunkt wird deshalb OFFLINE bestimmt: lineare Interpolation
+des Spannungstensors beim Durchgang von alpha_avg durch 1e-3 (genauer als das
+In-Run-Kriterium, unabhaengig vom Ende des Laufs). Das In-Run-Kriterium beendet
+die Laeufe nur rechtzeitig.
+Neu: `evaluate_yield_points_from_history.py` — CSV je Kombination + Gesamt-CSV
+(`00_results/_packages/yield_points_r4/`): Punkt bei alpha_avg=1e-3 (Tensor,
+sig_vm, Dehnung, Tangentenverhaeltnis, eps_p_mac, yf), Vergleichspunkt bei
+yielded_fraction=2e-3 (Vorstudie), Plateauspannung per Saettigungsfit
+sig=s_inf(1-exp(-e/e_c)) ab 0,3 % Dehnung mit R^2, Status. Laengste Historie je
+Punkt gewinnt (restart_meta vs. JSON). Mit Mock-Daten getestet.
+Massnahme: 14 laufende Jobs mit alpha_avg >= 1e-3 im Snapshot per scancel
+beendet (Liste `00_results/_packages/abgebrochen_alpha_erreicht_20260906.txt`),
+Punkt aus Historie. Hinweis Resubmit-Skript: diese Punkte zaehlen dort als
+"andere Fehler" (keine JSON) — nicht neu einreichen.
