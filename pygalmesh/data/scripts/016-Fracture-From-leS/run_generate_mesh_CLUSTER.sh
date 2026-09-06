@@ -26,6 +26,10 @@ working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/016-Fracture-From-leS"
 # in 016 am 2026-08-31 erneut aufgetreten).
 cd "$working_directory"
 source "$working_directory/config.sh"
+# Sicherheitsnetz (falls config.sh mal nicht gesourct wird): OpenBLAS-Fix, siehe config.sh
+export OPENBLAS_CORETYPE="${OPENBLAS_CORETYPE:-SkylakeX}"
+export APPTAINERENV_OPENBLAS_CORETYPE="${APPTAINERENV_OPENBLAS_CORETYPE:-$OPENBLAS_CORETYPE}"
+export SINGULARITYENV_OPENBLAS_CORETYPE="${SINGULARITYENV_OPENBLAS_CORETYPE:-$OPENBLAS_CORETYPE}"
 
 CONFIG_ARG="${1:-${FRACTURE_MESH_CONFIG:-config-fracture-${SPECIMEN_NAME}-${DEFAULT_TIER}.json}}"
 if [[ "$CONFIG_ARG" = /* ]]; then
@@ -66,6 +70,9 @@ run_container() {
     shift 3
     mkdir -p "$case_scratch/tmp"
     export TMPDIR="$case_scratch/tmp"
+    # OpenBLAS-Fix nochmals im Step setzen (APPTAINERENV_ bringt ihn in den Container)
+    export OPENBLAS_CORETYPE="${OPENBLAS_CORETYPE:-SkylakeX}"
+    export APPTAINERENV_OPENBLAS_CORETYPE="${APPTAINERENV_OPENBLAS_CORETYPE:-$OPENBLAS_CORETYPE}"
     apptainer exec --bind "$bind_paths,$case_scratch:$case_scratch" "$container" "$@"
   ' bash "$case_scratch" "$bind_paths" "$container" "$@"
 }

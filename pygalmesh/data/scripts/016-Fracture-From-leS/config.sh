@@ -195,3 +195,11 @@ SIM_JOB_NTASKS="${SIM_JOB_NTASKS:-96}"
 SIM_JOB_MEM_PER_CPU="${SIM_JOB_MEM_PER_CPU:-4000}"
 SIM_JOB_TIME="${SIM_JOB_TIME:-10080}"
 SIM_JOB_CONSTRAINT="${SIM_JOB_CONSTRAINT:-i01}"
+
+# --- OpenBLAS-Workaround fuer i02 (Sapphire Rapids) ----------------------------
+# OpenBLAS 0.3.20 im Container waehlt auf Sapphire Rapids (i02, Xeon 8470Q) den
+# Kernel "Cooperlake" und rechnet falsch (MUMPS -10, NO CONVERGENCE). Fix aus
+# Studie 015, 05.09.2026; harmlos auf i01. Siehe Bericht_OpenBLAS_SapphireRapids_20260905.md
+export OPENBLAS_CORETYPE="${OPENBLAS_CORETYPE:-SkylakeX}"
+export APPTAINERENV_OPENBLAS_CORETYPE="${APPTAINERENV_OPENBLAS_CORETYPE:-$OPENBLAS_CORETYPE}"
+export SINGULARITYENV_OPENBLAS_CORETYPE="${SINGULARITYENV_OPENBLAS_CORETYPE:-$OPENBLAS_CORETYPE}"

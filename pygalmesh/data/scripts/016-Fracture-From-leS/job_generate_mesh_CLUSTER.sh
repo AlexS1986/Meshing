@@ -25,5 +25,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$HPC_SCRATCH/pygalmesh/data/scripts/016-Fracture-From-leS"
 source "$SCRIPT_DIR/config.sh"
+# Sicherheitsnetz (falls config.sh mal nicht gesourct wird): OpenBLAS-Fix, siehe config.sh
+export OPENBLAS_CORETYPE="${OPENBLAS_CORETYPE:-SkylakeX}"
+export APPTAINERENV_OPENBLAS_CORETYPE="${APPTAINERENV_OPENBLAS_CORETYPE:-$OPENBLAS_CORETYPE}"
+export SINGULARITYENV_OPENBLAS_CORETYPE="${SINGULARITYENV_OPENBLAS_CORETYPE:-$OPENBLAS_CORETYPE}"
 bash "$SCRIPT_DIR/run_generate_mesh_CLUSTER.sh" \
   "${1:-${FRACTURE_MESH_CONFIG:-config-fracture-${SPECIMEN_NAME}-${DEFAULT_TIER}.json}}"

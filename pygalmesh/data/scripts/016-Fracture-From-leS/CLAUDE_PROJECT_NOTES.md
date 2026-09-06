@@ -6,6 +6,64 @@ Laufendes Protokoll. Neueste Session oben.
 
 ---
 
+## Session 2026-09-06 — OpenBLAS-Fix (Sapphire Rapids / i02) aus 015 übernommen
+
+### Auftrag (Nutzer)
+
+Den in 015 am 05.09.2026 gefundenen Workaround `OPENBLAS_CORETYPE=SkylakeX` vollständig
+nach 016 übernehmen: Bestandsaufnahme, Einbau, Positivkontrolle auf i02, Health-Check,
+Dokumentation. Hintergrund: OpenBLAS 0.3.20 (`DYNAMIC_ARCH`) in `alex-dolfinx.sif` erkennt
+den Xeon Platinum 8470Q (i02, `mpsd*`) als „Cooperlake" und rechnet falsch (dgemm-Abweichung
+~22 statt 1e-12) → im FE-Job `DMUMPS INFO(1)= -10`, `NO CONVERGENCE`, NaN schon im ersten
+elastischen Schritt. Nichts stürzt ab, die Zahlen sind nur falsch. i01 (`mpsc*`) nicht betroffen.
+
+### Schritt 1 — Bestandsaufnahme (nur gelesen)
+
+| Skript | startet Container | Partition/Constraint | Fix wo |
+|---|---|---|---|
+| `job_run_simulation_CLUSTER.sh` | ja, `run_container()` → `alex-dolfinx.sif` | `-C i01` (Header) bzw. `-C $SIM_JOB_CONSTRAINT` aus config.sh | nach `source config.sh` + im srun-Step vor `apptainer exec` |
+| `run_generate_mesh_CLUSTER.sh` | ja, `run_container()` → `pygalmesh.sif` (14×) und `alex-dolfinx.sif` (1×, `make_mesh_dlfx_compatible`) | erbt `-p mem`, `-C m01&mem1536g` | dito |
+| `job_generate_mesh_CLUSTER.sh` | indirekt (`bash run_generate_mesh…`) | `-p mem`, `-C "m01&mem1536g"` | nach `source config.sh` |
+| `config.sh` | – (von allen dreien gesourct) | – | zentraler Block am Ende |
+| `submit_fracture_pipeline_CLUSTER.sh`, `02_create_folders…`, `create_fracture_config.*` | nein | Login-Node | – |
+
+- `grep -rn OPENBLAS` in 016 vorher: kein Treffer. Jobskripte werden in 016 nicht generiert
+  (kein Template), es gibt keinen Health-Check und keinen `scratch/`-Ordner.
+- Container: Simulation `$HOME/dolfinx_alex/alex-dolfinx.sif` (wie 015 → betroffen).
+  Netzerzeugung `pygalmesh.sif`: numpy bringt eigenes scipy-openblas **0.3.29** mit → nicht
+  betroffen (numpy.show_config im Container, 06.09.2026). Der Fix ist dort trotzdem harmlos.
+- Cluster-Stand 06.09.2026: `squeue --me` enthält **keine 016-Jobs** (nur 015), Scratch-Kopie
+  von 016 identisch mit `$HOME/meshing` (diff -q), Git sauber auf `39fa19c`. i02 hat idle-Knoten.
+- `blas_check.py` liegt auf dem Mac nicht in 015 (nur auf dem Cluster unter
+  `015/scratch/mumps_sanity/`); Inhalt von dort übernommen nach `016/tools/blas_check.py`.
+
+### Schritt 2 — Einbau (Mac-Kopie, 06.09.2026)
+
+Geändert: `config.sh` (neuer Block am Ende), `job_run_simulation_CLUSTER.sh`,
+`run_generate_mesh_CLUSTER.sh`, `job_generate_mesh_CLUSTER.sh` (Sicherheitsnetz direkt nach
+`source config.sh`; in den beiden `run_container()` zusätzlich im srun-Step unmittelbar vor
+`apptainer exec`). Neu: `tools/blas_check.py`. Form überall `VAR="${VAR:-SkylakeX}"`,
+also per Umgebung überschreibbar (Test mit `Haswell`, neuer Container). `SINGULARITYENV_…`
+wie in 015 zusätzlich gesetzt. `bash -n` aller vier Skripte ok. Wartende Scratch-Jobs:
+keine vorhanden, nichts zu patchen.
+
+### Schritt 3 — Positivkontrolle
+
+_ausstehend_ (BLAS-Selbsttest ohne/mit Fix auf i02, dann kurzer 016-Lauf auf i02).
+
+### Lehre (aus 015, gilt auch hier)
+
+**Bei plattformabhängigen Solverfehlern zuerst Positivkontrolle (BLAS-Selbsttest), dann erst
+Netz/MPI untersuchen.** In 015 hat das Auslassen dieses Schritts zwei Tage gekostet.
+
+### Merkposten
+
+Container mit OpenBLAS ≥ 0.3.24 bauen (Ubuntu 24.04 oder numpy-Wheels mit eigenem OpenBLAS,
+wie `pygalmesh.sif` es schon hat); dann kann der Workaround entfallen — aber erst nach
+erneutem Selbsttest mit `tools/blas_check.py`.
+
+---
+
 ## Session 2026-09-02 — Ganze Probe statt Riegel, reduce = 4, Route aus 011
 
 ### Auftrag (Nutzer)
