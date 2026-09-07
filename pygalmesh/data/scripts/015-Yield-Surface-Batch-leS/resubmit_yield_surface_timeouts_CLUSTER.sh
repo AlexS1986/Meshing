@@ -145,10 +145,16 @@ PYCFG
     continue
   fi
   log_args=(--error="$sample_dir/%x.err.%j" --output="$sample_dir/%x.out.%j")
-  prev="$(sbatch --parsable "${log_args[@]}" "$job_script")"
+  # 07.09.2026: das LUA-job_submit-Plugin des Clusters schreibt "[I] ..."-Zeilen
+  # auf stdout, --parsable liefert daher mehrere Zeilen. Nur die numerische
+  # Job-ID uebernehmen, sonst ist die afternotok-Dependency ungueltig
+  # ("Job dependency problem") und die Kette bricht nach dem ersten Glied ab.
+  prev="$(sbatch --parsable "${log_args[@]}" "$job_script" | grep -o '^[0-9]\+' | tail -n 1)"
+  [[ -n "$prev" ]] || { echo "[FEHLER ] $combo_tag/$sample_id - sbatch lieferte keine Job-ID" >&2; continue; }
   chain_ids=("$prev")
   for ((i = 2; i <= MAX_CHAIN; i++)); do
-    prev="$(sbatch --parsable --dependency="afternotok:$prev" --kill-on-invalid-dep=yes "${log_args[@]}" "$job_script")"
+    prev="$(sbatch --parsable --dependency="afternotok:$prev" --kill-on-invalid-dep=yes "${log_args[@]}" "$job_script" | grep -o '^[0-9]\+' | tail -n 1)"
+    [[ -n "$prev" ]] || { echo "[FEHLER ] $combo_tag/$sample_id - Kettenglied $i nicht eingereicht" >&2; break; }
     chain_ids+=("$prev")
   done
   echo "[RESUBMIT] $combo_tag/$sample_id ($reason): Kette ${chain_ids[*]}"
