@@ -1549,3 +1549,52 @@ Massnahme: 14 laufende Jobs mit alpha_avg >= 1e-3 im Snapshot per scancel
 beendet (Liste `00_results/_packages/abgebrochen_alpha_erreicht_20260906.txt`),
 Punkt aus Historie. Hinweis Resubmit-Skript: diese Punkte zaehlen dort als
 "andere Fehler" (keine JSON) — nicht neu einreichen.
+
+### 07.09.2026 — Resubmit der Walltime-Stops; Kapazitaet; Stand der Fliessflaeche
+
+Frueh: nur 24 Jobs laufend (alte Kriecher), 57 wartend seit >24 h obwohl Prio
+126 642 > Backfill-Schwelle 125 266 (FairShare 0,0196) -> Cluster voll, nicht
+Prioritaet. `AssocMaxJobsLimit` bei 6 Jobs trotz MaxJobs 400 — Ursache offen
+(QOS normal ohne sichtbare Limits). 101 kontrollierte Walltime-Stops (Exit 3):
+29 davon mit alpha-Punkt in der Historie, 70 nur yf, 2 ohne.
+Fliessflaeche (714 Historien): alpha_avg 1e-3 erreicht 65 (77: 3/19, 83: 9/22,
+88: 5/7, 71: 0/0), yielded_fraction 2e-3 erreicht 502, keins 147. Mediane
+sig_vm@alpha: 77 6,2/7,7; 83 9,7/12,9; 88 11,6/15,4 MPa (sigy 75/100).
+Extrapolationstest (4 Laeufe >= 3,5 %): Voce aus 2 %-Daten 4-19 % UNTER dem
+gerechneten Wert -> Plateau nicht extrapolieren (CLAUDE.md §20).
+**Bug behoben:** `resubmit_yield_surface_timeouts_CLUSTER.sh` nahm die volle
+`sbatch --parsable`-Ausgabe (LUA-Plugin schreibt "[I] ..." auf stdout) als
+Job-ID -> `afternotok:<Text>` -> "Job dependency problem", Skript starb still
+mit Exit 1 nach dem ersten Kettenglied. Fix: ID per `grep -o '^[0-9]\+'`
+(andere Skripte nutzen bereits `extract_job_id`). Danach Resubmit scharf:
+102 Ketten a 5 (408 Dependency-Jobs); alle Fortsetzungen laufen mit neuer
+Config (H=70, alpha_avg 1e-3, Newton-Defaults) — erster Praxistest der
+Verfestigung an plastischen Zustaenden.
+
+### 07.09.2026 (2) abends — Verfestigung wirkt; Queue leer; Sammel-Restart
+
+**Nachweis H = 70 + Newton-Defaults:** die 5 laufenden Jobs stehen bei
+t = 1,2-1,4 % Dehnung (alte Laeufe starben bei 0,1-0,35 %), Newton laeuft mit
+bis zu 7 Iterationen (mit max_it = 8 waere das der Abbruch gewesen).
+Verwerfungen gibt es weiterhin, sie sind aber nicht mehr toedlich.
+**28 Punkte heute regulaer COMPLETED** — die ersten Laeufe, die das neue
+Abbruchkriterium (alpha_avg 1e-3) erreicht haben; das waren die Fortsetzungen
+mit bereits erreichtem Alpha im Snapshot. Alpha-Punkte gesamt: 65 -> 89.
+104 Walltime-Stops heute (Ketten haengen automatisch nach).
+
+**Queue war leer** (5 laufend, 0 wartend) -> Kapazitaet vorhanden.
+164 Punkte ohne JSON (17 Timeout + 147 andere Fehler) mit
+`INCLUDE_FAILED=1 MAX_CHAIN=2` eingereicht -> 332 Jobs in der Queue
+(Limits: MaxJobs 400, MaxSubmit 1000).
+
+**Neu: `restart_dead_points_CLUSTER.sh`** fuer die ~510 Punkte, die MIT
+Ergebnis-JSON, aber OHNE Alpha-Punkt geendet sind (dt_below_minimum vor der
+Umstellung). Das Resubmit-Skript haelt sie fuer "fertig" und ruehrt sie nicht an.
+Ablauf: Kandidaten = Snapshot vorhanden + alpha_avg < Schwelle in der ganzen
+Historie + kein Job in der Queue; Ergebnis-JSON und 00_results-Slim-Ordner nach
+`00_results/_failed_alpha_<datum>/` verschieben (sonst ueberspringt der Job den
+Solve); Job OHNE YS_FORCE_FRESH einreichen (Fortsetzung aus dem Snapshot,
+`YIELD_RESUME_DT` Default 1e-4), Kettenlaenge `MAX_CHAIN`. DRY_RUN=1 ist
+Default, `LIMIT` begrenzt je Aufruf (MaxSubmit!). Mit Mock-Daten getestet
+(Kandidatenauswahl, Queue-Filter, Verschieben, Kette, ID-Filter fuer das
+LUA-Plugin).
