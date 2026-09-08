@@ -125,7 +125,7 @@ if only_ds:
 live = collections.Counter()
 per_combo_live = collections.defaultdict(collections.Counter)
 closest = []   # (abstand_faktor, combo, sample, werte)
-THRESH = 0.002
+THRESH = 0.001   # 08.09.2026: alpha_avg_material 1e-3 ist das einzige Abbruchkriterium (CLAUDE.md §19)
 for m in sorted(metas):
     parts = m.split("/")
     combo = f"{parts[1]}/{parts[2]}"
@@ -140,25 +140,25 @@ for m in sorted(metas):
     hist = d.get("averaged_history") or []
     if hist:
         s = hist[-1]
-        epsp = s.get("eps_p_eq_macroscopic", 0.0) or 0.0
+        epsp = s.get("alpha_avg_reduced_material_volume", 0.0) or 0.0   # 08.09.2026: alpha statt eps_p_eq
         closest.append((epsp, combo, sample, s))
 
 print()
-print("--- 3. Erreichte Fliesskriterien (Schwelle 0,002) --------------------------")
+print("--- 3. Erreichte Fliesskriterien (alpha_avg 1e-3 = Primaer/Abbruch; andere nur Doku) ---")
 print("      Quelle: restart_meta_*.json der Arbeitsordner (auch laufende Jobs)")
 if not metas:
     print("  noch keine Arbeitsordner mit restart_meta_*.json")
 else:
     for name in ("yielded_fraction_material", "alpha_avg_material", "eps_p_eq_macroscopic"):
         n = live.get(name, 0)
-        tag = "  <-- Primaerkriterium" if name == "eps_p_eq_macroscopic" else ""
+        tag = "  <-- Primaerkriterium (Abbruch)" if name == "alpha_avg_material" else "  (nur Doku)"
         print(f"  {name:28s} {n:4d} von {len(metas)} Laeufen{tag}")
     if closest:
         closest.sort(reverse=True)
         print()
         print("  Am weitesten fortgeschritten (letzter Snapshot je Lauf):")
         print(f"  {'KOMBINATION':38s} {'SAMPLE':8s} {'scale':>8s} {'sig_vm':>7s} "
-              f"{'eps_p_mac':>10s} {'x bis Ziel':>10s}")
+              f"{'alpha_avg':>10s} {'x bis Ziel':>10s}")
         for epsp, combo, sample, s in closest[:5]:
             factor = THRESH / epsp if epsp > 0 else float("inf")
             fs = f"{factor:.0f}x" if factor != float("inf") else "-"
