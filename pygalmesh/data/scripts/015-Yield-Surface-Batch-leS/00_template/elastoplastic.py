@@ -1062,6 +1062,16 @@ def after_last_timestep():
         print(f"Saved reduced-volume averages to: {averages_path}")
 
 
+# 08.09.2026: Newton-Residuen je Iteration sichtbar machen (Diagnose der
+# Nichtkonvergenz am Fliessbeginn, CLAUDE_PROJECT_NOTES.md 08.09.). NEWTON_LOG=1
+# schaltet dolfinx auf INFO ("Newton iteration k: r (abs) = ... r (rel) = ...",
+# landet in der .err-Datei). Nur fuer Diagnosejobs setzen - viel Ausgabe.
+if os.environ.get("NEWTON_LOG", "") not in ("", "0"):
+    dlfx.log.set_log_level(dlfx.log.LogLevel.INFO)
+    if rank == 0:
+        print("[NEWTON_LOG] dolfinx-Loglevel INFO: Newton-Residuen je Iteration "
+              "werden protokolliert (.err).", flush=True)
+
 try:
     sol.solve_with_newton_adaptive_time_stepping(
         domain,

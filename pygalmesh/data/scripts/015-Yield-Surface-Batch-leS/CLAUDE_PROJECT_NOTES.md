@@ -1696,3 +1696,94 @@ Zustand muesste weiter per DP0 gehen. Ausblick fuer naechste Studie /
 Container-Neubau (OpenBLAS, §16): Snapshots gleich in Eingabenummerierung
 (`geometry.input_global_indices`, `topology.original_cell_index`) schreiben
 oder auf adios4dolfinx umstellen. Fuer 015 bleibt der Koordinaten-Abgleich.
+
+**08.09.2026 ~10:30 — Fix auf Scratch, Testjob eingereicht.** `git pull` im
+Home-Checkout, `00_template/yield_restart.py` nach Scratch kopiert (Backup
+`.vor_partitionsfix_20260908`, py_compile ok, 662 Zeilen). Testpunkt automatisch
+gewaehlt: offener JM-25-77_sigy075-Punkt mit hoechstem alpha im Snapshot =
+**ys_082** (alpha_max 1,66e-3, t_state 0,0265, dt_last 1,25e-5), Job
+**54497774**, `sbatch --export=ALL,YIELD_RESUME_DT=1e-4`, PENDING (Wartezeit
+laut Diagnose 07.09. ~28 h). Hinweis: alpha liegt im Snapshot schon UEBER der
+neuen Schwelle 1e-3 -> nach dem Restore sollte der Solver nach dem ersten
+Schritt das Kriterium melden und mit `yield_run_*.json` (final_yield_state)
+enden; der Fliesspunkt selbst kommt ohnehin per Interpolation aus der Historie.
+Pruefkriterien im .out: `[RESTART] Zuordnung alt->neu ... Partition
+reproduziert: nein (n/N)`, `[RESTART] Fortsetzung Nr. 1: Zustand bei t =
+0.0264875 ... geladen`, erster Schritt `Converged: True` mit wenigen Newton-
+Iterationen, sig_vm im ersten fortgesetzten Schritt stetig zur Historie
+(kein Sprung -> Zustand korrekt geladen). Entscheidung offen: die uebrigen
+660 Punkte sofort hinterher oder erst nach bestandenem Test.
+
+**Testjob 54497774 FAILED nach 11 s (Exit 1, mpsd0009) — eigener Fehler, nicht
+der Fix:** `python3 -m py_compile` auf dem Login-Knoten hat
+`00_template/__pycache__/` angelegt; `job_yield_surface_point_CLUSTER.sh` kopiert
+mit `set -euo pipefail` per `cp -v "$SOURCE_DIR"/*` -> `cp: -r not specified;
+omitting directory` -> Exit 1 vor dem Solverstart. **Regel: nie Verzeichnisse in
+`00_template/` anlegen; Syntaxcheck nur mit `PYTHONDONTWRITEBYTECODE=1` oder an
+einer Kopie.** Mac-Kopie: `00_template/__pycache__` nach `_to_delete/` verschoben.
+Positiv: der Job startete innerhalb von Minuten (i02 hat freie Knoten) — die
+28-h-Schaetzung vom 07.09. gilt gerade nicht.
+
+**08.09.2026 10:02 — RESTART FUNKTIONIERT (Job 54497790, ys_082
+JM-25-77_sigy075, mpsd0030/i02, COMPLETED 0:0 in 2:45 min).** Logzeilen:
+`[RESTART] Zuordnung alt->neu aus elastoplastic_std_tensor.xdmf: 893374 alte
+Knoten; Partition reproduziert: nein (1/938150 Knoten mit unveraenderter
+Nummer)` — bestaetigt die Diagnose quantitativ: praktisch KEIN Knoten behaelt
+seine interne Nummer. `[RESTART] Fortsetzung Nr. 1: Zustand bei t = 0.0264875
+... geladen (dt = 1.000e-04, Meta: True)`, ein Zeitschritt bei t = 0.0265875,
+`alpha_avg_reduced_material_volume = 0.00166336 >= 0.001` -> Kriterium erreicht,
+`yield_run_std_tensor.json` mit final_yield_state aus alpha_avg_material,
+neue Feldausgabe `_r1`. Kontinuitaet: alpha 1,659e-3 (Snapshot) -> 1,663e-3
+nach dt = 1e-4, gleiche Groessenordnung wie der Historien-Trend (kein Sprung
+-> Zustand korrekt geladen). Erster erfolgreicher Restore der Studie 015.
+Naechster Schritt: Sammel-Restart der 660 Punkte (344 offen via
+`resubmit ... INCLUDE_FAILED=1`, 316 mit JSON via `restart_dead_points`),
+MAX_CHAIN=1 damit alles in eine Tranche passt (MaxSubmit 1000); Walltime-
+Stops danach per Routine (§18) nachreichen.
+
+**08.09.2026 ~10:20 — Sammel-Restart eingereicht (708 Jobs, MAX_CHAIN=1,
+`YIELD_RESUME_DT=1e-4` exportiert):** A `INCLUDE_FAILED=1 MAX_CHAIN=1
+resubmit_yield_surface_timeouts_CLUSTER.sh` -> 392 offene Punkte (fertig=375,
+laeuft=1); B `DRY_RUN=0 LIMIT=400 MAX_CHAIN=1 restart_dead_points_CLUSTER.sh`
+-> 316 Kandidaten, alte JSONs/Slim-Ordner in `00_results/_failed_alpha_20260908/`.
+Queue danach: 710 (33 RUNNING, 372 Priority, 304 None, 1 Dependency).
+MAX_CHAIN=1 bewusst: alles in einer Tranche (MaxSubmit 1000), Kettenglieder
+sammeln kein Alter; Walltime-Stops (Exit 3 = State FAILED) muessen per Routine
+mit `INCLUDE_FAILED=1` nachgereicht werden (das Resubmit-Skript zaehlt sie
+nicht als Timeout). Resubmit-Skript Scratch == Git (diff -q).
+Naechste Kontrolle (~1-2 h): je Datensatz `Partition reproduziert`-Zeilen,
+`Fortsetzung Nr.`-Zeilen, RestartMismatchError-Zaehler der neuen Jobs,
+Konvergenz der ersten fortgesetzten Schritte — besonders JM-25-71/83
+(4-5 M dofs, Zuordnung liest ~170 MB Topologie je Rang).
+**08.09. ~10:30, erste Kontrolle (Minuten nach Start):** 66 RUNNING / 644
+PENDING. 37 Logs, alle JM-25-71_sigy075 (groesstes Netz, ~3,9 M dofs):
+35 x Zuordnung, 35 x `Fortsetzung Nr.`, **0 Mismatch, 0 Traceback** — die
+Zuordnung traegt also auch beim groessten Netz. Noch 0 konvergierte Schritte
+(erster Schritt dauert dort Minuten); Konvergenz bei der naechsten Kontrolle
+pruefen.
+
+**08.09. 11:45 — Restarts laden korrekt, aber der Solver konvergiert am
+Fliessbeginn nicht (JM-25-71).** Kontrolle nach 1,5 h: 116 Restores, 117 Jobs,
+Verteilung Versuche je Job {3:5, 4:47, 5:44, 6:16, 7:2, 8:1}, akzeptierte
+Schritte je Job {0:93, 1:17, 2:6}. ys_000 JM-25-71_sigy075 (Job 54497806, i02):
+5 Versuche in 85 min (~17-20 min je Versuch = echte 30 Newton-Iterationen auf
+3,9 M dofs), dt-Folge 1e-4 -> 6,25e-6, **identisch mit der Halbierungsfolge des
+alten Laufs (54448176) an derselben Stelle t = 0,00225** -> der geladene
+Zustand reproduziert den alten Lauf, das Mapping ist korrekt. `.err` leer (kein
+PETSc/MUMPS/NaN/OOM). `No. of iterations: 0` ist der Platzhalter des Wrappers
+im `except RuntimeError` (solution.py Z. 306), auch beim Frischstart ys_090
+(21 x). dolfinx-Meldung „maximum number of iterations reached" = max_it=30
+ausgeschoepft. **Befund: H = 70 und max_it = 30 beheben die Nichtkonvergenz am
+elastisch-plastischen Uebergang bei JM-25-71 NICHT** (die Annahme aus §19 war
+nie an einem geladenen Zustand geprueft, weil kein Restore je lief); dt-
+Verkleinerung hilft nicht (bis 7,8e-7) -> kein Schrittweiten-, sondern ein
+Iterationsproblem (Kandidaten: Chattering elastisch/plastisch ohne Line-Search,
+rtol 1e-8 relativ zum Startresiduum bei winzigem dt unter der Rundungsgrenze,
+Tangente am Uebergang). 586 wartende Jobs mit `scontrol hold` angehalten
+(Alter bleibt). 23 Jobs mit 1-2 akzeptierten Schritten laufen weiter.
+**Diagnose vorbereitet:** `00_template/elastoplastic.py` (Backup
+`.vor_newtonlog_20260908`): `NEWTON_LOG=1` schaltet `dlfx.log.set_log_level(INFO)`
+vor dem Solve -> dolfinx druckt je Newton-Iteration `r (abs)`/`r (rel)` in die
+`.err`. Ein Diagnosejob an ys_000 zeigt dann Stagnation (Toleranz), Oszillation
+(Chattering -> NEWTON_RELAXATION < 1 / Line-Search) oder Divergenz (Zustand/
+Tangente). Mac-Kopie ohne __pycache__ (Syntaxcheck per ast.parse).
