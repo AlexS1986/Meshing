@@ -1,4 +1,4 @@
-# Dateiverzeichnis 015-Yield-Surface-Batch-leS
+# Dateiverzeichnis 017-Yield-Surface-Batch-leS-nohinge
 
 Jede Datei dieses Ordners mit Zweck, Aufrufer und Config-Abschnitt. Der
 DICOM-Zweig aus `010-Yield-Surface-Generation` ist hier nicht enthalten; wer ihn

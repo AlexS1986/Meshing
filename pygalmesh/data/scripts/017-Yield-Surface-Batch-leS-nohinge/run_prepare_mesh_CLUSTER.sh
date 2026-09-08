@@ -15,8 +15,8 @@
 #SBATCH -n 8
 #SBATCH --mem-per-cpu=15000
 ## SBATCH -C i01   (entfernt 03.09.2026: i01 vom HRZ abgeschaltet)
-#SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS/%x.err.%j
-#SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS/%x.out.%j
+#SBATCH -e /work/scratch/as12vapa/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge/%x.err.%j
+#SBATCH -o /work/scratch/as12vapa/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge/%x.out.%j
 #SBATCH --mail-type=END
 
 # Runner der Netzvorbereitung: A01 (.leS -> Voxelvolumen) -> 02b -> 02c -> 02d
@@ -24,7 +24,7 @@
 # aufgerufen.
 set -euo pipefail
 
-working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS"
+working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge"
 # Die Schritte unten geben Apptainer HOST-Pfade unter /work/scratch (Skripte,
 # volume.npy, mesh.xdmf). Gebunden sind aber nur .../pygalmesh/data:/home und
 # $HPC_SCRATCH/pygalmesh/data:/data - sichtbar wird der Host-Pfad nur, weil
@@ -37,7 +37,7 @@ CONFIG_ARG="${1:-${PREPARE_MESH_CONFIG:-config-A01-les.json}}"
 if [[ "$CONFIG_ARG" = /* ]]; then
   CONFIG_PATH="$CONFIG_ARG"
 else
-  CONFIG_PATH="/data/scripts/015-Yield-Surface-Batch-leS/$CONFIG_ARG"
+  CONFIG_PATH="/data/scripts/017-Yield-Surface-Batch-leS-nohinge/$CONFIG_ARG"
 fi
 CONFIG_HOST_PATH="${CONFIG_PATH/#\/data/$HPC_SCRATCH/pygalmesh/data}"
 if [[ ! -f "$CONFIG_HOST_PATH" ]]; then

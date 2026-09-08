@@ -1,4 +1,4 @@
-# Projekt-Notizen 015-Yield-Surface-Batch-leS
+# Projekt-Notizen 017-Yield-Surface-Batch-leS-nohinge
 
 Dieser Ordner ist am 20.08.2026 aus `014-Yield-Surface-From-leS` kopiert worden.
 Die Pipeline ist **unveraendert**; neu ist eine Batch-Schicht fuer vier
@@ -120,7 +120,7 @@ Unterschiede zu 010 zum Zeitpunkt der Abspaltung:
 
 ---
 
-# Projekt-Notizen: 015-Yield-Surface-Batch-leS
+# Projekt-Notizen: 017-Yield-Surface-Batch-leS-nohinge
 
 Diese Datei dokumentiert, was in diesem Ordner verstanden, entschieden und
 gebaut wurde. Sie wird von Claude gepflegt (gelesen und editiert) und liegt
@@ -132,8 +132,8 @@ gefunden wird.
 Projekt-Root: `~/Work/Hypo/Hypo/Simulation` (Container-Bind:
 `Meshing/pygalmesh/data` → `/data`).
 
-- Preprocessing + Vernetzung: `Meshing/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS/`
-- Simulationstemplate: `.../015-Yield-Surface-Batch-leS/00_template/elastoplastic.py`
+- Preprocessing + Vernetzung: `Meshing/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge/`
+- Simulationstemplate: `.../017-Yield-Surface-Batch-leS-nohinge/00_template/elastoplastic.py`
 - DolfinX-Module: `dolfinx_alex/shared/utils/alex/` (`plasticity.py`,
   `homogenization.py`, `boundaryconditions.py`, `materials.py`,
   `postprocessing.py`, `linearelastic.py`, `imageprocessing.py`)
@@ -232,7 +232,7 @@ ausgeführt — der Nutzer führt es selbst lokal im Container aus.
 ## Neue Datenquelle: segmentierte .leS-Voxelbilder (A01)
 
 - Rohdatei `JM-25_77_85p55.leS` (2,5 GB) liegt jetzt unter
-  `A01_segmented/` (Container: `/data/scripts/015-Yield-Surface-Batch-leS/A01_segmented/`).
+  `A01_segmented/` (Container: `/data/scripts/017-Yield-Surface-Batch-leS-nohinge/A01_segmented/`).
 - Neues Skript `A01_les_2_npy.py` konvertiert `.leS` → `volume.npy`
   (uint8, Shape `(x, y, z)`, 0 = Pore, 1 = Material) und schreibt eine
   Sidecar-JSON mit Voxelgröße, Labelhistogramm und Porosität.
@@ -1118,8 +1118,8 @@ Speicherfehler steht jetzt als INFOG im Log statt stumm zu scheitern.
 **Neustart-Rezept (Cluster, nach Sync von Template und alex/solution.py):**
 
 ```bash
-H="$HOME/meshing/Meshing/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS"
-S="$HPC_SCRATCH/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS"
+H="$HOME/meshing/Meshing/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge"
+S="$HPC_SCRATCH/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge"
 rsync -av "$H/00_template/" "$S/00_template/"               # nur das Template, keine Job-Neuerzeugung
 grep -c mat_mumps_icntl_14 "$S/00_template/elastoplastic.py" # 1
 grep -c "krylov_solver.setFromOptions" "$HOME/dolfinx_alex/shared/utils/alex/solution.py"   # 1
@@ -1177,7 +1177,7 @@ applied` (nur wenn die neue `solution.py` auf dem Cluster liegt), nach 1-2 h
 Ein Aufruf beantwortet die Frage "ist auf dem Cluster alles in Ordnung?":
 
 ```bash
-bash "$HPC_SCRATCH/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS/health_check_CLUSTER.sh"
+bash "$HPC_SCRATCH/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge/health_check_CLUSTER.sh"
 QUICK=1 bash .../health_check_CLUSTER.sh            # ohne Logfile-Scan (Sekunden)
 DATASET=JM-25-77 bash .../health_check_CLUSTER.sh   # nur ein Datensatz
 ```
@@ -1279,15 +1279,15 @@ verschieben, sonst mischen sich alte und neue Logs (Health-Check!).
 ```bash
 # 0) Mac -> $HOME/meshing (dein Weg): config.sh, job_yield_surface_point_CLUSTER.sh,
 #    00_template/elastoplastic.py, health_check_CLUSTER.sh; ausserdem alex/solution.py -> $HOME/dolfinx_alex/shared/utils/alex/
-H="$HOME/meshing/Meshing/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS"
-S="$HPC_SCRATCH/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS"
+H="$HOME/meshing/Meshing/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge"
+S="$HPC_SCRATCH/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge"
 squeue --me -h -o "%j" | grep -c -- "-ys[0-9]*$"                 # muss 0 sein
 mv "$S/yield_surface_jobs" "$S/yield_surface_jobs_r2_20260901"   # alte Jobs/Logs archivieren
 du -sh "$S/yield_surface_runs" "$S/00_results"                    # r2-Rechenstand (behalten/loeschen)
 grep -n "kill-on-bad-exit" "$H/job_yield_surface_point_CLUSTER.sh"          # 1 Treffer
 grep -c "apply_default_ksp_options" "$HOME/dolfinx_alex/shared/utils/alex/solution.py"   # 1
 cd "$HOME/meshing/Meshing/pygalmesh"
-data/scripts/015-Yield-Surface-Batch-leS/batch_create_folders_CLUSTER.sh   # r4-Configs + Jobs + rsync
+data/scripts/017-Yield-Surface-Batch-leS-nohinge/batch_create_folders_CLUSTER.sh   # r4-Configs + Jobs + rsync
 # Kontrolle der erzeugten Dateien
 python3 -c "import json;c=json.load(open('$S/config-JM-25-77-r4-sigy075.json'));print('reduce',c['A01_les_2_npy']['reduce']['factor'])"
 grep -n '"max_element_size_um"\|"x_min"' "$S/config-JM-25-77-r4-sigy075.json" | head -3     # 150 / 6
