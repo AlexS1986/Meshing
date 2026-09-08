@@ -100,7 +100,7 @@ Acht Kombinationen: vier `.leS`-Datensaetze x zwei Anfangsfliessgrenzen
 
 | Ordner | Inhalt |
 |---|---|
-| `00_template/` | `elastoplastic.py` (DolfinX-Solver der Punkt-Jobs, restart-fähig: setzt nach Timeout aus der eigenen XDMF/HDF5-Ausgabe fort, schreibt `restart_meta_*.json`; Feldausgabe ausgedünnt — Default ein Snapshot je 12 h Wandzeit — und beendet sich mit garantiertem letzten Snapshot vor dem SLURM-Zeitlimit selbst, Config-Blöcke `yield_surface.field_output` / `yield_surface.walltime`), `yield_restart.py` (Restart-Logik: XDMF zurücklesen, Partitionierung verifizieren, e_p/alpha rekonstruieren) und Hilfsdateien |
+| `00_template/` | `elastoplastic.py` (DolfinX-Solver der Punkt-Jobs, restart-fähig: setzt nach Timeout aus der eigenen XDMF/HDF5-Ausgabe fort, schreibt `restart_meta_*.json`; Feldausgabe ausgedünnt — Default ein Snapshot je 12 h Wandzeit — und beendet sich mit garantiertem letzten Snapshot vor dem SLURM-Zeitlimit selbst, Config-Blöcke `yield_surface.field_output` / `yield_surface.walltime`), `yield_restart.py` (Restart-Logik: XDMF zurücklesen, alte Ausgabe partitionsunabhängig über Koordinaten/Zell-Tupel zuordnen — seit 08.09.2026, vorher Abbruch bei nicht reproduzierter Partition —, e_p/alpha rekonstruieren) und Hilfsdateien |
 | `<dataset>_segmented/` | wird von der Pipeline angelegt: Volumen, `metadata.json`, Netze |
 | `yield_surface_jobs/` | wird von `setup_yield_surface_jobs` angelegt; in 015 je Kombination: `<dataset>_sigy<XXX>/nNNN/` |
 | `yield_surface_runs/` | Arbeitsordner der Punkt-Jobs: `<dataset>/<binning_label>/<sample_id>/` (vollstaendig, inkl. Netz und Feldausgabe) |

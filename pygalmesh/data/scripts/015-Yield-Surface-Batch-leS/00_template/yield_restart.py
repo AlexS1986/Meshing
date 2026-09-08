@@ -15,14 +15,21 @@ erfolgreichem Zeitschritt eine kleine Datei restart_meta_<base>.json
 Kriterien-Historie erhalten bleibt. Alte Laeufe ohne Meta-Datei werden nur
 aus XDMF + Newton-Logfile fortgesetzt (Historie beginnt dann beim Resume).
 
-WICHTIGE ANNAHME: Der fortsetzende Lauf liest dasselbe dlfx_mesh.xdmf mit
-derselben MPI-Prozesszahl im selben Container wie der abgebrochene Lauf.
-Dann ist die Netzpartitionierung und damit die globale Nummerierung von
-Knoten und Zellen reproduzierbar. Das wird NICHT blind angenommen, sondern
-beim Laden verifiziert: Geometrie- und Topologie-Datensaetze der HDF5-Ausgabe
-muessen exakt zu den global nummerierten Knoten/Zellen des neuen Laufs
-passen. Bei Abweichung bricht der Lauf mit einer klaren Fehlermeldung ab
-(dann bleibt nur ein Neustart des Punkts mit YS_FORCE_FRESH=1).
+ZUORDNUNG ALT -> NEU (seit 08.09.2026 partitionsunabhaengig):
+dolfinx schreibt Geometrie, Topologie und Felder in seiner INTERNEN globalen
+Nummerierung, und die haengt von der Netzpartitionierung ab. Die Partition
+ist mit PT-SCOTCH NICHT reproduzierbar - derselbe Punkt mit demselben Netz
+und derselben Rangzahl bekam in drei Laeufen drei verschiedene dofs-Zahlen,
+und alle Restarts der Studie 015 scheiterten daran (CLAUDE.md §21). Deshalb
+wird die alte Nummerierung nicht mehr vorausgesetzt, sondern rekonstruiert:
+  * Knoten: jeder lokale Knoten des neuen Laufs wird ueber seine Koordinaten
+    (exakte float64-Bitmuster, Fallback quantisiert auf 1e-7 mm) in der alten
+    Geometrie-Ausgabe gesucht -> Zeilenindex im alten Datensatz.
+  * Zellen: jede lokale Zelle wird ueber das sortierte Knoten-Tupel (in
+    alten Zeilenindizes) in der alten Topologie gesucht.
+Voraussetzung ist nur noch dasselbe Netz (dlfx_mesh.xdmf); Prozesszahl und
+Partition duerfen abweichen. Kann ein Knoten oder eine Zelle nicht zugeordnet
+werden (anderes Netz), bricht der Lauf mit RestartMismatchError ab.
 """
 
 import glob
@@ -276,6 +283,110 @@ def _read_rows(dset, global_indices, gap=65536):
 
 
 # ---------------------------------------------------------------------------
+# Partitionsunabhaengige Zuordnung alt -> neu (08.09.2026)
+# ---------------------------------------------------------------------------
+
+def _coord_keys(xyz, quantum=None, shift=0.0):
+    """(n, 3)-Koordinaten -> (n, 3)-int64-Schluessel fuer exakte Zeilenvergleiche.
+
+    quantum=None: Bitmuster der float64-Werte (exakt; -0.0 wird vorher zu 0.0).
+    quantum=q   : auf Vielfache von q gerundet, Gitter um shift*q versetzt
+                  (Fallback, falls die Koordinaten nicht bitgleich sind).
+    """
+    xyz = np.ascontiguousarray(np.asarray(xyz, dtype=np.float64)[:, :3]) + 0.0
+    if quantum is None:
+        return xyz.view(np.int64)
+    return np.round(xyz / float(quantum) + float(shift)).astype(np.int64)
+
+
+def _match_rows(old_keys, new_keys):
+    """Zeilenindex in old_keys fuer jede Zeile von new_keys (-1 = nicht gefunden).
+
+    Beide Arrays (n, k) int64. Mehrdeutige alte Zeilen (Duplikate) liefern -1.
+    Rein numpy (np.unique ueber Zeilen), O((n_old + n_new) log n).
+    """
+    old_keys = np.ascontiguousarray(old_keys, dtype=np.int64)
+    new_keys = np.ascontiguousarray(new_keys, dtype=np.int64)
+    n_old = old_keys.shape[0]
+    if new_keys.shape[0] == 0:
+        return np.empty(0, dtype=np.int64)
+    if n_old == 0:
+        return np.full(new_keys.shape[0], -1, dtype=np.int64)
+    allk = np.concatenate([old_keys, new_keys], axis=0)
+    _, inv = np.unique(allk, axis=0, return_inverse=True)
+    inv = np.asarray(inv).reshape(-1)
+    n_ids = int(inv.max()) + 1
+    old_of_id = np.full(n_ids, -1, dtype=np.int64)
+    old_ids = inv[:n_old]
+    old_of_id[old_ids] = np.arange(n_old, dtype=np.int64)
+    dup = np.bincount(old_ids, minlength=n_ids) > 1
+    new_ids = inv[n_old:]
+    result = old_of_id[new_ids]
+    result[dup[new_ids]] = -1
+    return result
+
+
+def _old_index_maps(h5py, info, x_loc, gdm):
+    """Zeilenindizes der alten Ausgabe fuer die lokalen Knoten und Zellen.
+
+    x_loc: (nnodes_all, 3) lokale Knotenkoordinaten (eigene + Ghosts)
+    gdm  : (ncells_all, nverts) lokale Zell-Knoten-Liste (lokale Knotenindizes)
+    Rueckgabe: (node_old, cell_old, geo_all) mit
+        node_old[i] = Zeile des lokalen Knotens i im alten Geometrie-Datensatz
+        cell_old[c] = Zeile der lokalen Zelle c im alten Topologie-Datensatz
+        geo_all     = alte Geometrie (n_old_nodes, 3) fuer Plausibilitaetscheck
+    Wirft RestartMismatchError, wenn etwas nicht zugeordnet werden kann.
+    """
+    if info["geometry"] is None or info["topology"] is None:
+        raise OSError("Kein Netz in der Ausgabedatei")
+    gfile, gdset = info["geometry"]
+    tfile, tdset = info["topology"]
+    with h5py.File(gfile, "r") as h5:
+        geo_all = np.asarray(h5[gdset][...], dtype=np.float64)
+    if geo_all.ndim != 2 or geo_all.shape[1] < 3:
+        raise RestartMismatchError(
+            f"Alte Geometrie hat Form {geo_all.shape}, erwartet (n, 3).")
+    geo_all = np.ascontiguousarray(geo_all[:, :3])
+
+    node_old = _match_rows(_coord_keys(geo_all), _coord_keys(x_loc))
+    if np.any(node_old < 0):
+        # Fallback fuer nicht bitgleiche Koordinaten: quantisiert (1e-7 mm,
+        # weit unter dem Knotenabstand) auf zwei um q/2 versetzten Gittern -
+        # ein Punkt kann nicht auf beiden nahe einer Rundungsgrenze liegen.
+        for shift in (0.0, 0.5):
+            miss = np.nonzero(node_old < 0)[0]
+            if miss.size == 0:
+                break
+            node_old[miss] = _match_rows(_coord_keys(geo_all, 1e-7, shift),
+                                         _coord_keys(x_loc[miss], 1e-7, shift))
+    missing = int(np.count_nonzero(node_old < 0))
+    if missing:
+        raise RestartMismatchError(
+            f"{missing} von {node_old.size} lokalen Knoten sind in der alten "
+            f"Ausgabe ({geo_all.shape[0]} Knoten) nicht enthalten - anderes "
+            "Netz? Abbruch, um keine falschen Zustaende zu laden "
+            "(Punkt mit YS_FORCE_FRESH=1 neu starten).")
+
+    with h5py.File(tfile, "r") as h5:
+        topo_all = np.asarray(h5[tdset][...], dtype=np.int64)
+    if topo_all.ndim != 2 or topo_all.shape[1] != gdm.shape[1]:
+        raise RestartMismatchError(
+            f"Alte Topologie hat Form {topo_all.shape}, erwartet "
+            f"(n, {gdm.shape[1]}) - anderer Zelltyp?")
+    if topo_all.size and (topo_all.min() < 0 or topo_all.max() >= geo_all.shape[0]):
+        raise RestartMismatchError("Alte Topologie verweist auf unbekannte Knoten.")
+    conn_old = np.sort(node_old[gdm], axis=1)
+    cell_old = _match_rows(np.sort(topo_all, axis=1), conn_old)
+    missing = int(np.count_nonzero(cell_old < 0))
+    if missing:
+        raise RestartMismatchError(
+            f"{missing} von {cell_old.size} lokalen Zellen sind in der alten "
+            f"Topologie ({topo_all.shape[0]} Zellen) nicht enthalten - anderes "
+            "Netz? Abbruch (Punkt mit YS_FORCE_FRESH=1 neu starten).")
+    return node_old, cell_old, geo_all
+
+
+# ---------------------------------------------------------------------------
 # Kernfunktion: Zustand aus XDMF/HDF5 wiederherstellen
 # ---------------------------------------------------------------------------
 
@@ -286,8 +397,8 @@ def try_restore(domain, comm, V, u_fun, alpha_n, e_p_funcs, mu_value,
     e_p_funcs: Liste [e_p_11_n, e_p_22_n, e_p_33_n, e_p_12_n, e_p_13_n, e_p_23_n]
     Rueckgabe: dict {t_state, dt_last, meta, source_xdmf, timestamp} oder None,
     wenn keine (lesbare) alte Ausgabe existiert.
-    Wirft RestartMismatchError, wenn alte Ausgabe existiert, aber die
-    Partitionierung nicht reproduziert wurde.
+    Wirft RestartMismatchError, wenn alte Ausgabe existiert, aber Knoten oder
+    Zellen des aktuellen Netzes darin nicht gefunden werden (anderes Netz).
     """
     try:
         import h5py
@@ -322,6 +433,8 @@ def try_restore(domain, comm, V, u_fun, alpha_n, e_p_funcs, mu_value,
     node_glob = _local_to_global(geom_imap, nnodes_all)
 
     gdm = _as_2d_dofmap(domain.geometry.dofmap, ncells_all)
+    x_loc = np.ascontiguousarray(
+        np.asarray(domain.geometry.x)[:nnodes_all, :3], dtype=np.float64)
 
     bs = V.dofmap.index_map_bs
     dof_imap = V.dofmap.index_map
@@ -375,6 +488,39 @@ def try_restore(domain, comm, V, u_fun, alpha_n, e_p_funcs, mu_value,
         if not times:
             continue
 
+        # --- Zuordnung alt -> neu (partitionsunabhaengig, je Ausgabedatei) --
+        # Fehler werden eingesammelt und kollektiv entschieden, damit kein
+        # Rang in einem allreduce haengen bleibt.
+        map_ok = 1
+        map_msg = ""
+        node_old = cell_old = geo_all = None
+        try:
+            node_old, cell_old, geo_all = _old_index_maps(h5py, info, x_loc, gdm)
+        except RestartMismatchError as exc:
+            map_ok = -1
+            map_msg = str(exc)
+        except Exception as exc:
+            map_ok = 0
+            map_msg = str(exc)
+        map_state = comm.allreduce(map_ok, op=_MPI.MIN)
+        if map_state == -1:
+            raise RestartMismatchError(
+                map_msg or "Netz der alten Ausgabe passt nicht zum aktuellen "
+                "Netz (Details auf einem anderen Rang).")
+        if map_state == 0:
+            if rank == 0:
+                print(f"[RESTART] {os.path.basename(cand)}: Netzdaten nicht "
+                      f"lesbar ({map_msg}); versuche aeltere Ausgabe.")
+            continue
+        n_same = int(np.count_nonzero(node_old == node_glob))
+        n_same = comm.allreduce(n_same, op=_MPI.SUM)
+        n_tot = comm.allreduce(int(nnodes_all), op=_MPI.SUM)
+        if rank == 0:
+            print(f"[RESTART] Zuordnung alt->neu aus {os.path.basename(cand)}: "
+                  f"{geo_all.shape[0]} alte Knoten; Partition reproduziert: "
+                  f"{'ja' if n_same == n_tot else 'nein'} "
+                  f"({n_same}/{n_tot} Knoten mit unveraenderter Nummer).")
+
         if meta is not None and os.path.join(script_path, meta.get("xdmf", "")) == cand:
             t_target = meta["t_state"]
             trial_times = [t for t in times
@@ -399,53 +545,31 @@ def try_restore(domain, comm, V, u_fun, alpha_n, e_p_funcs, mu_value,
                 if not (u_entry and sig_entry and alp_entry):
                     raise OSError("Zeitschritt unvollstaendig")
 
+                # Plausibilitaet: Koordinaten der zugeordneten alten Zeilen
+                # muessen (bis auf Rundung) die lokalen Koordinaten sein.
+                if not np.allclose(geo_all[node_old], x_loc[:, :geo_all.shape[1]],
+                                   rtol=0.0, atol=1e-6):
+                    raise RestartMismatchError(
+                        "Zugeordnete Knotenkoordinaten weichen von den lokalen "
+                        "ab - interner Fehler der Zuordnung.")
+
                 with h5py.File(u_entry[0], "r") as h5:
-                    # --- Verifikation Partitionierung ---------------------
-                    if info["geometry"] is None or info["topology"] is None:
-                        raise OSError("Kein Netz in der Ausgabedatei")
-                    geo = h5[info["geometry"][1]] if info["geometry"][0] == u_entry[0] else None
-                    if geo is None:
-                        with h5py.File(info["geometry"][0], "r") as h5g:
-                            geo_rows = _read_rows(h5g[info["geometry"][1]], node_glob)
-                    else:
-                        geo_rows = _read_rows(geo, node_glob)
-                    x_local = np.asarray(domain.geometry.x)[:nnodes_all, :geo_rows.shape[1]]
-                    if not np.allclose(geo_rows, x_local, rtol=0.0, atol=1e-12):
-                        raise RestartMismatchError(
-                            "Knotenkoordinaten der alten Ausgabe passen nicht zur "
-                            "aktuellen Partitionierung (andere Prozesszahl oder "
-                            "anderes Netz?). Abbruch, um keine falschen Zustaende "
-                            "zu laden. Gleiche -n wie im Originaljob verwenden "
-                            "oder Punkt mit YS_FORCE_FRESH=1 neu starten.")
-
-                    topo = h5[info["topology"][1]] if info["topology"][0] == u_entry[0] else None
-                    if topo is None:
-                        with h5py.File(info["topology"][0], "r") as h5t:
-                            topo_rows = _read_rows(h5t[info["topology"][1]], cell_glob)
-                    else:
-                        topo_rows = _read_rows(topo, cell_glob)
-                    conn_glob = node_glob[gdm]
-                    if not np.array_equal(np.asarray(topo_rows, dtype=np.int64), conn_glob):
-                        raise RestartMismatchError(
-                            "Zell-Konnektivitaet der alten Ausgabe passt nicht zur "
-                            "aktuellen Partitionierung. Abbruch (siehe oben).")
-
-                    # --- u -----------------------------------------------
-                    u_rows = _read_rows(h5[u_entry[1]], node_glob[node_of_dof])
+                    # --- u (Zeilen = alte Knotennummern) -----------------
+                    u_rows = _read_rows(h5[u_entry[1]], node_old[node_of_dof])
                     u_rows = np.asarray(u_rows, dtype=np.float64).reshape(ndofs_all, -1)
                     u_fun.x.array[:] = u_rows[:, :bs].reshape(-1)
 
                 # sigma / alpha koennen in derselben oder einer anderen h5 liegen
                 with h5py.File(sig_entry[0], "r") as h5s:
                     sig_rows = np.asarray(
-                        _read_rows(h5s[sig_entry[1]], cell_glob), dtype=np.float64)
+                        _read_rows(h5s[sig_entry[1]], cell_old), dtype=np.float64)
                 sig_rows = sig_rows.reshape(ncells_all, -1)
                 if sig_rows.shape[1] != 9:
                     raise OSError(f"sigma-Datensatz hat Breite {sig_rows.shape[1]}, erwartet 9")
 
                 with h5py.File(alp_entry[0], "r") as h5a:
                     alp_rows = np.asarray(
-                        _read_rows(h5a[alp_entry[1]], cell_glob), dtype=np.float64)
+                        _read_rows(h5a[alp_entry[1]], cell_old), dtype=np.float64)
                 alp_rows = alp_rows.reshape(ncells_all, -1)[:, 0]
             except RestartMismatchError as exc:
                 ok_local = -1
@@ -458,7 +582,7 @@ def try_restore(domain, comm, V, u_fun, alpha_n, e_p_funcs, mu_value,
             if ok == -1:
                 raise RestartMismatchError(
                     mismatch_msg or
-                    "Partitionierung der alten Ausgabe nicht reproduziert "
+                    "Alte Ausgabe passt nicht zum aktuellen Netz "
                     "(Details auf einem anderen Rang).")
             if ok == 0:
                 if rank == 0:

@@ -1598,3 +1598,101 @@ Solve); Job OHNE YS_FORCE_FRESH einreichen (Fortsetzung aus dem Snapshot,
 Default, `LIMIT` begrenzt je Aufruf (MaxSubmit!). Mit Mock-Daten getestet
 (Kandidatenauswahl, Queue-Filter, Verschieben, Kette, ID-Filter fuer das
 LUA-Plugin).
+
+**Ausgefuehrt 07.09.2026 abends:** `restart_dead_points_CLUSTER.sh` findet
+**559 Kandidaten** (JSON vorhanden, alpha_avg nie >= 1e-3, Snapshot da).
+250 davon eingereicht (Kette 2), alte JSONs/Slim-Ordner in
+`00_results/_failed_alpha_20260907/`. **309 bleiben fuer den naechsten Aufruf**,
+sobald das Einreichkontingent Platz hat. Queue danach: 831 von MaxSubmit 1000
+(414 Dependency = Kettenglieder, 250 + 164 erste Glieder, 3 laufend).
+Naechster Aufruf: `DRY_RUN=0 LIMIT=<n> MAX_CHAIN=2 restart_dead_points_CLUSTER.sh`
+— vorher `squeue --me -h | wc -l` pruefen (Platz = 1000 - laufend/wartend,
+je Punkt 2 Jobs bei MAX_CHAIN=2).
+
+**Wartezeit-Diagnose 07.09.2026 (Rezept fuer die Zukunft):** Frage "laufen die
+Jobs in den naechsten Tagen an?" beantwortet man mit drei Messungen:
+(1) Durchsatz aus `sacct -S now-4days -X -o JobName,Start` je Tag zaehlen —
+05./06./07.09.: 268 / 502 / 571 Starts pro Tag;
+(2) `sbatch --test-only -t <min> <jobskript>` nennt den geschaetzten
+Startzeitpunkt OHNE einzureichen;
+(3) `sinfo -p deflt -N -o "%f %T %C"` freie Kerne je Knotentyp.
+Ergebnis: geschaetzter Start eines frisch eingereichten Jobs 08.09. 21:47
+(~28 h) — und zwar **identisch fuer -t 1440, 720, 480, 240 und 120**.
+=> **Das Zeitlimit ist NICHT der Engpass**, Kuerzen bringt nichts (Hypothese
+"24-h-Jobs finden keine Backfill-Luecke" widerlegt); begrenzend ist, wann
+hoeher priorisierte Fremdjobs Knoten freigeben. 24 h beibehalten (weniger
+Restart-Overhead). `squeue --me --start` liefert fuer unsere Jobs N/A, weil
+Slurm Startzeiten nur fuer die vordersten Jobs rechnet (wir: Rang 567 von 1057).
+Nebenbefund: i01 ist teilweise zurueck (222 mixed / 189 allocated, nur noch
+195 drained).
+
+## Session 08.09.2026 — Restart defekt: Partition nicht reproduzierbar; Fix in yield_restart.py
+
+**Befund (Details: Publikationsordner `CLAUDE.md` §21):** Der Sammel-Restart vom
+07.09. abends (250 via `restart_dead_points_CLUSTER.sh` + 144 via
+`resubmit_yield_surface_timeouts_CLUSTER.sh INCLUDE_FAILED=1`, insgesamt 394
+Punkte, Ketten) ist zu 100 % gescheitert: jedes Kettenglied nach 0 Zeitschritten
+mit `yield_restart.RestartMismatchError: Knotenkoordinaten der alten Ausgabe
+passen nicht zur aktuellen Partitionierung`. Queue am 08.09. 09:15: 2 Jobs
+(ys_090 JM-25-83_sigy100 = Neustart bei t=0, kein Restore). Ausgeschlossen:
+Speicher, Knotentyp, Prozesszahl (`nranks: 32` ueberall), Netz (md5 gleich),
+Config/Jobskript. **Ursache:** PT-SCOTCH partitioniert dasselbe Netz mit
+derselben Rangzahl von Lauf zu Lauf verschieden (ys_000 JM-25-77_sigy075:
+2 815 437 / 2 817 003 / 2 821 458 dofs in drei Laeufen); `yield_restart.py`
+las die Snapshot-Zeilen ueber `imap.local_to_global` (interne Nummerierung)
+und setzte reproduzierbare Partition voraus. Bilanz Studie 015: 1324 x
+„Vorhandener Rechenstand", 1302 Logs mit `RestartMismatchError`,
+**0 restart_meta mit restart_count > 0** — es hat noch nie ein Restore
+funktioniert, auch nicht nach den 114 Walltime-Stops. Die dofs-Abweichung
+war schon am 05.09. aufgefallen (CLAUDE.md §14) und untergegangen.
+
+**Nebenbefunde:** (1) Job 54448554 (ys_090, 07.09. 08:53) starb nach 2 min an
+`RuntimeError: Failed just-in-time compilation of form: Compilation failed on
+root node` — JIT-Cache im geteilten Home, einmalig; beobachten. (2) Das
+Resubmit-Skript zaehlt kontrollierte Walltime-Stops (State FAILED, Exit 3)
+als „ANDERER FEHLER", nicht als Timeout (nur mit `INCLUDE_FAILED=1` erfasst).
+(3) `health_check_CLUSTER.sh` prueft noch gegen Schwelle 0,002 und nennt
+`eps_p_eq_macroscopic` Primaerkriterium — veraltet seit 06.09. (alpha_avg 1e-3).
+
+**Fix (Mac-Kopie, Backup `00_template/yield_restart.py.vor_partitionsfix_20260908`):**
+Restore partitionsunabhaengig. Neue Helfer `_coord_keys`, `_match_rows`,
+`_old_index_maps`: jeder lokale Knoten (eigene + Ghosts) wird ueber seine
+Koordinaten (exakte float64-Bitmuster; Fallback quantisiert 1e-7 mm auf zwei
+um q/2 versetzten Gittern) in der alten Geometrie-Ausgabe gesucht, jede lokale
+Zelle ueber das sortierte Knoten-Tupel in alten Zeilenindizes in der alten
+Topologie (`np.unique(axis=0)` ueber alt+neu, rein numpy). u/sigma/alpha werden
+dann mit `node_old`/`cell_old` statt `node_glob`/`cell_glob` gelesen; die
+alten Verifikationen (Geometrie/Topologie == interne Nummerierung) entfallen,
+stattdessen Plausibilitaet `geo_all[node_old] == x_loc` und harter Abbruch,
+wenn Knoten/Zellen nicht zugeordnet werden koennen (= anderes Netz). Jeder
+Rang liest Geometrie und Topologie der alten Ausgabe komplett (JM-25-83:
+~170 MB Topologie je Rang, np.unique ~5-10 s) — vertretbar. Fehler werden wie
+bisher eingesammelt und kollektiv per allreduce entschieden. Neue Logzeile
+`[RESTART] Zuordnung alt->neu ...: Partition reproduziert: ja/nein (n/N)`.
+Voraussetzung ist nur noch dasselbe Netz; Rangzahl darf abweichen. Keine
+Aenderung an der Schreibseite (elastoplastic.py) noetig -> **alle 394
+vorhandenen Snapshots bleiben nutzbar**.
+
+**Test (synthetisch, ohne dolfinx, Stub fuer mpi4py):** 300k Knoten / 1,2 M
+Tets, alte und neue Partition komplett verschiedene Permutationen, 400k lokale
+Zellen: Knoten-, Zell- und Feldzuordnung exakt (2,6 s); Fallback bei
+Koordinatenrauschen 1e-13 und 1e-11 korrekt; Negativtests (verschobener Knoten,
+veraenderte Zelle) -> `RestartMismatchError`. **Offen:** Test auf dem Cluster an
+EINEM Punkt mit vorhandenem Snapshot (z. B. ys_017 JM-25-71_sigy075, Snapshot
+06.09. 04:26, t = 0,00329) — erwartete Logzeilen `Partition reproduziert: nein`
+und `[RESTART] Fortsetzung Nr. 1: Zustand bei t = 0.00328... geladen`, danach
+Zeitschritte mit `Converged: True`. Erst dann Sammel-Restart der 394.
+Transport: Git (Mac -> GitHub -> $HOME/meshing -> Scratch `00_template/`).
+
+**Design-Frage 08.09. (Nutzer): geht das nicht allgemeiner / hat dolfinx nichts
+Besseres?** Antwort: Der Fix IST die allgemeine Loesung — er mappt nicht auf
+Prozesse, sondern auf Geometrie (Koordinaten, Zell-Knoten-Tupel); einzige
+Restannahme ist „dasselbe Netz" (fuer exakten Restart unvermeidlich). dolfinx
+(alle Versionen) kann Funktionen aus XDMF nicht zurucklesen; eingebautes
+Checkpointing gibt es nicht. Offizieller Weg waere `adios4dolfinx` (ADIOS2,
+N-zu-M-Restart; schreibt intern in Eingabenummerierung) — braucht Container-
+Rebuild/Bind-Mount, liest die vorhandenen XDMF-Snapshots NICHT, Quadraturraum-
+Zustand muesste weiter per DP0 gehen. Ausblick fuer naechste Studie /
+Container-Neubau (OpenBLAS, §16): Snapshots gleich in Eingabenummerierung
+(`geometry.input_global_indices`, `topology.original_cell_index`) schreiben
+oder auf adios4dolfinx umstellen. Fuer 015 bleibt der Koordinaten-Abgleich.

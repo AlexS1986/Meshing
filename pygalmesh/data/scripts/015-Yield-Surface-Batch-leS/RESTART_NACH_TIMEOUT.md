@@ -19,7 +19,7 @@ Fortsetzungen auch die Kriterien-Historie verlustfrei behalten.
 | Datei | Rolle |
 |---|---|
 | `00_template/elastoplastic.py` | restart-fähiger Solver (identisch mit 014) |
-| `00_template/yield_restart.py` | Restart-Logik (identisch mit 014) |
+| `00_template/yield_restart.py` | Restart-Logik. **Seit 08.09.2026 partitionsunabhängig:** alte Ausgabe wird über Knotenkoordinaten und Zell-Knoten-Tupel zugeordnet, nicht mehr über die interne Nummerierung (die ist mit PT-SCOTCH nicht reproduzierbar — alle Restarts bis 07.09. scheiterten daran, `CLAUDE_PROJECT_NOTES.md` 08.09.). Gleiche Prozesszahl ist nicht mehr nötig, nur dasselbe Netz |
 | `job_yield_surface_point_CLUSTER.sh` | löscht den Zielordner unter `yield_surface_runs/<run_id>/<binning_label>/<sample>/` nicht mehr, wenn dort ein Rechenstand liegt; `YS_FORCE_FRESH=1` erzwingt Neustart. Der Slim-Copy-Default (`KEEP_FULL_RUN_COPY=0`) bleibt unverändert |
 | `resubmit_yield_surface_timeouts_CLUSTER.sh` | findet Timeout-Punkte über alle 8 Kombinationen und reicht je Punkt eine Restart-Kette ein |
 
