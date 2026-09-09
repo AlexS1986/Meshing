@@ -32,7 +32,7 @@ export SINGULARITYENV_OPENBLAS_CORETYPE="$OPENBLAS_CORETYPE"
 #   sbatch --export=ALL,NEWTON_MAX_IT=30,NEWTON_RTOL=1e-8,YIELD_RESUME_DT=1e-4 job.sh
 # 06.09.2026: Newton-Defaults der Studie 015 (CLAUDE.md §17): 272/272 Punkte
 # scheiterten mit max_it=8 an dt_below_minimum. Per Umgebung ueberschreibbar.
-export NEWTON_MAX_IT="${NEWTON_MAX_IT:-30}"
+export NEWTON_MAX_IT="${NEWTON_MAX_IT:-12}"   # 09.09.2026: 9499 akzeptierte Schritte, nur 3 brauchten > 12 Iterationen; 30 verschwendete 60 % jeder Verwerfung (CLAUDE_PROJECT_NOTES 09.09.)
 export NEWTON_RTOL="${NEWTON_RTOL:-1e-8}"
 export NEWTON_MIN_ITERS="${NEWTON_MIN_ITERS:-8}"
 for _v in NEWTON_MAX_IT NEWTON_MIN_ITERS NEWTON_RTOL NEWTON_ATOL NEWTON_CONVERGENCE NEWTON_RELAXATION YIELD_RESUME_DT YIELD_HARDENING; do
