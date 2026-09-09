@@ -1,4 +1,16 @@
 #!/bin/bash
+# Selbstschutz (09.09.2026): bash liest ein Skript waehrend der Ausfuehrung
+# stueckweise von der Platte. Wird diese Datei IN-PLACE ueberschrieben (cp,
+# Editor), waehrend Jobs im srun stecken, lesen sie danach an einer falschen
+# Byte-Position weiter -> "syntax error near unexpected token" nach dem
+# Solver, Job FAILED, Auswertungskopie nach 00_results fehlt (17 Jobs am
+# 09.09.2026, CLAUDE_PROJECT_NOTES). Deshalb laeuft das Skript aus einer
+# privaten Kopie. Aenderungen auf Scratch trotzdem nur per temp-Datei + mv
+# (neuer Inode), nie per cp auf die bestehende Datei.
+if [[ -z "${_YS_SELF_COPY:-}" ]]; then
+  _c="$(mktemp "${TMPDIR:-/tmp}/ys_point_XXXXXX")" && cp "${BASH_SOURCE[0]}" "$_c" && export _YS_SELF_COPY="$_c" && exec bash "$_c" "$@"
+fi
+trap 'rm -f "${_YS_SELF_COPY:-}"' EXIT
 set -euo pipefail
 
 working_directory="$HPC_SCRATCH/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge"

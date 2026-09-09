@@ -269,3 +269,51 @@ hard 0, `--doc-levels`, idempotent, Backup-Suffix `--tag`),
 `create_les_config.sh` (Schwelle 0.002), `config.sh` (`YIELD_ALPHA_AVG_THRESHOLD`
 0.002, `LES_HARDENING` 0). Ablauf Cluster: Push -> pull -> Patch-Skript nach
 Scratch -> Trockenlauf -> scharf (alle 768 Punkt-Configs + 8 Datensatz-Configs).
+- ~12:30 **Variante A scharf:** 776 Configs auf Scratch gepatcht (768 Punkt- +
+  8 Datensatz-Configs; Backups `.vor_kriterien_20260909`): hard 0 (std/am/conv),
+  Abbruch alpha_avg_material 2e-3, Doku-Stufen 1e-3/5e-3/1e-2, eps_p_eq und
+  yielded_fraction nur Doku, total_time unveraendert (1e9). Die 17 laufenden
+  Jobs (H = 70, 1e-3) bleiben unberuehrt; alle 357 wartenden starten mit A.
+  Kontrolle JM-25-83_sigy100/ys_000: korrekt.
+- 09:45 Tagescheck: 401/768 fertig (77/88 komplett, 71_sigy075 17 mit H = 70),
+  13 laufend (l0003507, H = 70), 357 wartend (p0023647, Priority) — noch kein
+  A-Job gestartet. dt_small/Traceback/stumm = 0. JM-25-71: 28 Verwerfungen je
+  Job (Median 39 Schritte). H0: 71 bei 31/28, 83 bei 36/25 (1,5 %), 88 102
+  Schritte (1e-2 bei 8,0 %). Nichts fortzusetzen.
+
+## Session 09.09.2026 (3) — Nachmittag: Konten, FAILED-Jobs, Selbstschutz
+
+**Lage 17:40 (sacct/squeue):** 240 laufend (120 p0023647 = JM-25-71, 120
+special00008 = JM-25-83 107 + 71_s100 13), 0 wartend. Die special00008-Jobs
+sind die urspruenglichen Job-IDs (umgehaengt, nicht neu eingereicht — in der
+anderen Claude-Sitzung cse_01N981k9Vcfa8eVrzuAbPvyz; Ralf hat as12vapa auf
+special00008 eingetragen, 386k Kernstunden/Monat). special00008 funktioniert
+(87 COMPLETED + 120 RUNNING heute). Nutzer: special00008 nur wenn noetig,
+moeglichst wenig verbrauchen; heute dort schon ~35-40k.
+**JM-25-83 viel billiger als geschaetzt:** 18 Schritte in 5,5 h, Punkte in
+6-8 h fertig (MAX_IT 12) -> Reststudie eher 80-100k Kernstunden statt 250-300k.
+`config.sh` auf Scratch steht auf JOB_ACCOUNT special00008 (andere Sitzung);
+Jobskripte (772) auf p0023647 -> Punkt-Jobs landen auf p0023647.
+
+**21 FAILED heute — drei Ursachen:**
+1. **17 x JM-25-71_s075 (l0003507, H = 70, 14-21 h Laufzeit): Solver fertig
+   ([STOP], JSON im Laufordner), danach `syntax error` in
+   job_yield_surface_point_CLUSTER.sh Z. 248/250 -> Exit 2, Kopie nach
+   00_results fehlt.** Ursache: ich habe um ~09:30 das gemeinsame Skript per
+   `cp` IN-PLACE ersetzt (MAX_IT 12 + laengere Kommentarzeile), waehrend 13-17
+   Jobs darin im srun standen; bash liest Skripte stueckweise -> nach dem srun
+   an falscher Byte-Position weitergelesen. Gleiches Risiko fuer die drei H0-
+   Jobs. Regel ab jetzt: **gemeinsame Skripte auf Scratch nur per temp + mv
+   ersetzen (neuer Inode), nie cp/Editor in-place.** Fix: Selbstkopie-Guard am
+   Skriptanfang (exec aus mktemp-Kopie; Backup `.vor_selfcopy_20260909`).
+   Reparatur: Slim-Kopie nach 00_results fuer alle Punkte mit JSON nachholen.
+2. **JM-25-71_s100-ys028 (p0023647, H = 0): Task 12 abgestuerzt bei t = 6e-3,
+   32 Tracebacks, Exit 143** -> Traceback noch zu lesen (OOM? MUMPS?).
+3. **3 x JM-25-83_s100 ys093-095 (special00008, neue IDs 14:49, 5 s):**
+   `FATAL: Couldn't determine user account information: unknown userid` auf
+   mpsd0138 -> Knotenproblem (LDAP), nicht unser Fehler; neu einreichen.
+4. H0-Tests 71/83 (+88?): **Walltime-Stop sauber** (Exit 3 = FAILED in sacct,
+   gewollt), 83 bei t = 2,3 % nach 42 Schritten; Fortsetzung per Resubmit.
+Bilanz 17:40: 71_s075 fertig 36 / Queue 60; 71_s100 22 / 73 / 1 fehlt;
+83_s075 32 / 64; 83_s100 50 / 43 / 3 fehlen. 77/88: 384 H = 70 (Nachrechnung
+offen, Archiv-Block noch nicht gelaufen).
