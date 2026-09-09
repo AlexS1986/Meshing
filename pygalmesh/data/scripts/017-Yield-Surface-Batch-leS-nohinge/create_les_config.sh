@@ -30,7 +30,7 @@ ARGS=(
   --yielded-volume-fraction "${YIELD_YIELDED_VOLUME_FRACTION:-0.02}"
   --yielded-volume-reference "${YIELD_YIELDED_VOLUME_REFERENCE:-material}"
   --primary-criterion "${YIELD_PRIMARY_CRITERION:-alpha_avg_material}"
-  --alpha-avg-threshold "${YIELD_ALPHA_AVG_THRESHOLD:-0.001}"
+  --alpha-avg-threshold "${YIELD_ALPHA_AVG_THRESHOLD:-0.002}"
   --blocking "${YIELD_BLOCKING:-primary}"
 )
 

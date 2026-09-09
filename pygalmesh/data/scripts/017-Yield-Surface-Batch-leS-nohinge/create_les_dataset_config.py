@@ -242,6 +242,17 @@ def build_config(base, args):
                      else "Anteil des reduzierten RVE-Volumens mit alpha > alpha_yield_tolerance "
                           "(Materialanteil x relative Dichte)")},
     ]
+    # 09.09.2026 (Variante A): zusaetzliche alpha-Stufen als Doku-Ereignisse
+    # (kein Abbruch, aber [YIELD]-Ereignis + Feld-Snapshot) -> Fliessflaechen-
+    # Familie aus einem Lauf. Primaerschwelle wird nicht doppelt eingetragen.
+    for lvl in [float(x) for x in (args.alpha_doc_levels or "").split(",") if x.strip()]:
+        if abs(lvl - alpha_threshold) < 1e-12:
+            continue
+        ys["criteria"].append({
+            "name": f"alpha_avg_material_{lvl:g}",
+            "quantity": "alpha_avg_reduced_material_volume",
+            "threshold": lvl, "blocking": False,
+            "comment": "Doku-Stufe (Ereignis + Feld-Snapshot, kein Abbruch); Fliessflaechen-Familie (09.09.2026)"})
 
     for assignment in args.set or []:
         set_dotted(config, assignment)
@@ -299,6 +310,9 @@ def build_parser():
                         help="Schwelle fuer alpha_avg_material (Default: --plastic-strain-threshold)")
     parser.add_argument("--blocking", default="primary", choices=["primary", "all"],
                         help="Welche Kriterien den Lauf beenden: nur das Primaerkriterium (Default) oder alle")
+    parser.add_argument("--alpha-doc-levels", default="0.001,0.005,0.01",
+                        help="alpha_avg-Stufen nur zur Aufzeichnung (kommagetrennt, '' = keine); "
+                             "Default 0.001,0.005,0.01 (09.09.2026)")
     parser.add_argument("--hardening", type=float, default=None,
                         help="lineare isotrope Verfestigung H in MPa fuer alle material_sets "
                              "(numerische Regularisierung; z. B. 70 = E/1000)")

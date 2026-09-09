@@ -243,3 +243,29 @@ Kapazitaet und Deadline (15.10.) es zulassen. Der r2/r4-Befund (-21 % E0,
 -15 % Fliessspannung bei JM-25-77) wird im Paper als bekannte Aufloesungs-
 abhaengigkeit dokumentiert; die 25 r2-Fliesspunkte aus 015 dienen als
 vorhandener Vergleichswert.
+**09.09. — Scratch nachgezogen:** `job_yield_surface_point_CLUSTER.sh`
+(NEWTON_MAX_IT 12, Backup `.vor_maxit12_20260909`), `config.sh`,
+`setup_yield_surface_jobs.sh` (p0023647). Queue: 17 laufend (l0003507),
+357 wartend (p0023647, Priority). 397/768 fertig. H0 nach ~22 h:
+JM-25-77 fertig (10 %); JM-25-88 97 Schritte, 1e-2 bei 8,0 % erreicht;
+JM-25-83 35 Schritte / 24 Verwerfungen, 1,5 %; JM-25-71 30 / 27, < 1 % —
+die beiden grossen Netze werden das 24-h-Limit reissen -> Walltime-Stop +
+Fortsetzung (denselben Job erneut einreichen; erster Ernstfall des Restarts).
+
+## Session 09.09.2026 (2) — Variante A umgesetzt: H = 0, Abbruch alpha 2e-3
+
+**Entscheidung Nutzer:** A. Wartende Jobs (357, JM-25-71/83) rechnen mit
+`hard = 0`, Abbruch `alpha_avg_material >= 2e-3`, Doku-Stufen 1e-3/5e-3/1e-2
+(Ereignis + Snapshot). Fertige 397 (JM-25-77/88, H = 70, 1e-3) bleiben als
+initiale Fliessflaeche/Entwurf und werden spaeter mit derselben Config frisch
+nachgerechnet (kein H-Wechsel im Lauf). Laufende 17 (H = 70) enden regulaer.
+Erwartung Konvergenz: wie H = 70 (H0-Tests: 0 dt_min, Verwerfungen im
+Fenster 0,2-1 %); Risiko ist Laufzeit (JM-25-83 bis ~2,3-4 % > 24 h ->
+Walltime-Fortsetzung, MAX_IT 12). Plateau spaeter durch Fortsetzung derselben
+Laeufe (Snapshots liegen lassen! Scratch-Loeschfrist pruefen).
+**Aenderungen (Mac 017):** `patch_yield_criteria_CLUSTER.py` (Defaults 2e-3 /
+hard 0, `--doc-levels`, idempotent, Backup-Suffix `--tag`),
+`create_les_dataset_config.py` (`--alpha-doc-levels`, Default 0.001,0.005,0.01),
+`create_les_config.sh` (Schwelle 0.002), `config.sh` (`YIELD_ALPHA_AVG_THRESHOLD`
+0.002, `LES_HARDENING` 0). Ablauf Cluster: Push -> pull -> Patch-Skript nach
+Scratch -> Trockenlauf -> scharf (alle 768 Punkt-Configs + 8 Datensatz-Configs).

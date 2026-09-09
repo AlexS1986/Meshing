@@ -118,12 +118,12 @@ YIELD_YIELDED_VOLUME_REFERENCE="${YIELD_YIELDED_VOLUME_REFERENCE:-material}"
 # kriterium (Schwelle 1e-3 ~ 2 % Boxdehnung, Tangente ~10 % der Anfangssteigung);
 # eps_p_eq_macroscopic und yielded_fraction werden nur aufgezeichnet.
 YIELD_PRIMARY_CRITERION="${YIELD_PRIMARY_CRITERION:-alpha_avg_material}"
-YIELD_ALPHA_AVG_THRESHOLD="${YIELD_ALPHA_AVG_THRESHOLD:-0.001}"
+YIELD_ALPHA_AVG_THRESHOLD="${YIELD_ALPHA_AVG_THRESHOLD:-0.002}"   # 09.09.2026 Variante A: Abbruch bei 2e-3, 1e-3 als Doku-Ereignis
 YIELD_BLOCKING="${YIELD_BLOCKING:-primary}"
 # Kleine lineare Verfestigung H [MPa] = E/1000 als numerische Regularisierung des
 # elastisch-plastischen Uebergangs (ideale Plastizitaet: singulaere Tangente, Newton
 # scheitert beim Fliessbeginn). Einfluss auf die Fliesskriterien < 1 %.
-LES_HARDENING="${LES_HARDENING:-70}"
+LES_HARDENING="${LES_HARDENING:-0}"   # 09.09.2026 Variante A: ideal plastisch (H-Einfluss bei alpha 1e-3 < 1 % gemessen; fuer Familie/Plateau noetig)
 
 # --- Randschale (02d) ---------------------------------------------------------
 # Dicke in Voxeln. Sie muss vom Netz aufloesbar bleiben: bei 33,4 um Voxeln und
