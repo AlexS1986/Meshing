@@ -317,3 +317,111 @@ Jobskripte (772) auf p0023647 -> Punkt-Jobs landen auf p0023647.
 Bilanz 17:40: 71_s075 fertig 36 / Queue 60; 71_s100 22 / 73 / 1 fehlt;
 83_s075 32 / 64; 83_s100 50 / 43 / 3 fehlen. 77/88: 384 H = 70 (Nachrechnung
 offen, Archiv-Block noch nicht gelaufen).
+- 18:30 **Entwarnung zu Ursache 1:** Die 17 FAILED-Jobs hatten ihre
+  00_results-Kopie bereits geschrieben (Syntaxfehler traf erst die letzten
+  Zeilen: config/parameters-Kopie, rm case_scratch) -> kein Datenverlust.
+  Meine zwei Reparaturversuche hatten den 00_results-Pfad falsch (echte
+  Struktur: `00_results/<ds>_les_r4/<sample>/yield_surface/<punkt>-std-tensor/
+  <punkt>/subvolume_x0_y0/yield_run_std_tensor.json`); 2 x 528 Fehlkopien
+  wieder entfernt (Ordner ohne `_les_r4` bzw. `leS-r4-sigy*-std-*`), Stand
+  531 JSONs = 529 Studie + H0. **Merke fuer den Archiv-/Nachrechnungsblock:
+  00_results-Punktordner heissen `<punkt>-std-tensor`, Ebene 2 ist der
+  Sample-Name (leS-r4-sigyXXX), Ebene 1 `<ds>_les_r4`.**
+- ys028 (71_s100): `RuntimeError: Failed just-in-time compilation of form`
+  (JIT-Cache-Wettlauf bei ~240 gleichzeitig startenden Jobs, 1 von ~700) ->
+  Resubmit. Eingereicht 18:30 auf p0023647: ys028, 83_s100 ys093-095 (Knoten-
+  LDAP-Fehler), H0-Fortsetzungen 71/83/88 (Job-IDs 54509679-81, 54509719-22).
+- Queue 18:30: 121 laufend p0023647, 116 laufend special00008, 7 wartend
+  p0023647. Offen fuer die komplette H = 0-Studie: Nachrechnung der 414
+  H = 70-Punkte (77/88 komplett, 71_s075 30) — Block morgen mit korrekten
+  Pfaden; Archiv nach `-H70` (Laufordner) und `00_results_H70_alpha1e-3/`.
+- Tagesblock korrigieren: Walltime-Stop-Erkennung ueber `[WALLTIME] Lauf
+  sauber unterbrochen` in .out (YIELD_WALLTIME_STOP steht nur in .err).
+- 19:00 **Komplette H = 0-Studie in der Queue.** H = 70-Punkte archiviert
+  (Laufordner -> `leS-r4-sigyXXX-H70/`, Auswertung -> `00_results_H70_alpha1e-3/`;
+  77: 192, 88: 192, 71_s075: 27), 411 Nachrechnungen (A-Config) auf p0023647
+  eingereicht (Doppel-Sperre: Jobname in Queue / JSON im Laufordner). Queue:
+  141 laufend + 392 wartend p0023647, 114 laufend special00008 (laufen aus,
+  nichts Neues dort). Erwartet: 77/88 je 1,5-3 h, gesamt 25-35k Kernstunden,
+  ueber Nacht weitgehend durch. Morgen: Tagescheck (Walltime-Erkennung
+  korrigiert), Fortsetzungen bei Bedarf.
+
+## Session 10.09.2026 — Tagescheck: 249 Nachrechnungen an Knotenfehler gestorben
+
+- 08:10: 510/768 H = 0 fertig (71: 87+96, 83: 96+96, 77: 81+13, 88: 15+26),
+  11 laufend, Queue leer. **249 Nachrechnungs-Jobs (77/88) FAILED Exit 127
+  nach 4-9 s** (18:07-18:51 am 09.09.): `FATAL: Couldn't determine user
+  account information: unknown userid 661424150` beim Apptainer-Start —
+  Knotenproblem (sssd/NSS), nicht unseres. **Schwarze-Loch-Knoten:**
+  mpsd0319 (85 Abbrueche), mpsd0401 (81), mpsd0415 (83), mpsd0138 (3, 14:49).
+  Kein Rechenstand verloren (0 Schritte). Resubmit der 249 mit
+  `sbatch --exclude=mpsd0138,mpsd0319,mpsd0401,mpsd0415` auf p0023647.
+  -> Support informieren (Knotenliste, Uhrzeiten, Fehlertext).
+  Lehre: Nach einer Einreichwelle nach ~15 min `sacct ... State,ExitCode`
+  pruefen — ein defekter Knoten frisst in 45 min eine ganze Welle.
+- special00008: alle 116 fertig (COMPLETED), Endverbrauch ~50k Kernstunden.
+  Nichts mehr dort.
+- H0-Tests: 77 fertig (10 %), 88 fertig (JSON vorhanden, Resubmit hat
+  uebersprungen), 71 laeuft (130 Schritte, 2e-3 bei 2,57 %), 83 laeuft (Fortsetzung).
+- Speicher: /work 4,9 von 40 TB (015: 3,1 TB, 017: 1,5 TB) — kein Problem.
+  $HOME 44 von 60 GB (74 %) — dort liegt der FEniCS-JIT-Cache; im Auge behalten.
+- **special00008 endgueltig: 49 991 Kernstunden** (sreport = sacct-Summe;
+  csreport 48,5k Stand Nacht) = 12,9 % von 386 496. Davon JM-25-83 komplett
+  (192 Punkte, 44,7k) + 17 x JM-25-71_s100 (5,3k). Keine Jobs mehr dort.
+- 09:00: 249 Nachrechnungen (77/88) mit --exclude der 4 Knoten auf p0023647
+  eingereicht; 48 laufend, 212 wartend. Kontrolle nach 15 min auf FAILED 127.
+- 08:40 Kontrolle der Resubmit-Welle: keine FAILED 127 mehr, 63 laufend /
+  196 wartend, Knoten sauber verteilt (mpsc/mpsd, je 2 Jobs). Knotenausschluss
+  wirkt. 511/768 fertig, alle H = 0. sig(2e-3)/sig(1e-3) = 1,068-1,092 ueber
+  alle 8 Kombinationen -> Fliessflaeche waechst nahezu selbstaehnlich
+  (interessant fuers Paper: Familie mit einem Skalierungsparameter).
+- 14:05 **632/768 fertig, alle H = 0, keine Warteschlange mehr** (138 laufend,
+  0 wartend, 83 COMPLETED in 3 h). dt_small/wallt/Traceback/stumm = 0.
+  Fertig: 71_s100, 77_s075, 83_s075, 83_s100 (je 96); 71_s075 93, 77_s100 90.
+  Rest: JM-25-88 (38 + 27 von je 96) — laeuft, ~2-3 h/Punkt -> heute Abend
+  vollstaendig. Danach: Auswertung/Fit der Fliessflaechen.
+
+## 10.09.2026, 21:18 — **STUDIE 017 KOMPLETT: 768/768 Punkte, alle H = 0**
+
+4 Proben x 2 sig_y x 96 Richtungen, `hard = 0`, Abbruch alpha_avg = 2e-3,
+Doku-Stufen 1e-3/5e-3/1e-2 mit Snapshot. Keine Abbrueche: dt_small 0,
+Traceback 0, stumm 0, Walltime-Stops 0 (Hauptstudie). 29 652 akzeptierte
+Schritte, 14 644 Verwerfungen. Queue leer.
+Verbrauch: special00008 49 991 Kernstunden (nur JM-25-83 + 17 Punkte 71_s100),
+Rest auf p0023647 (+ die 17 alten H = 70-Laeufe auf l0003507).
+H = 70-Vorlauf (411 Punkte, Abbruch 1e-3) archiviert unter
+`yield_surface_runs/*/leS-r4-sigyXXX-H70/` und `00_results_H70_alpha1e-3/`
+-> vollstaendiger H-Sensitivitaetsvergleich fuer 384 Richtungen moeglich.
+**H0-Plateau-Laeufe (ys_095, Ziel 10 %):** JM-25-77 fertig (9,95 %),
+JM-25-88 fertig, JM-25-71 Walltime-Stop bei 5,13 % (211 Schritte),
+JM-25-83 Walltime-Stop bei 5,75 % (68 Schritte) -> Resubmit noetig.
+**Naechster Schritt: Auswertung** — Fliessflaechen (1e-3 und 2e-3) je Probe
+und sig_y fitten, Selbstaehnlichkeit pruefen (sig2/sig1 = 1,068-1,092),
+H-Vergleich H=0 vs H=70 fuer 384 Richtungen, Aufloesungsbefund r2/r4
+dokumentieren.
+
+## 10.09.2026 — Plateau-Teilstudie vorbereitet (Entscheidung Nutzer)
+
+Umfang: **nur sigy075, 24 Richtungen je Probe** (jede 4. der 96), 4 Proben =
+96 Punkte, Fortsetzung aus den vorhandenen 2e-3-Snapshots bis **5 %
+Boxdehnung**. Grundlage (gemessen an den 4 H0-Laeufen): Tangente bei 5 %
+zwischen 2,0 % (83/88) und 4,7 % (77) von E0 -> Quasi-Plateau; sig(5 %) liegt
+15-20 % ueber sig(2e-3). Kosten je Punkt bis 5 %: 77 4,4 h, 88 11,7 h,
+83 39 h, 71 44 h -> alle 768 Punkte waeren ~600k Kernstunden (ausgeschlossen);
+96 Punkte ca. **75k**, durch Restart ab ~2,3 % effektiv ca. 55-60k.
+Ziel der Teilstudie: pruefen, ob sig(5 %)/sig(2e-3) richtungsunabhaengig ist
+(analog sig(2e-3)/sig(1e-3) = 1,068-1,092). Wenn ja, ist die Plateauflaeche
+die skalierte 2e-3-Flaeche und die Vollstudie eruebrigt sich.
+**Neues Skript `prepare_plateau_subset.py`** (Mac 017): sichert je Punkt
+`yield_run_*.json` + `restart_meta_*.json` als `*.alpha2e-3` und entfernt die
+yield_run-Datei (sonst ueberspringt der Job den Solverlauf); patcht die
+Punkt-Config auf `total_time = 0.05` (t == strain_scale, Solver endet dort
+regulaer und schreibt die Zusammenfassung — in elastoplastic.py geprueft:
+after_last_timestep-Hook laeuft), setzt die alpha-Schwelle auf 0,05
+(unerreichbar), damit alle Richtungen dieselbe Enddehnung erreichen, und
+haelt 1e-3/2e-3/5e-3/1e-2 als Doku-Stufen mit Snapshot. Backups:
+`config.json.vor_plateau`. Jobliste nach /tmp/plateau_jobs.txt.
+Achtung: JM-25-71/83 brauchen > 24 h -> Walltime-Stop + Fortsetzung per
+`resubmit_yield_surface_timeouts_CLUSTER.sh` (1-2 Ketten). Konto p0023647.
+Die 2e-3-Auswertung bleibt unveraendert in `00_results/` — der Plateau-Lauf
+ueberschreibt nur den Arbeitsordner-Stand (Backups s. o.).
