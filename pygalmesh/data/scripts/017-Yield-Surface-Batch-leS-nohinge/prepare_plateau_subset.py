@@ -15,12 +15,18 @@ Was das Skript tut, je ausgewaehltem Punkt:
      Arbeitsordner als `*.alpha2e-3` (die 2e-3-Auswertung liegt zusaetzlich
      unveraendert in 00_results/) und ENTFERNT die yield_run-Datei, damit
      job_yield_surface_point_CLUSTER.sh den Solverlauf nicht ueberspringt;
-  2. patcht die Punkt-Config: `total_time = <ziel-dehnung>` (t == strain_scale,
+  2. entfernt in `restart_meta_*.json` den Eintrag des blockierenden Kriteriums
+     aus `yield_states` -- elastoplastic.py laedt diese Liste beim Restart
+     (Z. 700) und bricht ab, sobald ALLE blockierenden Kriterien darin stehen
+     (Z. 959), OHNE die Schwelle neu zu pruefen. Ohne diesen Schritt endet der
+     Fortsetzungslauf nach einem Zeitschritt mit "[STOP] alle Abbruchkriterien
+     erreicht" (so passiert am 10.09.2026, 96 Jobs a 4-10 min);
+  3. patcht die Punkt-Config: `total_time = <ziel-dehnung>` (t == strain_scale,
      der Solver endet dort regulaer und schreibt die Zusammenfassung),
      alpha_avg_material-Schwelle unerreichbar (0.05), damit ALLE Punkte
      dieselbe Enddehnung erreichen; 1e-3/2e-3/5e-3/1e-2 bleiben Doku-Stufen
      mit Feld-Snapshot.
-  3. schreibt die Liste der einzureichenden Jobskripte nach --job-list.
+  4. schreibt die Liste der einzureichenden Jobskripte nach --job-list.
 
 Der vorhandene Rechenstand (elastoplastic_*.xdmf + restart_meta) bleibt
 liegen; elastoplastic.py setzt ihn fort (yield_restart.py). Bei JM-25-71/83
@@ -81,6 +87,16 @@ for ds in a.datasets.split(","):
                 bak = f + "." + a.tag
                 if not os.path.exists(bak): shutil.copy2(f, bak)
             for f in summ: os.remove(f)          # sonst ueberspringt der Job den Solverlauf
+            # Erreichte Kriterien zuruecksetzen: sonst stoppt der Restart sofort
+            for f in metas:
+                meta = json.load(open(f)); ystates = meta.get("yield_states", {})
+                removed = [k for k in list(ystates) if k == "alpha_avg_material"]
+                for k in removed: ystates.pop(k)
+                if removed:
+                    meta["yield_states"] = ystates
+                    meta.setdefault("plateau_note", []).append(
+                        f"yield_states {removed} entfernt (Plateau-Fortsetzung bis {a.target_strain:g})")
+                    json.dump(meta, open(f, "w"), indent=2)
             cfg = json.load(open(cfg_path)); ys = cfg["yield_surface"]
             bak = cfg_path + ".vor_plateau"
             if not os.path.exists(bak): shutil.copy2(cfg_path, bak)

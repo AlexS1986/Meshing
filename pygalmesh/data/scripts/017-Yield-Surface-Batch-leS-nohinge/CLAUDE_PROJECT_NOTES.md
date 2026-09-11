@@ -425,3 +425,31 @@ Achtung: JM-25-71/83 brauchen > 24 h -> Walltime-Stop + Fortsetzung per
 `resubmit_yield_surface_timeouts_CLUSTER.sh` (1-2 Ketten). Konto p0023647.
 Die 2e-3-Auswertung bleibt unveraendert in `00_results/` — der Plateau-Lauf
 ueberschreibt nur den Arbeitsordner-Stand (Backups s. o.).
+- 21:40 **Plateau-Teilstudie eingereicht:** 96 Jobs (4 Proben x sigy075 x
+  24 Richtungen, jede 4.) auf p0023647, `--exclude` der 4 defekten Knoten.
+  Kontrolle vor Einreichung: total_time 0.05, hard 0.0, alpha-Abbruch 0,05
+  (unerreichbar), Doku-Stufen 1e-3/2e-3/5e-3/1e-2, yield_run entfernt +
+  Backup `.alpha2e-3`, 96 Config-Backups `.vor_plateau`, 00_results unberuehrt
+  (770 JSONs) und zusaetzlich als `00_results_alpha2e-3_20260910.tar.gz` (37 MB)
+  gesichert. Ausgangsstand der Punkte: 1,3-3,8 % Dehnung.
+  Erwartung: 77/88 in einem Job durch; 71/83 brauchen 25-30 h ->
+  Walltime-Stop + `INCLUDE_FAILED=1 MAX_CHAIN=2 resubmit_yield_surface_timeouts_CLUSTER.sh`.
+  Auswertungsziel: sig(5 %)/sig(2e-3) je Richtung -> richtungsunabhaengig?
+
+## 11.09.2026 — Plateau-Fortsetzung stoppte sofort: `yield_states` im Restart
+
+Alle 96 Plateau-Jobs endeten nach 4-10 min mit `[STOP] alle Abbruchkriterien
+erreicht: alpha_avg_material`, obwohl die Schwelle auf 0,05 stand und
+`total_time_solver_horizon: 0.05` korrekt geladen wurde. **Ursache:**
+`elastoplastic.py` laedt beim Restart `yield_states` aus `restart_meta`
+(Z. 700) und prueft in Z. 959 nur `all(name in yield_states for name in
+blocking_criteria)` — die (neue) Schwelle wird nicht erneut ausgewertet.
+`alpha_avg_material` stand dort noch aus dem 2e-3-Lauf -> sofortiger Abbruch
+nach einem Zeitschritt. Kosten: ~96 x 7 min x 32 = ca. 360 Kernstunden.
+**Fix in `prepare_plateau_subset.py`:** vor dem Fortsetzen den Eintrag
+`alpha_avg_material` aus `yield_states` in allen `restart_meta_*.json`
+entfernen (Doku-Stufen bleiben stehen, damit keine doppelten Snapshots).
+Zustand der Punkte danach unveraendert nutzbar (je ein Schritt weiter,
+z. B. 2,690 % statt 2,680 %); Backups `.alpha2e-3` intakt.
+**Merke:** Kriterien-Schwellen eines laufenden/fortgesetzten Punktes zu
+aendern wirkt nur, wenn der zugehoerige `yield_states`-Eintrag entfernt wird.
