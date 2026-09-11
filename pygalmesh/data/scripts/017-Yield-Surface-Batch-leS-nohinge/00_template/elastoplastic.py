@@ -995,6 +995,18 @@ def after_timestep_restart(t, dt, iters):
 
 
 def after_last_timestep():
+    global stop_reason
+    # 11.09.2026: Endet der Lauf regulaer bei total_time (Plateau-Laeufe), gab es
+    # bisher weder Schluss-Snapshot noch aktualisierte restart_meta - die
+    # Feldausgabe/Meta wurden nur bei Ereignissen geschrieben. Eine spaetere
+    # Fortsetzung (z. B. auf 10 %) haette beim letzten Ereignis-Snapshot
+    # angesetzt. Deshalb hier den letzten gerechneten Schritt nachziehen.
+    if stop_reason is None:
+        stop_reason = "total_time_reached"
+        write_pending_state("final_state_at_total_time")
+        if rank == 0:
+            print(f"[STOP] total_time = {Tend_value:g} erreicht (t = {float(t.value):.6g}); "
+                  "Schluss-Snapshot und restart_meta geschrieben.", flush=True)
     if rank == 0:
         pp.print_graphs_plot(
             outputfile_graph_path,

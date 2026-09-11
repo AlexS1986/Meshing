@@ -453,3 +453,23 @@ Zustand der Punkte danach unveraendert nutzbar (je ein Schritt weiter,
 z. B. 2,690 % statt 2,680 %); Backups `.alpha2e-3` intakt.
 **Merke:** Kriterien-Schwellen eines laufenden/fortgesetzten Punktes zu
 aendern wirkt nur, wenn der zugehoerige `yield_states`-Eintrag entfernt wird.
+- 11.09. 12:30 **Plateau-Fortsetzung laeuft korrekt** (nach yield_states-Fix):
+  Laeufe enden regulaer bei t + dt > Tend, letzter Eintrag 4,91-5,00 %.
+  Zwei Auswertungsfallen: (1) `restart_meta` wird beim regulaeren Ende NICHT
+  aktualisiert (nur bei Ereignissen) -> Historie aus `yield_averages_*.json`
+  (Liste) lesen; Feld-Snapshot bei 5 % fehlt -> spaetere Fortsetzung Richtung
+  10 % wuerde beim letzten Ereignis-Snapshot (~2,7 %) ansetzen. TODO
+  elastoplastic.py: Schluss-Snapshot + Meta bei Tend. (2) Schwelle "fertig"
+  = letzter Eintrag >= 4,9 %, sig linear auf 5 % extrapoliert.
+  **Erstes Ergebnis (33/96 Punkte):** sig(5 %)/sig(2e-3) Median 1,082,
+  Spanne 1,045-1,130, Streuung +-2,0 %. Tangente bei 5 %: 0,9-2,2 % von E0
+  (Plateau bestaetigt). JM-25-71 1,072 (3 Pkt), JM-25-88 1,073 (10, Spanne
+  1,063-1,085), JM-25-77 1,088 (20, Spanne 1,045-1,130). Hoechste Verhaelt-
+  nisse bei 77 in Richtungen mit grosser Spur (ys_016, 032, 080, 040:
+  nahezu volumetrisch, Zug wie Druck), niedrigste bei deviatorischen
+  (ys_092, 004) -> beim poroesesten Schaum milde Triaxialitaetsabhaengigkeit
+  (Plateauflaeche entlang der hydrostatischen Achse ~13 % vs ~5 % im Schub
+  ueber der 2e-3-Flaeche), bei den dichteren Schaeumen +-1 %.
+  Laufzeiten bis 5 %: 77 0,75-2,5 h, 88 ~2,3 h, 71 ~2,2 h (Fortsetzung ab
+  ~2,3 %) — viel billiger als geschaetzt, weil die Steifigkeit im Plateau
+  grosse Schritte (dt 1e-3) erlaubt. 83 noch keiner fertig.
