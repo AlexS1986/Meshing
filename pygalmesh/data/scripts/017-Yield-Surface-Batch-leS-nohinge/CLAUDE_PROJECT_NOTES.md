@@ -473,3 +473,99 @@ aendern wirkt nur, wenn der zugehoerige `yield_states`-Eintrag entfernt wird.
   Laufzeiten bis 5 %: 77 0,75-2,5 h, 88 ~2,3 h, 71 ~2,2 h (Fortsetzung ab
   ~2,3 %) — viel billiger als geschaetzt, weil die Steifigkeit im Plateau
   grosse Schritte (dt 1e-3) erlaubt. 83 noch keiner fertig.
+- 11.09. 13:00 **Fix umgesetzt und auf Scratch (per mv):** `00_template/
+  elastoplastic.py` schreibt bei regulaerem Ende an total_time den letzten
+  Schritt als Snapshot + restart_meta (`write_pending_state(
+  "final_state_at_total_time")`, stop_reason `total_time_reached`, Logzeile
+  `[STOP] total_time ... erreicht`). Gilt fuer alle Jobs, die ab jetzt
+  starten; die laufenden 62 Plateau-Jobs haben noch die alte Kopie (ihre
+  Historie liegt vollstaendig in yield_averages, nur der 5 %-Feldstand fehlt).
+
+## 12.09.2026 — Plateau-Teilstudie: Ergebnis und zwei Auswertungsfallen
+
+**Ergebnis (88 von 96 Punkten, sigy075, 5 % Dehnung, H = 0):**
+sig(5 %)/sig(2e-3) Median **1,093**, Spanne 1,045-1,174. Kein konstanter
+Faktor, sondern **klar von der Triaxialitaet abhaengig, und zwar vom BETRAG**
+(U-Form: an beiden hydrostatischen Enden hoch, im Schub niedrig):
+  |tr|/(|tr|+dev)   0,0-0,1: 1,081 (n=4) | 0,1-0,2: 1,073 (12) |
+  0,2-0,3: 1,085 (19) | 0,3-0,45: 1,089 (15) | > 0,45: **1,133** (38)
+Korrelation r = **+0,851** (signiert nur +0,21 -> der Betrag ist der
+richtige Korrelat). Je Probe: 71 +0,914, 77 +0,803, 83 +0,951, 88 +0,865;
+Mediane 1,091-1,100 (proben- und dichteunabhaengig!).
+Deutung: unter hydrostatischer Last (Zug wie Druck) werden nach dem Erst-
+fliessen fortlaufend weitere Stege rekrutiert -> weitere Verfestigung;
+im Schub saettigt das frueh. Tangente bei 5 %: 0,9-2,2 % von E0 (Plateau).
+**Fuers Paper:** Plateauflaeche = 2e-3-Flaeche, skaliert mit einem Faktor
+f(|Triaxialitaet|) von 1,07 (Schub) bis 1,13 (hydrostatisch) - ein
+zusaetzlicher Parameter, nicht 768 neue Rechnungen. Die Vollstudie bis zum
+Plateau eruebrigt sich damit.
+
+**Auswertungsfallen (beide haben mich heute in die Irre gefuehrt):**
+1. `yield_averages_*.json` (und `restart_meta`) werden nur bei EREIGNISSEN
+   geschrieben. Bei hart abgebrochenen Jobs steht dort ein alter Stand
+   (z. B. 1,50 %), waehrend das .out-Log 3,82 % zeigt. Fortschritt immer am
+   Log pruefen (`Computing solution at time =`), nicht an der Averages-Datei.
+2. `[STOP] alle Abbruchkriterien erreicht` kann aus `yield_states` im
+   Restart stammen (s. 11.09.), nicht aus der aktuellen Schwelle.
+**Status:** 5 Punkte wurden nach 23,5 h hart von SLURM gekillt (Exit 15 statt
+kontrolliertem Stop 3 — Walltime-Reserve zu klein bei 7-min-Schritten, 3
+WALLTIME-Zeilen im Log). Alle 7 unterbrochenen Punkte (71: ys_024/036/072/088,
+83: ys_016/072, 88: ys_068) standen bei 2,8-4,8 % und sind 12.09. 11:20 neu
+eingereicht (Jobs 54533209-15), brauchen 1-3 h. **Echt gescheitert: nur
+JM-25-88 ys_040** (`dt_below_minimum` bei 4,49 %) -> als Einzelfall
+dokumentieren oder mit anderem Resume-dt wiederholen.
+**TODO:** Walltime-Reserve in elastoplastic.py erhoehen (Faktor auf die
+gemessene Schrittzeit), damit der kontrollierte Stop auch bei langen
+Schritten greift.
+- 12.09. 11:45 **Plateau-Teilstudie sigy100 eingereicht** (96 Punkte, 24 Ri.
+  je Probe, p0023647, Knotenausschluss). Zweck: pruefen, ob f(|Triaxialitaet|)
+  sigma_y-unabhaengig ist — bei sigy100 wird alpha 2e-3 spaeter erreicht,
+  5 % liegt also relativ naeher am Erstfliessen, der Faktor koennte kleiner
+  ausfallen. Dann waere die saubere Formulierung f(eps/eps_yield) statt
+  f(eps absolut). Kosten sigy075 gemessen: **22 723 Kernstunden** fuer 96
+  Punkte (Mittel je Punkt: 77 62 h*Kerne, 88 150, 83 301, 71 345;
+  inkl. ~3 700 fuer 5 hart gekillte Jobs) -> sigy100 erwartet 15-20k.
+  Diese Jobs haben den neuen Template-Stand -> Schluss-Snapshot bei 5 %
+  vorhanden (bei sigy075 nicht).
+  Nachtrag: Die 7 fortgesetzten sigy075-Punkte setzten bei 3,82-4,87 % auf
+  (nur 88/ys_068 bei 2,27 %) — der harte Kill kostete also kaum Arbeit,
+  Walltime-Reserve-Fix damit unkritisch.
+
+## 13.09.2026 — Plateau-Teilstudie ABGESCHLOSSEN: 191/192 Punkte
+
+Beide sig_y fertig (24 Richtungen je Probe, 5 % Dehnung, H = 0), keine
+Abbrueche in der letzten Runde (103 COMPLETED, 0 Fehler).
+**Kernergebnis: f = sig(5 %)/sig(2e-3) haengt vom BETRAG der Triaxialitaet ab
+und ist sig_y-UNABHAENGIG** (Abweichung < 0,5 %):
+  |tr|/(|tr|+dev)      sigy075        sigy100
+  0,0-0,1 (Schub)      1,081 (4)      1,081 (4)
+  0,1-0,2              1,073 (12)     1,076 (12)
+  0,2-0,3              1,085 (20)     1,088 (20)
+  0,3-0,45             1,091 (16)     1,092 (16)
+  > 0,45 (hydrostat.)  1,135 (43)     1,140 (44)
+  gesamt: 1,098 +-2,7 % (n=95) bzw. 1,102 +-2,8 % (n=96)
+Korrelation je Probe/sig_y: r = +0,76 bis +0,95 (77 am schwaechsten,
+83 am staerksten). Proben-Mediane 1,087-1,110 — dichteunabhaengig.
+**Aussage fuers Paper:** Die Plateauflaeche (5 % Dehnung, Tangente < 2 % E0)
+ist die 2e-3-Fliessflaeche, skaliert mit f(|Triaxialitaet|) ~ 1,07 (Schub)
+bis 1,14 (hydrostatisch) — unabhaengig von Dichte und Grundfliessspannung.
+Zusatzbefund: signierte Auswertung zeigte Zug 1,134 vs Druck 1,108 ->
+leichte Zug-Druck-Asymmetrie, mit beiden sig_y jetzt belastbar pruefbar.
+Kosten gesamt: sigy075 22 723 + sigy100 ca. 15-20k Kernstunden (statt
+~600k fuer alle 768 Punkte bis 5 %).
+**Offen: nur JM-25-88 sigy075 ys_040** (`dt_below_minimum` bei 4,49 %) —
+als Einzelfall dokumentieren (Historie bis 4,49 % vorhanden).
+**Naechster Schritt: Auswertung/Fit der Fliessflaechen** (1e-3, 2e-3,
+Plateau), H-Vergleich H=0/H=70 (384 Richtungen), Aufloesung r2/r4.
+- 14.09. Prompt fuer den Auswertungs-Chat geschrieben
+  (`PROMPT_Auswertung_und_Datenpublikation.md`, im Studienordner): Kontext,
+  Pfade, Datenstruktur, gesicherte Befunde, Fallen; Aufgabe A = Auswertung
+  (Datensatz mit vollem Spannungszustand, Fits Deshpande-Fleck/Ellipsoid/Lode,
+  Skalierungen, Plateau-Faktor, Numerikteil, Abbildungen), Aufgabe B =
+  **Datenpublikation nach FAIR** (Zenodo/TUdatalib: Netze r4 (ggf. r2),
+  Configs, Job- und Solverskripte, alex-Version, alle Ergebnis-JSONs,
+  Auswertungsskripte, Abbildungen; Feldausgaben ~1,5 TB bleiben draussen;
+  README + Datenwoerterbuch, LICENSE CC-BY-4.0/MIT, CITATION.cff, DataCite,
+  Provenienz mit Commit-/Container-Hashes und Job-IDs, SHA256SUMS,
+  JSON-Schema + flache CSV/Parquet, Packaging- und Pruefskript mit Sollzahlen
+  768 + 191 + 411).
