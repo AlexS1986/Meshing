@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # erzeugt von setup_compression_jobs.py - 1D-Druckversuch Studie 017
 # Aufruf auf dem Login-Node nach dem Sync nach $HPC_SCRATCH:
-#   DRY_RUN=1 .../compression_jobs/submit_compression_CLUSTER.sh   # nur anzeigen
-#   .../compression_jobs/submit_compression_CLUSTER.sh
+#   DRY_RUN=1 .../compression_jobs/submit_compression_druckx_CLUSTER.sh   # nur anzeigen
+#   .../compression_jobs/submit_compression_druckx_CLUSTER.sh
 set -euo pipefail
 P="$HPC_SCRATCH/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge"
 DRY="${DRY_RUN:-0}"

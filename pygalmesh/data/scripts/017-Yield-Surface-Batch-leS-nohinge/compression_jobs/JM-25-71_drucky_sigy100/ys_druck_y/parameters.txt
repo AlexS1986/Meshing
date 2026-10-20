@@ -1,0 +1,36 @@
+sample_id = ys_druck_y
+sample_index = not_set
+sample_count = not_set
+sample_method = uniaxial_compression_test
+sample_radius = 0.25
+sample_direction_unit = [-0.0, 1.0, -0.0]
+eps_mac_eigenvalues = [0.0, -0.25, 0.0]
+materials = ['std']
+loading_directions = ['y']
+max_mean_strain = 0.25
+time_step = 0.0001
+total_time = 0.1
+dt_min = 1e-11
+strain_scale_start = 1e-06
+strain_scale_rate = 1.0
+yielded_volume_fraction = 0.02
+alpha_yield_tolerance = 1e-05
+quadrature_degree = 1
+
+field_output.enabled = True
+field_output.min_minutes_between_writes = 120.0
+field_output.every_n_steps = 0
+field_output.strain_scale_interval = 0.01
+field_output.write_first_step = True
+field_output.write_on_yield_event = True
+field_output.fields = ['u', 'sigma', 'sig_vm', 'alpha']
+walltime.stop_before_deadline = True
+walltime.safety_margin_minutes = 15.0
+walltime.reserve_factor = 2.0
+walltime.exit_code = 3
+walltime.limit_minutes = aus SLURM
+
+material.std.E = 70000.0
+material.std.nu = 0.35
+material.std.sig_y = 100.0
+material.std.hard = 0.0

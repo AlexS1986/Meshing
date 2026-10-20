@@ -637,3 +637,12 @@ Aenderungen (Sicherungen `*.vor_druck_20261020`, volle Schale = Verhalten wie bi
   (t, strain_scale, eps_axial, sig_xx, sig_yy, sig_zz, alpha_avg, eps_p_eq_macro, Newton-Iter.) -> `evaluate_compression_run.py` liest sie.
   Die laufenden Glieder 1 (alte Template-Kopie) schreiben sie nicht; ihre Historie kommt mit dem JSON am Walltime-Stopp (~21.10. 15:40),
   Glieder 2/3 kopieren das neue Template beim Restart. Bewusst NICHT abgebrochen (Restart-Sprung +1,3 % laege sonst im Rp0,2-Bereich).
+- 20.10. 18:46: Commit 41fa115 (Template mit _averages.txt, Auswerteskript, Transferregel) per git pull + Sync im Scratch. Glieder 1 laufen
+  weiter mit alter Kopie; Stand 18:44: sigy075 0,17 %, sigy100 0,31 %, sigy180 0,66 % Stauchung. Naechster Schritt: 21.10. ab ~15:40
+  JSON der Glieder 1 auswerten (evaluate_compression_run.py), danach Live-Datei der Glieder 2/3.
+- **20.10. 18:55 — zweite Querrichtung y angelegt** (Nutzer: Lastrichtung des Versuchs im CT-System unbekannt, x und y sind beide 20-mm-Kanten):
+  `python3 setup_compression_jobs.py --dataset JM-25-71 --sig-y 75 180 100 --axis y` -> eigenes Netz `JM-25-71_les_r4_drucky`
+  (Platten y_min/y_max 9 Voxel = 0,6 mm, x/z frei), Configs `config-JM-25-71-r4-drucky-sigy*.json`, Jobs `compression_jobs/JM-25-71_drucky_sigy*/ys_druck_y/`,
+  Submit-Skript jetzt je Achse: `submit_compression_druckx_CLUSTER.sh` (umbenannt, bereits eingereicht) und `submit_compression_drucky_CLUSTER.sh`.
+  Querschnitt y: 19,37 x 17,6 ~ 341 mm^2 (steht im Job-Log). Erwartung: x/y-Isotropie der KUBC-Flaeche (0,98-1,01) auch im freien Druckversuch;
+  Abweichung waere Randeffekt/Probenstreuung der Randzellen.

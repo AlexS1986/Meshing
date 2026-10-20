@@ -17,7 +17,7 @@ Erzeugt im Projektordner:
   config-<ds>-r4-druck<achse>-sigy<XXX>.json           je sig_y
   compression_jobs/<ds>_druck<achse>_sigy<XXX>/ys_druck_<achse>/
       config.json, parameters.txt, job_ys_druck_<achse>_CLUSTER.sh
-  compression_jobs/submit_compression_CLUSTER.sh      Prep + Ketten einreichen
+  compression_jobs/submit_compression_druck<achse>_CLUSTER.sh   Prep + Ketten einreichen (je Achse eine Datei)
 
 Aufruf (Mac oder Login-Node, im Projektordner):
   python3 setup_compression_jobs.py --dataset JM-25-71 --sig-y 75 180
@@ -186,7 +186,7 @@ def main():
         print(f"{combo}: {cfg_name}, {rel}/  (total_time {total_time:g} -> |eps| {a.target_strain:g})")
 
     submit += ['echo "Status: squeue -u $USER   Logs: $P/compression_jobs/*/*/"']
-    sp = jobs_root / "submit_compression_CLUSTER.sh"
+    sp = jobs_root / f"submit_compression_{tag}_CLUSTER.sh"
     sp.write_text("\n".join(submit) + "\n")
     sp.chmod(0o755)
     print(f"Netz-Config der Vorbereitung: {mesh_cfg_name} (dataset.id {new_id})")
