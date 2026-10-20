@@ -64,6 +64,11 @@ script_path = os.path.dirname(__file__)
 script_name = os.path.splitext(os.path.basename(__file__))[0]
 logfile_path = alex.os.logfile_full_path(script_path, f"{script_name}_{material_set}_{loading_direction}")
 outputfile_graph_path = alex.os.outputfile_graph_full_path(script_path, f"{script_name}_{material_set}_{loading_direction}")
+# 20.10.2026: laufend mitgeschriebene Volumenmittel (die Reaktionskraft in *_graphs.txt
+# ist die Eigenspannung der zwangsverschobenen Randschale/Platte, nicht die vom Schaum
+# uebertragene Kraft). Spalten: t  strain_scale  eps_axial  sig_xx sig_yy sig_zz  (Volumenmittel
+# reduziertes Volumen, MPa)  alpha_avg_material  eps_p_eq_macroscopic  newton_iters
+averages_graph_path = os.path.join(script_path, f"{script_name}_{material_set}_{loading_direction}_averages.txt")
 outputfile_xdmf_path = alex.os.outputfile_xdmf_full_path(script_path, f"{script_name}_{material_set}_{loading_direction}")
 restart_base_name = f"{script_name}_{material_set}_{loading_direction}"
 
@@ -756,9 +761,12 @@ def before_first_time_step():
         if not RESUME:
             sol.prepare_newton_logfile(logfile_path)
             pp.prepare_graphs_output_file(outputfile_graph_path)
+            with open(averages_graph_path, "w") as _handle:
+                _handle.write("# t strain_scale eps_axial sig_xx sig_yy sig_zz alpha_avg_material eps_p_eq_macroscopic newton_iters"
+                              "  (Volumenmittel ueber das reduzierte Volumen, MPa; eps_axial = eps_mac der Lastachse)\n")
         else:
             # Bestehende Log-/Graphdateien fortschreiben, nicht verwerfen.
-            for _path in (logfile_path, outputfile_graph_path):
+            for _path in (logfile_path, outputfile_graph_path, averages_graph_path):
                 try:
                     with open(_path, "a") as _handle:
                         _handle.write(f"# restart {restart_count}: fortgesetzt, "
@@ -924,7 +932,10 @@ def after_timestep_success(t, dt, iters):
         "dt": float(dt.value if hasattr(dt, "value") else dt),
         "iterations": int(iters),
         "reaction_force": [float(Rx), float(Ry), float(Rz)],
-        "sigma_nominal_reaction": float([Rx, Ry, Rz][axis]) / cross_section_area,
+        # Nennspannung des 1D-Versuchs = Volumenmittel sigma_avg[axis][axis] (bei freien Seitenflaechen und
+        # lastfreien Poren exakt F/A). Die Reaktionskraft auf der Plattenaussenflaeche ist dafuer NICHT brauchbar
+        # (Eigenspannung der zwangsverschobenen Platte), deshalb hier bewusst nur das Volumenmittel.
+        "sigma_nominal_volume_avg": float(sigma_avg[axis, axis]),
         "eps_axial_platen": float(eps_diag[axis]),
         "strain_scale": float(scale),
         "eps_mac_eigenvalues_current": eps_diag.tolist(),
@@ -944,6 +955,12 @@ def after_timestep_success(t, dt, iters):
     if rank == 0:
         sol.write_to_newton_logfile(logfile_path, t, dt, iters)
         pp.write_to_graphs_output_file(outputfile_graph_path, t, Rx, Ry, Rz)
+        try:
+            pp.write_to_graphs_output_file(averages_graph_path, state["t"], float(scale), float(eps_diag[axis]),
+                                           sigma_avg[0, 0], sigma_avg[1, 1], sigma_avg[2, 2],
+                                           float(alpha_avg), float(eps_p_eq_macroscopic), float(iters))
+        except OSError:
+            pass
         averaged_history.append(state)
 
     # Buchhaltung fuer Ausduennung und Deadline-Wache.

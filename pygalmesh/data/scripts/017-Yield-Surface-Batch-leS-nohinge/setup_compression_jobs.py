@@ -81,7 +81,7 @@ def main():
         'P="$HPC_SCRATCH/pygalmesh/data/scripts/%s"' % project_dir.name,
         'DRY="${DRY_RUN:-0}"',
         'ACC="${JOB_ACCOUNT:-%s}"' % a.job_account,
-        'sb() { if [[ "$DRY" == 1 ]]; then echo "[dry-run] sbatch $*"; echo 000000; else sbatch --parsable "$@" | sed "s/;.*//" | grep -E "^[0-9]+$" | tail -n 1; fi; }',
+        'sb() { if [[ "$DRY" == 1 ]]; then echo "[dry-run] sbatch $*" >&2; echo 000000; else sbatch --parsable "$@" | sed "s/;.*//" | grep -E "^[0-9]+$" | tail -n 1; fi; }',
         "",
     ]
     # --- Netzvorbereitung (einmal je Datensatz/Achse) -------------------------

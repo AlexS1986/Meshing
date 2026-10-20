@@ -22,6 +22,8 @@ in einer `.md`-Datei dokumentiert — hier bzw. in `CLAUDE_PROJECT_NOTES.md`.
 |---|---|
 | dieses Projekt (Host, Mac) | `~/Work/Hypo/Hypo/Simulation/Meshing/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge/` |
 | dieses Projekt (Cluster) | `$HPC_SCRATCH/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge/` |
+| **Cluster-Login (Lichtenberg)** | `ssh lcluster13.hrz.tu-darmstadt.de` (User `as12vapa`, Key in `~/.ssh/config`; Ersatz `lcluster20.hrz.tu-darmstadt.de`). Interner Name im Prompt: `logc0001`. **Nie einen Hostnamen raten.** Direkt in den Scratch: `scp <datei> lcluster13.hrz.tu-darmstadt.de:/work/scratch/as12vapa/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge/` |
+| Container auf dem Cluster | `apptainer exec --bind /work/scratch/as12vapa $HOME/dolfinx_alex/alex-dolfinx.sif python3 …` — ohne `--bind` ist der Scratch im Container unsichtbar (nur Home + cwd) |
 | dieses Projekt (Container) | `/data/scripts/017-Yield-Surface-Batch-leS-nohinge/` |
 | `.leS`-Quelldaten | `/data/resources/A01_segmented/` (Cluster: `$HPC_SCRATCH/pygalmesh/data/resources/A01_segmented/`) |
 | Paper-/Publikationsordner | `~/Work/Hypo/Hypo/Publications/Folgepaper Homogenisierung von elasto-plastischen Eigenschaften/` |
@@ -43,6 +45,33 @@ unaufgelöstes `$HPC_SCRATCH`; die Cluster-Skripte rechnen das per
 - `CLAUDE_PROJECT_NOTES.md` — Session-Protokoll, inklusive der Vorgeschichte aus 010.
 
 ---
+
+
+## 0. Transfer Mac ↔ Cluster — IMMER über Git (Nutzerregel 20.10.2026, kein scp)
+
+Repo `AlexS1986/Meshing` (Wurzel Mac `~/Work/Hypo/Hypo/Simulation/Meshing`, Cluster `$HOME/meshing/Meshing`, Branch `main`).
+Jede Änderung in diesem Ordner geht den Weg **Mac commit+push → Cluster pull → Sync nach Scratch**. Agenten geben genau diese drei Blöcke aus:
+
+```bash
+# --- Mac --------------------------------------------------------------------
+cd ~/Work/Hypo/Hypo/Simulation/Meshing/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge
+git status --short .
+git add <geänderte Dateien>            # Sicherungen *.vor_* nicht aufnehmen
+git commit -m "017: <was und warum>"
+git push
+
+# --- Cluster (ssh lcluster13.hrz.tu-darmstadt.de) ---------------------------
+cd "$HOME/meshing/Meshing" && git pull && git log --oneline -1
+SKIP_GENERATE=1 "$HOME/meshing/Meshing/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge/batch_create_folders_CLUSTER.sh" 2>&1 | tail -n 2
+#   (rsync -av --update nach $HPC_SCRATCH/pygalmesh; "rsync error code 23" = harmloser Symlink in 009)
+
+# --- Kontrolle --------------------------------------------------------------
+cmp "$HOME/meshing/Meshing/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge/<datei>" \
+    "$HPC_SCRATCH/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge/<datei>" && echo "Scratch aktuell"
+```
+Fallen: (a) `index.lock` auf dem Mac → `pgrep -fl git`, dann `rm .git/index.lock`; (b) `git pull` bricht ab, wenn auf dem Cluster
+ungetrackte Dateien überschrieben würden → beiseitelegen (`mv … $HOME/cfg_bak_<datum>/`), dann erneut ziehen;
+(c) `rsync --update` kopiert nur neuere Dateien — eine auf dem Scratch von Hand geänderte Datei wird nicht überschrieben.
 
 ## 2. Konventionen
 

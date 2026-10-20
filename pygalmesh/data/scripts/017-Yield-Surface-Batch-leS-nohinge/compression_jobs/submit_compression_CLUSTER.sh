@@ -7,7 +7,7 @@ set -euo pipefail
 P="$HPC_SCRATCH/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge"
 DRY="${DRY_RUN:-0}"
 ACC="${JOB_ACCOUNT:-p0023647}"
-sb() { if [[ "$DRY" == 1 ]]; then echo "[dry-run] sbatch $*"; echo 000000; else sbatch --parsable "$@" | sed "s/;.*//" | grep -E "^[0-9]+$" | tail -n 1; fi; }
+sb() { if [[ "$DRY" == 1 ]]; then echo "[dry-run] sbatch $*" >&2; echo 000000; else sbatch --parsable "$@" | sed "s/;.*//" | grep -E "^[0-9]+$" | tail -n 1; fi; }
 
 # 1) Netz mit Schale nur in x (JM-25-71_les_r4_druckx); uebersprungen, wenn dlfx_mesh.xdmf schon da ist
 SUBVOL="/data/scripts/017-Yield-Surface-Batch-leS-nohinge/JM-25-71_les_r4_druckx_segmented/JM-25-71_les_r4_druckx_segmented_3D"; SUBVOL="${SUBVOL/#\/data/$HPC_SCRATCH/pygalmesh/data}"

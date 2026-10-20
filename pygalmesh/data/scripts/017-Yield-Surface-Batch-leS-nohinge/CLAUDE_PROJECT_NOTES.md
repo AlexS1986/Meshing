@@ -607,3 +607,33 @@ Aenderungen (Sicherungen `*.vor_druck_20261020`, volle Schale = Verhalten wie bi
 - neu `evaluate_compression_run.py <…>/yield_averages_std_x.json [--plot kurve.png]`: Nennspannung (Reaktionskraft)
   und Volumenmittel gegen Plattenstauchung, E (10-40 % von sigma_max, wie Sven), Rp0,2, sigma bei 0,25…2,5 %,
   Kontrolle Querspannungen/Axial und Reaktion/Volumenmittel; CSV je Lauf. Mit synthetischer Kurve getestet.
+- **20.10.2026 15:20 eingereicht (p0023647):** Prep 55498713; Ketten sigy075 55498714-716, sigy180 55498717-719,
+  sigy100 55498720-722 (je afterok:Prep, Glieder 2/3 zusaetzlich afternotok:Vorgaenger). Commit a90969d (Meshing-Repo).
+- Befund beim `git pull` auf dem Login-Node: die dort liegenden, ungetrackten `config-JM-25-71-r4-sigy{075,100}.json`
+  waren ein **Altstand** (hard = 70, alpha-Schwelle 0,001, ohne Doku-Stufen = Stand vor patch_yield_criteria 09.09.);
+  die Repo-Fassung (aus dem Publikationsordner = Scratch-Produktion) hat hard = 0, Schwelle 0,002, history "Variante A".
+  Altstand liegt in `$HOME/cfg_bak_20261020/` (loeschbar). Die Druck-Configs sind aus der Produktionsfassung abgeleitet.
+- Dry-Run-Ausgabe von submit_compression_CLUSTER.sh war verschachtelt (Echo der sbatch-Zeile landete in der Job-ID);
+  behoben (Echo nach stderr), wirkt sich auf den echten Lauf nicht aus. Beim naechsten Commit mitnehmen.
+- **20.10. 18:30, Kontrolle der laufenden Druck-Jobs (55498714/717/720 seit 15:40 auf mpsd0010/12/30):** dirichlet_faces ['x_min','x_max'],
+  Schalenbreiten y/z = 0, Querschnitt 342,68 mm^2 (L_x 19,372 mm), Netz 3 900 334 Tets / 1 192 196 Knoten.
+  **Relative Dichte des Druckmodells: reduced_volume_material 1203,64 mm^3 / Innenvolumen (19,372 - 0,8016) x 342,68 = 6363,6 mm^3 = 0,1891**
+  (KUBC-Produktionsnetz 0,1768). Grund: die aeusseren 9/6 Voxellagen in y/z sind jetzt echter Schaum statt Al-Schale, und JM-25-71 hat
+  dichte Raender (Voxelprofil: dichte Raender, duenne Mitte). +7 % Dichte ~ +12 % Festigkeit (rho^1,75) - beim Vergleich 1D gegen KUBC
+  herausrechnen bzw. nennen; gegenueber Sven ist 0,189 die passendere Probendichte (Voxel 0,194/0,202).
+  Lauf 075 bei t = 6,5e-3 (eps 0,16 %) nach 2 h 50, dt 2,5e-4 mit einzelnen Verwerfungen (normal, Produktion 28,8 % Verwerfungen).
+  Apptainer-Warnung "Error changing the container working directory ... /home/as12vapa/meshing/Meshing" ist harmlos (sbatch-Startordner
+  nicht gebunden, run_container setzt --chdir auf den Zielordner; Solver laeuft).
+- Login-Hosts Lichtenberg (aus ~/.ssh/config des Nutzers, 20.10.2026): `lcluster13.hrz.tu-darmstadt.de` (Key id_ed25519_tu_darmstadt),
+  `lcluster20.hrz.tu-darmstadt.de`; User as12vapa. scp direkt in den Scratch moeglich:
+  `scp <datei> lcluster13.hrz.tu-darmstadt.de:/work/scratch/as12vapa/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge/`
+- `evaluate_compression_run.py` liest seit 20.10. 18:40 auch die laufend geschriebene `elastoplastic_std_x_graphs.txt`
+  (`--area 342.68`, eps = 0,25 t); `yield_averages_std_x.json` entsteht erst am Laufende. Im Container `--bind /work/scratch/as12vapa` setzen.
+- **20.10. 18:45 — Falle Reaktionskraft:** `elastoplastic_*_graphs.txt` (R_x, R_y, R_z) ist die Eigenspannung der zwangsverschobenen
+  Platte/Schale (alle Knoten im Schalenband haben u = eps.x, die Aussenflaeche traegt sigma_xx der einachsig gedehnten Vollplatte:
+  "E" 68 GPa, 109 MPa bei 0,16 %). Fuer die Nennspannung des 1D-Versuchs gilt nur das Volumenmittel sigma_avg[a][a] ueber das
+  reduzierte Volumen (= F/A bei freien Seitenflaechen und lastfreien Poren). `sigma_nominal_reaction` aus der Historie entfernt,
+  ersetzt durch `sigma_nominal_volume_avg`. Neu: `<script>_<mat>_<dir>_averages.txt` wird je Schritt geschrieben
+  (t, strain_scale, eps_axial, sig_xx, sig_yy, sig_zz, alpha_avg, eps_p_eq_macro, Newton-Iter.) -> `evaluate_compression_run.py` liest sie.
+  Die laufenden Glieder 1 (alte Template-Kopie) schreiben sie nicht; ihre Historie kommt mit dem JSON am Walltime-Stopp (~21.10. 15:40),
+  Glieder 2/3 kopieren das neue Template beim Restart. Bewusst NICHT abgebrochen (Restart-Sprung +1,3 % laege sonst im Rp0,2-Bereich).
