@@ -569,3 +569,41 @@ Plateau), H-Vergleich H=0/H=70 (384 Richtungen), Aufloesung r2/r4.
   Provenienz mit Commit-/Container-Hashes und Job-IDs, SHA256SUMS,
   JSON-Schema + flache CSV/Parquet, Packaging- und Pruefskript mit Sollzahlen
   768 + 191 + 411).
+
+## 20.10.2026 — 1D-Druckversuch (verschiebungsgesteuert, freie Seitenflaechen) im 017-Modell
+
+Anlass: Abgleich mit A01 (FFT, Julian): Plateau 4,5 MPa bei sig_y = 75 gegen unsere 6,4 MPa
+(sig_y^perp aus der Fliessflaeche, KUBC auf geschlossener Schale). Hauptverdacht Randbedingung
+-> den Druckversuch an JM-25-71 direkt nachrechnen. Dokumentation der Entscheidung:
+Publikationsordner `decisions_log.md` Nachtrag 20.10. (28), Projekt-Doc `claude/abgleich_a01_fft_vs_fem_017.md`.
+
+Aenderungen (Sicherungen `*.vor_druck_20261020`, volle Schale = Verhalten wie bisher):
+- `make_mesh_dlfx_compatible_cluster.py`: `--anchor-faces` / `--config`. Fragment- und Scharnierfilter
+  verankern nur noch an Schalenflaechen mit Dicke > 0 (aus `02d…boundary_seal.thicknesses`). Vorher
+  galt jede Boxflaeche als Verankerung; ohne Seitenschale waeren seitlich "verankerte" Teile Starrkoerper.
+  `dlfx_mesh.components.txt` nennt jetzt `anchor_faces`.
+- `run_prepare_mesh_CLUSTER.sh`: uebergibt `--config "$CONFIG_PATH"` an den Konverter.
+- `00_template/elastoplastic.py`: `shell_band_marker` / `interior_marker_from_shell` ueberspringen
+  Flaechen mit Dicke 0 (sonst wuerden Knoten exakt auf der Boxflaeche gehalten und randnahe Zellen
+  aus dem reduzierten Volumen fallen). Neu in `averaged_history`: `sigma_nominal_reaction`
+  (= R_axis / Querschnitt der Bounding-Box senkrecht zur Lastachse) und `eps_axial_platen`;
+  im Summary-JSON `cross_section_area_perp_to_loading_axis`, `loading_axis`, `dirichlet_faces`;
+  Log druckt `dirichlet_faces:` und `cross_section_area_perp_to_loading_axis:`.
+- neu `setup_compression_jobs.py` (Aufruf: `python3 setup_compression_jobs.py --dataset JM-25-71 --sig-y 75 180 100`):
+  leitet aus `config-JM-25-71-r4-sigy075.json` (aus dem Publikationsordner hierher kopiert) die Configs
+  `config-JM-25-71-r4-druckx-sigy{075,100,180}.json` ab: dataset.id `JM-25-71_les_r4_druckx` (eigenes Netz),
+  Schale y/z = 0, x = 6 Voxel, `loading_directions ["x"]`, eps = diag(-0,25 s, 0, 0) -> u = eps.x auf den
+  x-Platten = haftende Platten, `total_time 0.1` (|eps| = 2,5 %), alle Kriterien `blocking false`,
+  Snapshots alle 0,25 % Dehnung (strain_scale_interval 0.01) bzw. 120 min.
+  Jobs in `compression_jobs/<ds>_druckx_sigy<XXX>/ys_druck_x/` (Header wie Produktion: -A p0023647,
+  -t 1440, -n 32, -N 1, 5600 MB/CPU), Einreichen mit `compression_jobs/submit_compression_CLUSTER.sh`
+  (1 Prep-Job, dann je sig_y eine Kette aus 3 Gliedern: afterok:prep + afternotok:Vorgaenger).
+- Erwartung: Prep 15-20 min; Lauf 71 bis Stufe-II-Dehnung ~12 h, bis 2,5 % 2-3 Glieder.
+  Vorhersage fuer sig_y = 180 aus der Skalierung m = 0,93: sig_y^perp(KUBC) ~ 14,5 MPa.
+- Kontrollen nach dem Start: Prep-Log "Prepared mesh"; `dlfx_mesh.components.txt` -> `anchor_faces: x_min,x_max`;
+  `dlfx_mesh.hinges.txt` -> 1 Komponente; Punkt-Log -> `dirichlet_faces: ['x_min', 'x_max']`,
+  Querschnitt ~ 343 mm^2 (19,5 x 17,6); in der Historie sigma_avg_reduced_volume[1][1], [2][2] ~ 0
+  (freie Seitenflaechen) und sigma_nominal_reaction ~ sigma_avg_reduced_volume[0][0].
+- neu `evaluate_compression_run.py <…>/yield_averages_std_x.json [--plot kurve.png]`: Nennspannung (Reaktionskraft)
+  und Volumenmittel gegen Plattenstauchung, E (10-40 % von sigma_max, wie Sven), Rp0,2, sigma bei 0,25…2,5 %,
+  Kontrolle Querspannungen/Axial und Reaktion/Volumenmittel; CSV je Lauf. Mit synthetischer Kurve getestet.

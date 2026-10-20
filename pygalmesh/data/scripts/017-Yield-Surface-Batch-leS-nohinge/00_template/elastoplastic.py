@@ -138,28 +138,48 @@ def shell_widths_from_config(config, bounds):
     }, thicknesses, volume_path
 
 
+# 20.10.2026 (1D-Druckversuch): Flaechen mit Schalendicke 0 tragen keine
+# Randschale und damit keine Dirichlet-Randbedingung; sie sind freie Oberflaechen
+# (Seitenflaechen der Druckprobe). Sie werden hier uebersprungen - sonst wuerden
+# Knoten exakt auf der Boxflaeche festgehalten bzw. randnahe Zellen aus dem
+# reduzierten Volumen fallen. Volle Schale (alle Dicken > 0) = Verhalten wie bisher.
+def dirichlet_faces_from_widths(widths):
+    return [face for face in ("x_min", "x_max", "y_min", "y_max", "z_min", "z_max")
+            if widths.get(face, 0.0) > 0.0]
+
+
 def shell_band_marker(widths, bounds):
     x_min, x_max, y_min, y_max, z_min, z_max = bounds
-    return lambda x: (
-        (x[0] <= x_min + widths["x_min"]) |
-        (x[0] >= x_max - widths["x_max"]) |
-        (x[1] <= y_min + widths["y_min"]) |
-        (x[1] >= y_max - widths["y_max"]) |
-        (x[2] <= z_min + widths["z_min"]) |
-        (x[2] >= z_max - widths["z_max"])
-    )
+    lo = (x_min, y_min, z_min)
+    hi = (x_max, y_max, z_max)
+    faces = dirichlet_faces_from_widths(widths)
+
+    def marker(x):
+        inside = np.zeros(x.shape[1], dtype=bool)
+        for d, ax in enumerate("xyz"):
+            if f"{ax}_min" in faces:
+                inside |= x[d] <= lo[d] + widths[f"{ax}_min"]
+            if f"{ax}_max" in faces:
+                inside |= x[d] >= hi[d] - widths[f"{ax}_max"]
+        return inside
+    return marker
 
 
 def interior_marker_from_shell(widths, bounds):
     x_min, x_max, y_min, y_max, z_min, z_max = bounds
-    return lambda x: (
-        (x[0] > x_min + widths["x_min"]) &
-        (x[0] < x_max - widths["x_max"]) &
-        (x[1] > y_min + widths["y_min"]) &
-        (x[1] < y_max - widths["y_max"]) &
-        (x[2] > z_min + widths["z_min"]) &
-        (x[2] < z_max - widths["z_max"])
-    )
+    lo = (x_min, y_min, z_min)
+    hi = (x_max, y_max, z_max)
+    faces = dirichlet_faces_from_widths(widths)
+
+    def marker(x):
+        inside = np.ones(x.shape[1], dtype=bool)
+        for d, ax in enumerate("xyz"):
+            if f"{ax}_min" in faces:
+                inside &= x[d] > lo[d] + widths[f"{ax}_min"]
+            if f"{ax}_max" in faces:
+                inside &= x[d] < hi[d] - widths[f"{ax}_max"]
+        return inside
+    return marker
 
 
 def assemble_global_scalar(expr, comm):
@@ -617,6 +637,10 @@ x_min_hom_all, x_max_hom_all, y_min_hom_all, y_max_hom_all, z_min_hom_all, z_max
 vol = (x_max_hom_all - x_min_hom_all) * (y_max_hom_all - y_min_hom_all) * (z_max_hom_all - z_min_hom_all)
 vol_material = assemble_global_scalar(dlfx.fem.Constant(domain, 1.0) * dx_hom_cells(tag_value_hom_cells), comm)
 vol_overall = lengths[0] * lengths[1] * lengths[2]
+# 20.10.2026: Nennspannung des 1D-Druckversuchs = Reaktionskraft auf der Platte
+# in Lastrichtung / Querschnitt der Bounding-Box senkrecht zur Lastachse.
+# Bei voller Schale nur eine Zusatzgroesse (Platte traegt auch Querschale).
+cross_section_area = vol_overall / lengths[axis]
 
 dim = domain.topology.dim
 TEN = dlfx.fem.functionspace(domain, ("DP", max(deg_quad - 1, 0), (dim, dim)))
@@ -753,6 +777,8 @@ def before_first_time_step():
         print(f"alpha_yield_tolerance: {alpha_yield_tolerance}")
         print(f"boundary_shell_voxel_thicknesses: {shell_voxel_thicknesses}")
         print(f"boundary_shell_physical_widths: {shell_widths}")
+        print(f"dirichlet_faces: {dirichlet_faces_from_widths(shell_widths) if shell_widths is not None else 'alle (Box ohne Schale)'}")
+        print(f"cross_section_area_perp_to_loading_axis: {cross_section_area}  (Achse {'xyz'[axis]}, L = {lengths[axis]})")
         print("=== Feldausgabe / Wandzeit ===")
         print(f"field_output_enabled: {FIELD_OUTPUT_ENABLED}")
         print(f"field_output_fields: {FIELD_NAMES}")
@@ -898,6 +924,8 @@ def after_timestep_success(t, dt, iters):
         "dt": float(dt.value if hasattr(dt, "value") else dt),
         "iterations": int(iters),
         "reaction_force": [float(Rx), float(Ry), float(Rz)],
+        "sigma_nominal_reaction": float([Rx, Ry, Rz][axis]) / cross_section_area,
+        "eps_axial_platen": float(eps_diag[axis]),
         "strain_scale": float(scale),
         "eps_mac_eigenvalues_current": eps_diag.tolist(),
         "sigma_avg_reduced_volume": sigma_avg.tolist(),
@@ -1042,6 +1070,9 @@ def after_last_timestep():
                 "reduced_volume_box": vol,
                 "reduced_volume_material": vol_material,
                 "total_volume_box": vol_overall,
+                "cross_section_area_perp_to_loading_axis": cross_section_area,
+                "loading_axis": "xyz"[axis],
+                "dirichlet_faces": dirichlet_faces_from_widths(shell_widths) if shell_widths is not None else "all",
                 "homogenization_excludes_boundary_shell": shell_widths is not None,
                 "config_path": config_path,
                 "restart_count": restart_count,

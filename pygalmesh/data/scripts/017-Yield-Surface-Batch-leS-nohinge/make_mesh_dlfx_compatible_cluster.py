@@ -41,7 +41,67 @@ parser.add_argument("--keep-hinges", action="store_true",
                     help="Scharnierteile NICHT entfernen (Verhalten bis 08.09.2026)")
 parser.add_argument("--hinge-min-anchor", type=int, default=4,
                     help="Nebenteil behalten, wenn mindestens so viele Knoten in der Randschale liegen (default 4)")
+# 20.10.2026 (1D-Druckversuch): Verankerung nur an den Flaechen, die wirklich
+# eine Randschale mit Dirichlet-Randbedingung tragen. Beim Druckversuch sind
+# nur die x-Platten (x_min, x_max) geschlossen, die Seitenflaechen sind frei;
+# dort "verankerte" Fragmente waeren Starrkoerper. Default "all" = altes
+# Verhalten. Mit --config werden die Flaechen aus
+# 02d_axis_aligned_cuboid_crop.boundary_seal.thicknesses abgeleitet (Dicke > 0).
+parser.add_argument("--anchor-faces", default="all",
+                    help="Kommaliste aus x_min,x_max,y_min,y_max,z_min,z_max oder Achsen x,y,z; 'all' = alle (default)")
+parser.add_argument("--config", default=None,
+                    help="Config-JSON; falls angegeben, Verankerungsflaechen = Schalenflaechen mit Dicke > 0 (schlaegt --anchor-faces)")
 args = parser.parse_args()
+
+ALL_FACES = ["x_min", "x_max", "y_min", "y_max", "z_min", "z_max"]
+
+
+def anchor_faces_from_args(a):
+    faces = None
+    if a.config:
+        import json
+        with open(a.config) as handle:
+            cfg = json.load(handle)
+        seal = cfg.get("02d_axis_aligned_cuboid_crop", {}).get("boundary_seal", {})
+        if seal.get("enabled", False):
+            base = int(seal.get("thickness", 0) or 0)
+            th = {f: base for f in ALL_FACES}
+            for key, value in (seal.get("thicknesses") or {}).items():
+                if key in ("x", "y", "z"):
+                    th[key + "_min"] = int(value); th[key + "_max"] = int(value)
+                elif key in th:
+                    th[key] = int(value)
+            faces = [f for f in ALL_FACES if th[f] > 0]
+    if faces is None:
+        if a.anchor_faces.strip().lower() == "all":
+            faces = list(ALL_FACES)
+        else:
+            faces = []
+            for tok in a.anchor_faces.split(","):
+                tok = tok.strip().lower()
+                if tok in ("x", "y", "z"):
+                    faces += [tok + "_min", tok + "_max"]
+                elif tok in ALL_FACES:
+                    faces.append(tok)
+                elif tok:
+                    raise ValueError(f"Unbekannte Verankerungsflaeche: {tok}")
+    if not faces:
+        raise ValueError("Keine Verankerungsflaeche - Fragmentfilter braucht mindestens eine Schalenflaeche.")
+    return faces
+
+
+ANCHOR_FACES = anchor_faces_from_args(args)
+
+
+def near_anchor_faces(points, lo, hi, tol):
+    """Knoten innerhalb tol an einer der Verankerungsflaechen der Bounding-Box."""
+    near = np.zeros(points.shape[0], bool)
+    for d, ax in enumerate("xyz"):
+        if f"{ax}_min" in ANCHOR_FACES:
+            near |= points[:, d] < lo[d] + tol
+        if f"{ax}_max" in ANCHOR_FACES:
+            near |= points[:, d] > hi[d] - tol
+    return near
 
 
 def drop_floating_components(points, cells, tol, report_path):
@@ -56,9 +116,7 @@ def drop_floating_components(points, cells, tol, report_path):
     ncomp, label = connected_components(adj, directed=False)
     used = np.zeros(nv, bool); used[cells.ravel()] = True
     lo, hi = points[used].min(0), points[used].max(0)
-    near = np.zeros(nv, bool)
-    for d in range(3):
-        near |= (points[:, d] < lo[d] + tol) | (points[:, d] > hi[d] - tol)
+    near = near_anchor_faces(points, lo, hi, tol)
     sizes = np.bincount(label[used], minlength=ncomp)      # nur referenzierte Knoten
     real = sizes > 0                                        # Komponenten mit Zellen
     anchored = np.bincount(label[near & used], minlength=ncomp) > 0
@@ -67,6 +125,7 @@ def drop_floating_components(points, cells, tol, report_path):
     new_cells = cells[cell_keep]
     dropped = int((real & ~keep).sum())
     lines = [
+        f"anchor_faces: {','.join(ANCHOR_FACES)}",
         f"components_total: {int(real.sum())}",
         f"components_dropped_floating: {dropped}",
         f"cells_before: {cells.shape[0]}",
@@ -124,9 +183,7 @@ def drop_hinge_components(points, cells, tol, min_anchor, report_path):
     sizes = np.bincount(label, minlength=ncomp)
     used = np.zeros(nv, bool); used[cells.ravel()] = True
     lo, hi = points[used].min(0), points[used].max(0)
-    near = np.zeros(nv, bool)
-    for d in range(3):
-        near |= (points[:, d] < lo[d] + tol) | (points[:, d] > hi[d] - tol)
+    near = near_anchor_faces(points, lo, hi, tol)
     # Randschalenknoten je Komponente (Knoten koennen mehreren Komponenten
     # angehoeren - genau das ist das Scharnier - deshalb ueber Zellen zaehlen)
     node_comp = np.repeat(label, 4)

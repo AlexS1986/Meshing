@@ -200,7 +200,9 @@ done
 for subfolder in "$base_subvolume_folder"/*/; do
   [ -d "$subfolder" ] || continue
   if [ -f "$subfolder/mesh.xdmf" ]; then
-    run_container 1 "" "$SIM_BIND" "$SIM_CONTAINER" python3 "$working_directory/make_mesh_dlfx_compatible_cluster.py" "$subfolder" -f mesh.xdmf
+    # 20.10.2026: --config -> Fragmente/Scharniere nur an Schalenflaechen mit
+    # Dicke > 0 verankern (1D-Druckversuch: nur x-Platten). Volle Schale = wie bisher.
+    run_container 1 "" "$SIM_BIND" "$SIM_CONTAINER" python3 "$working_directory/make_mesh_dlfx_compatible_cluster.py" "$subfolder" -f mesh.xdmf --config "$CONFIG_PATH"
     # 08.09.2026: Nachweis, dass das konvertierte Netz genau EINE flaechen-
     # zusammenhaengende Komponente hat (keine Scharnierteile; CLAUDE.md §22).
     # Exit 1 des Checks bricht die Vorbereitung ab (set -e) - lieber hier als
