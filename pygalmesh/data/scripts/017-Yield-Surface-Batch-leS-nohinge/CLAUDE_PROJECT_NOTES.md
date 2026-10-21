@@ -646,3 +646,12 @@ Aenderungen (Sicherungen `*.vor_druck_20261020`, volle Schale = Verhalten wie bi
   Submit-Skript jetzt je Achse: `submit_compression_druckx_CLUSTER.sh` (umbenannt, bereits eingereicht) und `submit_compression_drucky_CLUSTER.sh`.
   Querschnitt y: 19,37 x 17,6 ~ 341 mm^2 (steht im Job-Log). Erwartung: x/y-Isotropie der KUBC-Flaeche (0,98-1,01) auch im freien Druckversuch;
   Abweichung waere Randeffekt/Probenstreuung der Randzellen.
+- **20.10. 18:52 y-Richtung eingereicht (Commit 311ac49, p0023647):** Prep 55499943 (Priority-Wartung); Ketten sigy075 55499944-946,
+  sigy180 55499947-949, sigy100 55499950-952. Auf dem Scratch liegt noch die alte `submit_compression_CLUSTER.sh` (rsync loescht nicht;
+  identisch mit druckx-Fassung, ignorieren/loeschen). Exec-Bits der Submit-Skripte auf dem Mac wieder gesetzt (naechster Commit).
+
+## 21.10.2026 — Druckversuche, Stand 08:50 und Uebergabe an Claude Code auf dem Cluster
+- Netz y (Prep 55499943) fertig: 3 994 011 Tets, 1 197 751 Knoten, 1 Komponente, anchor_faces y_min,y_max, 11 Fragmente (912 Knoten) und
+  127 Scharnierteile (402 Zellen) entfernt. y-Ketten 55499944-952 koennen starten (neues Template -> `_averages.txt` live).
+- Uebergabe-Prompt fuer eine Claude-Code-Session auf dem Login-Node: `CLAUDE_CLUSTER_HANDOFF_20261021.md` (Regeln: nichts abbrechen,
+  nur p0023647, Transfer nur Git, Ergebnisse klein nach compression_jobs/ergebnisse/, alles hier dokumentieren).
