@@ -655,3 +655,27 @@ Aenderungen (Sicherungen `*.vor_druck_20261020`, volle Schale = Verhalten wie bi
   127 Scharnierteile (402 Zellen) entfernt. y-Ketten 55499944-952 koennen starten (neues Template -> `_averages.txt` live).
 - Uebergabe-Prompt fuer eine Claude-Code-Session auf dem Login-Node: `CLAUDE_CLUSTER_HANDOFF_20261021.md` (Regeln: nichts abbrechen,
   nur p0023647, Transfer nur Git, Ergebnisse klein nach compression_jobs/ergebnisse/, alles hier dokumentieren).
+
+## 21.10.2026 — Druckversuche, Cluster-Session (Claude Code auf dem Mac, Cluster per ssh)
+**09:00 — Block 1: Status (Aufgabe 1) und Erstkontrolle y (Aufgabe 2).** Nichts abgebrochen, nichts eingereicht.
+- **y-Richtung komplett in Glied 1** (neues Template, je 1 Glied gereicht, kein Restart): sigy075 55499944 COMPLETED 0:0 nach 9:42 h
+  (t = 0,0991 / eps 2,478 %, 110 Schritte), sigy100 55499950 nach 7:23 h (t = 0,0999 / 2,498 %, 104), sigy180 55499947 nach 6:48 h
+  (t = 0,0995 / 2,488 %, 103). Log jeweils `[STOP] total_time = 0.1 erreicht`, `Yield-surface point complete`.
+  Letzte Historienzeile liegt knapp unter 0,1, weil der letzte Schritt ueber 0,1 hinausgeht (t = 0,1001…0,1009) und der
+  Schluss-Snapshot den vorletzten Stand schreibt -> fuer 2,5 % den Wert bei 2,48 % nehmen bzw. extrapolieren.
+- **x/sigy180 55498717 ebenfalls in Glied 1 fertig** (10:13 h, t = 0,099 / 2,475 %, 118 Schritte, alte Template-Kopie ->
+  `yield_averages_std_x.json` liegt vor, kein `_averages.txt`).
+- Kettenmechanik: Glieder 2 (55498718, 55499945/948/951) wurden von Slurm CANCELLED (afternotok nie erfuellt, Glied 1 war ok);
+  dadurch wurde afternotok fuer Glied 3 erfuellt und Glieder 3 (55498719, 55499946/949/952) liefen 2-10 s, erkannten den fertigen
+  Lauf und kopierten nur die Ergebnisse erneut nach `00_results/` (Exit 0, harmlos). Kein Handlungsbedarf.
+- **x/sigy075 55498714 und x/sigy100 55498720 laufen** (mpsd0010/0030, 17:19 h um 08:59), Stand eps 0,82 % (t 0,0328) bzw. 1,64 % (t 0,0655).
+  Walltime-Stopp 21.10. ~15:25 (15 min Sicherheitsabstand vor 15:40) -> Glieder 2 (55498715 / 55498721, PENDING Dependency) setzen fort.
+- **Erstkontrolle y (alle drei Laeufe identisch):** `dirichlet_faces: ['y_min', 'y_max']`; Querschnitt **340,34 mm^2** (L_y 19,506 mm);
+  `reduced_volume_material` **1176,22 mm^3** (x-Netz: 1203,64; y-Netz hat andere Randlagen frei -> Dichte y separat rechnen:
+  1176,22 / ((19,506 - 1,2) x 340,34) = **0,1888**, praktisch gleich x 0,1891). Newton max. 9 (075) / 7 (100) / 7 (180) <= 12.
+  "NO CONVERGENCE" (dt-Halbierung) 14x / 1x / 0x. Keine MUMPS-Fehler, kein Traceback, keine NaN in `_averages.txt`.
+  `.err` je 1 Zeile = harmlose Apptainer-chdir-Warnung.
+- Auffaellig fuer Aufgabe 3 (noch nicht ausgewertet): Querspannungen am Ende nicht klein — y075 bei 2,48 %: sig_yy -5,26, sig_xx -0,74,
+  sig_zz -0,57 MPa (|quer|/axial bis 0,14), y100 -6,77 / -0,91 / -0,71, y180 -11,38 / -1,42 / -1,15 (0,12). Erwartung war <= 0,05.
+  Vermutung: haftende Platten (u = eps.x auf dem Plattenband, Querdehnung an den Platten behindert) -> Volumenmittel enthaelt
+  Querdruck aus den plattennahen Schichten. Bei der Auswertung pruefen (Verlauf ueber eps, nicht nur Endwert).
