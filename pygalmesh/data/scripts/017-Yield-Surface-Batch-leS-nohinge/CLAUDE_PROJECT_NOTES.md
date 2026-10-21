@@ -730,3 +730,10 @@ Aenderungen (Sicherungen `*.vor_druck_20261020`, volle Schale = Verhalten wie bi
 - Einreichen (nur nach Freigabe): Mac push -> Cluster `git pull` + `SKIP_GENERATE=1 …/batch_create_folders_CLUSTER.sh` ->
   `DRY_RUN=1 $S017/compression_jobs/submit_compression_drucky-h2000_CLUSTER.sh`, dann ohne DRY_RUN.
 - Mail-Entwurf an Julian (A01): Publikationsordner `emails/entwurf_mail_julian_druckversuch_1D_20261021.txt` (Versand durch Nutzer).
+
+**09:44 — Block 5: Verfestigungslauf EINGEREICHT (Freigabe Nutzer).** Commit 4a9e26c per git pull auf dem Cluster, Sync (rsync code 23 = harmlos),
+cmp: Job-Config, Job-Skript, Submit-Skript, Template aktuell. Dry-Run ok (Netz vorhanden, kein Prep). Eingereicht 09:43 auf p0023647:
+**JM-25-71_drucky_sigy100h2000 (σ_y 100, H 2000): Glied 1 55505395, Glied 2 55505396, Glied 3 55505397** (afternotok-Kette).
+Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_drucky/leS-r4-drucky-sigy100h2000/ys_druck_y/`, live `_averages.txt`.
+- Nutzer: Julian (A01, FFT) rechnet mit grossen Deformationen und spaeter mit Kontakt -> Stegknicken moeglich, Kleindehnungsmodell nicht;
+  FFT leicht unter 1D-FEM ist erwartbar. Interpretation und Mail-Entwurf entsprechend angepasst.

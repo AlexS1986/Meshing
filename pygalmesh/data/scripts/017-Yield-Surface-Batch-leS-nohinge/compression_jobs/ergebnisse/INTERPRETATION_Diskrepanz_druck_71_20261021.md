@@ -74,7 +74,10 @@ KUBC: m = 0,93.
 - Die Diskrepanz KUBC ↔ FFT (6,4 gegen 4,5) ist damit im Wesentlichen die Randbedingung, nicht Löser,
   Auflösung oder Materialgesetz.
 - Für den Rest kommen Plattenhaftung, Netzauflösung (r4 liegt bei JM-25-77 eher unter r2) und die
-  Kurvenpunktwahl in Frage. Dichte erklärt ihn nicht: die FFT nutzt das dichtere Voxelbild und läge damit eher höher.
+  Kurvenpunktwahl in Frage.
+- Nachtrag 21.10. (Nutzer): Julian rechnet mit **großen Deformationen und später mit Kontakt**. Sein Modell kann also Stegknicken
+  abbilden, das Kleindehnungsmodell nicht. Dass die FFT leicht unter dem 1D-FEM liegt, ist damit erwartbar.
+  Maximum, Entfestigung und Plateau kann nur die FFT abbilden; für den Bereich bis ≈ 2,5 % bleibt der Vergleich gültig. Dichte erklärt ihn nicht: die FFT nutzt das dichtere Voxelbild und läge damit eher höher.
 
 **(c) Modelle ↔ Versuch: welches σ_y braucht ein ideal plastisches Modell?** (Rückrechnung über die 1D-Kurven, log-log interpoliert)
 
