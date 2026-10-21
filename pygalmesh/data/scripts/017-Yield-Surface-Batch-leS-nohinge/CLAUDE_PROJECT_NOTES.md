@@ -700,3 +700,4 @@ Aenderungen (Sicherungen `*.vor_druck_20261020`, volle Schale = Verhalten wie bi
   Gegenprobe mit gleitenden Platten waere eine Parameteraenderung -> nur nach Entscheidung des Nutzers.
 - Kleinigkeit: Legende im Plot zeigt den Elternordnernamen ("ergebnisse") statt des Laufs (Label aus dem Pfad) — kosmetisch, nicht geaendert.
 - Offen: x/75 und x/100 (Glieder 1 bis ~15:25, Historie dann im JSON; Glieder 2 55498715/55498721 setzen fort).
+- `.gitignore` der Repo-Wurzel ignoriert `*.csv`/`*.png` -> Ergebnis-CSVs und `druck_71_y.png` in `compression_jobs/ergebnisse/` mit `git add -f` aufgenommen.
