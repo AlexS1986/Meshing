@@ -679,3 +679,24 @@ Aenderungen (Sicherungen `*.vor_druck_20261020`, volle Schale = Verhalten wie bi
   sig_zz -0,57 MPa (|quer|/axial bis 0,14), y100 -6,77 / -0,91 / -0,71, y180 -11,38 / -1,42 / -1,15 (0,12). Erwartung war <= 0,05.
   Vermutung: haftende Platten (u = eps.x auf dem Plattenband, Querdehnung an den Platten behindert) -> Volumenmittel enthaelt
   Querdruck aus den plattennahen Schichten. Bei der Auswertung pruefen (Verlauf ueber eps, nicht nur Endwert).
+
+**09:35 — Block 2: Auswertung (Aufgabe 3) y/75, y/100, y/180, x/180.** Nichts abgebrochen, nichts eingereicht.
+- Per scp nach `compression_jobs/ergebnisse/druck<a>_sigy<XXX>/` geholt: `_averages.txt` (y), `yield_averages_*.json`, `yield_run_*.json`, `*_log.txt`
+  (zusammen ~0,8 MB). Hinweis: scp auf dem Mac (SFTP-Modus) expandiert `{a,b}` im Remote-Pfad nicht -> Dateien einzeln holen.
+- Lokal ausgewertet (`python3 evaluate_compression_run.py --axis y … --plot ergebnisse/druck_71_y.png`; x/180 aus dem JSON).
+  `_averages.txt` und JSON liefern fuer y/75 identische Kennwerte (Kontrolle). Tabelle: `compression_jobs/ergebnisse/kennwerte_druck_71.md` + `.csv`.
+- Kennwerte (MPa; E Sekante 10-40 %):
+  y/75 E 3679, Rp0,2 4,07, sig1% 4,70, sig_end 5,26 (2,48 %); y/100 E 3892, Rp 5,26, sig1% 6,07, sig_end 6,77;
+  y/180 E 3806, Rp 8,92, sig1% 10,20, sig_end 11,38; x/180 E 4027, Rp 9,88, sig1% 11,28, sig_end 12,53. Alle Kurven monoton.
+- **1D / KUBC (sig^perp 6,40 / 8,41 / 14,5):** Rp0,2 roh 0,62-0,64 (y), 0,68 (x/180); dichtekorrigiert (rho 0,189 -> 0,1768, Faktor 1,12/1,14)
+  0,54-0,57 (y), 0,60-0,61 (x). sig 1 % roh 0,70-0,74 (y), 0,78 (x); korr. 0,62-0,66 (y), 0,68-0,69 (x).
+  -> Die KUBC-Schale ueberschaetzt die Druckfestigkeit um Faktor ~1,4-1,8. y/75 (4,7 bei 1 %, 5,1 bei 2 %) liegt nahe am A01-FFT-Plateau 4,5.
+- **x/y bei 180:** 1,10-1,11 (Rp, sig1%, sig_end), E 1,06 — trotz gleicher Dichte (0,1891/0,1888). KUBC-Flaeche war isotrop (0,98-1,01).
+- **Versuch** (Rp 7,7 / sig_max 11,2 / Plateau 9,6 / E 1760): liegt zwischen sig_y 100 und 180; y/180 trifft sig_max und Plateau-Niveau gut.
+  Modell-E 2,1-2,3 x Versuch.
+- **Querspannungs-Kriterium <= 0,05 NICHT erfuellt:** quer/axial 0,09-0,11 schon elastisch, steigt auf 0,12-0,14 am Ende (x-Querrichtung staerker als z).
+  Deutung: haftende Platten sperren die Querdehnung; bei freien Seitenflaechen ist das Volumenmittel der Querspannung das Moment der
+  Schubtraktionen an den Plattengrenzflaechen. Kein Fehler im Lauf, aber Randbedingungs-Effekt -> axialer Kennwert eher leicht ueberschaetzt.
+  Gegenprobe mit gleitenden Platten waere eine Parameteraenderung -> nur nach Entscheidung des Nutzers.
+- Kleinigkeit: Legende im Plot zeigt den Elternordnernamen ("ergebnisse") statt des Laufs (Label aus dem Pfad) — kosmetisch, nicht geaendert.
+- Offen: x/75 und x/100 (Glieder 1 bis ~15:25, Historie dann im JSON; Glieder 2 55498715/55498721 setzen fort).

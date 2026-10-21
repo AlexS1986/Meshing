@@ -1,0 +1,393 @@
+{
+  "material": "std",
+  "loading_direction": "y",
+  "E": 70000.0,
+  "nu": 0.35,
+  "sig_y": 75.0,
+  "hard": 0.0,
+  "eps_mac_eigenvalues_target": [
+    0.0,
+    -0.25,
+    0.0
+  ],
+  "strain_scale_start": 1e-06,
+  "strain_scale_rate": 1.0,
+  "yielded_volume_fraction_target": 0.02,
+  "alpha_yield_tolerance": 1e-05,
+  "yield_criteria": [
+    {
+      "name": "eps_p_eq_macroscopic",
+      "quantity": "eps_p_eq_macroscopic",
+      "threshold": 0.002,
+      "blocking": false,
+      "comment": "sqrt(2/3 E_p:E_p), Volumenmittel des plastischen Dehnungstensors; in Schaeumen durch Aufhebung der Biegeplastizitaet sehr klein -> nur Dokumentation (06.09.2026)"
+    },
+    {
+      "name": "alpha_avg_material",
+      "quantity": "alpha_avg_reduced_material_volume",
+      "threshold": 0.002,
+      "blocking": false,
+      "comment": "<alpha> (akkumulierte aequivalente plastische Dehnung) ueber die Materialphase; Abbruchkriterium der Studie; 1e-3 ~ 1,5-2,5 % Boxdehnung, 2e-3 ~ 2,3-4,2 % (H0-Tests 08./09.09.2026)"
+    },
+    {
+      "name": "yielded_fraction_material",
+      "quantity": "yielded_fraction_reduced_material_volume",
+      "threshold": 0.002,
+      "blocking": false,
+      "comment": "Kriterium der bisherigen Studie: Anteil des Materialvolumens mit alpha > alpha_yield_tolerance"
+    },
+    {
+      "name": "alpha_avg_material_0.001",
+      "quantity": "alpha_avg_reduced_material_volume",
+      "threshold": 0.001,
+      "blocking": false,
+      "comment": "Doku-Stufe (Ereignis + Feld-Snapshot, kein Abbruch); Fliessflaechen-Familie"
+    },
+    {
+      "name": "alpha_avg_material_0.005",
+      "quantity": "alpha_avg_reduced_material_volume",
+      "threshold": 0.005,
+      "blocking": false,
+      "comment": "Doku-Stufe (Ereignis + Feld-Snapshot, kein Abbruch); Fliessflaechen-Familie"
+    },
+    {
+      "name": "alpha_avg_material_0.01",
+      "quantity": "alpha_avg_reduced_material_volume",
+      "threshold": 0.01,
+      "blocking": false,
+      "comment": "Doku-Stufe (Ereignis + Feld-Snapshot, kein Abbruch); Fliessflaechen-Familie"
+    }
+  ],
+  "primary_criterion": "alpha_avg_material",
+  "yield_states": {
+    "yielded_fraction_material": {
+      "t": 0.0021,
+      "dt": 0.0008,
+      "iterations": 6,
+      "reaction_force": [
+        6.690205450520949,
+        -19556.191829124728,
+        -7.140348082732885
+      ],
+      "sigma_nominal_volume_avg": -1.9950174200157873,
+      "eps_axial_platen": -0.00052525,
+      "strain_scale": 0.002101,
+      "eps_mac_eigenvalues_current": [
+        0.0,
+        -0.00052525,
+        0.0
+      ],
+      "sigma_avg_reduced_volume": [
+        [
+          -0.21663033484190572,
+          0.03591252300440639,
+          -0.017933786111715803
+        ],
+        [
+          0.03591252300440639,
+          -1.9950174200157873,
+          -0.029498740063971997
+        ],
+        [
+          -0.017933786111715803,
+          -0.029498740063971997,
+          -0.17677448904243873
+        ]
+      ],
+      "sig_vm_avg_reduced_volume": 2.91053478929796,
+      "e_p_avg_reduced_volume": [
+        [
+          1.4038608196137138e-07,
+          -7.009970936966904e-10,
+          -1.329479671114891e-09
+        ],
+        [
+          -7.009970936966904e-10,
+          -2.498605292815583e-07,
+          -4.035216537729676e-09
+        ],
+        [
+          -1.329479671114891e-09,
+          -4.035216537729676e-09,
+          1.0947444732018702e-07
+        ]
+      ],
+      "eps_p_eq_macroscopic": 2.5054643546807985e-07,
+      "eps_p_eq_avg_reduced_material_volume": 1.615187797308155e-06,
+      "eps_p_eq_avg_reduced_volume": 3.049871096430894e-07,
+      "alpha_avg_reduced_material_volume": 1.8794419019521603e-06,
+      "alpha_avg_reduced_volume": 3.5488477214463533e-07,
+      "yielded_volume_alpha_gt_tol": 3.570940539418419,
+      "yielded_fraction_reduced_material_volume": 0.0030359449094028053,
+      "yielded_fraction_reduced_volume": 0.0005732609325661957,
+      "criterion": "yielded_fraction_material",
+      "quantity": "yielded_fraction_reduced_material_volume",
+      "threshold": 0.002,
+      "value": 0.0030359449094028053
+    },
+    "alpha_avg_material_0.001": {
+      "t": 0.01810000000000001,
+      "dt": 0.0005,
+      "iterations": 6,
+      "reaction_force": [
+        55.90698551470928,
+        -133091.54344246647,
+        -57.7294542425052
+      ],
+      "sigma_nominal_volume_avg": -4.292906251176619,
+      "eps_axial_platen": -0.004525250000000002,
+      "strain_scale": 0.01810100000000001,
+      "eps_mac_eigenvalues_current": [
+        0.0,
+        -0.004525250000000002,
+        0.0
+      ],
+      "sigma_avg_reduced_volume": [
+        [
+          -0.504894960061285,
+          0.18691135540749662,
+          -0.08824005870303755
+        ],
+        [
+          0.18691135540749662,
+          -4.292906251176619,
+          0.013033219092838638
+        ],
+        [
+          -0.08824005870303755,
+          0.013033219092838638,
+          -0.4128780978158625
+        ]
+      ],
+      "sig_vm_avg_reduced_volume": 7.755098483098007,
+      "e_p_avg_reduced_volume": [
+        [
+          6.421115070129305e-05,
+          3.884119070920624e-06,
+          -1.3814205546917934e-06
+        ],
+        [
+          3.884119070920624e-06,
+          -0.00011674133881468853,
+          -3.981699114092171e-07
+        ],
+        [
+          -1.3814205546917934e-06,
+          -3.981699114092171e-07,
+          5.2530188113395975e-05
+        ]
+      ],
+      "eps_p_eq_macroscopic": 0.00011703372508762184,
+      "eps_p_eq_avg_reduced_material_volume": 0.0008508752445218845,
+      "eps_p_eq_avg_reduced_volume": 0.00016066613549586917,
+      "alpha_avg_reduced_material_volume": 0.0010285519946005954,
+      "alpha_avg_reduced_volume": 0.00019421586794654411,
+      "yielded_volume_alpha_gt_tol": 250.3440678824888,
+      "yielded_fraction_reduced_material_volume": 0.21283770762837023,
+      "yielded_fraction_reduced_volume": 0.040188984451727576,
+      "criterion": "alpha_avg_material_0.001",
+      "quantity": "alpha_avg_reduced_material_volume",
+      "threshold": 0.001,
+      "value": 0.0010285519946005954
+    },
+    "alpha_avg_material": {
+      "t": 0.03010000000000002,
+      "dt": 0.001,
+      "iterations": 7,
+      "reaction_force": [
+        93.61380269779966,
+        -211956.1198375777,
+        -89.16677563024587
+      ],
+      "sigma_nominal_volume_avg": -4.550046649432033,
+      "eps_axial_platen": -0.007525250000000005,
+      "strain_scale": 0.03010100000000002,
+      "eps_mac_eigenvalues_current": [
+        0.0,
+        -0.007525250000000005,
+        0.0
+      ],
+      "sigma_avg_reduced_volume": [
+        [
+          -0.573853906217866,
+          0.20952120180232717,
+          -0.10008601373625484
+        ],
+        [
+          0.20952120180232717,
+          -4.550046649432033,
+          0.019584647449545453
+        ],
+        [
+          -0.10008601373625484,
+          0.019584647449545453,
+          -0.4525799448992674
+        ]
+      ],
+      "sig_vm_avg_reduced_volume": 8.62881477022097,
+      "e_p_avg_reduced_volume": [
+        [
+          0.00012495368987284908,
+          8.447366945084956e-06,
+          -3.2166431542990885e-06
+        ],
+        [
+          8.447366945084956e-06,
+          -0.0002283622995558551,
+          -1.8648425826155067e-07
+        ],
+        [
+          -3.2166431542990885e-06,
+          -1.8648425826155067e-07,
+          0.00010340860968300608
+        ]
+      ],
+      "eps_p_eq_macroscopic": 0.00022893897903674643,
+      "eps_p_eq_avg_reduced_material_volume": 0.001697665958383556,
+      "eps_p_eq_avg_reduced_volume": 0.00032056101132621646,
+      "alpha_avg_reduced_material_volume": 0.0020557356817136195,
+      "alpha_avg_reduced_volume": 0.0003881733658469346,
+      "yielded_volume_alpha_gt_tol": 341.08379701435337,
+      "yielded_fraction_reduced_material_volume": 0.28998287868275574,
+      "yielded_fraction_reduced_volume": 0.05475588669183279,
+      "criterion": "alpha_avg_material",
+      "quantity": "alpha_avg_reduced_material_volume",
+      "threshold": 0.002,
+      "value": 0.0020557356817136195
+    },
+    "alpha_avg_material_0.005": {
+      "t": 0.062100000000000044,
+      "dt": 0.001,
+      "iterations": 7,
+      "reaction_force": [
+        166.61259220343345,
+        -422328.44571844523,
+        -188.45433145049356
+      ],
+      "sigma_nominal_volume_avg": -4.955901255651617,
+      "eps_axial_platen": -0.015525250000000011,
+      "strain_scale": 0.062101000000000045,
+      "eps_mac_eigenvalues_current": [
+        0.0,
+        -0.015525250000000011,
+        0.0
+      ],
+      "sigma_avg_reduced_volume": [
+        [
+          -0.6674991279786957,
+          0.2294730084861181,
+          -0.11210097029217492
+        ],
+        [
+          0.2294730084861181,
+          -4.955901255651617,
+          0.02162429806670959
+        ],
+        [
+          -0.11210097029217492,
+          0.02162429806670959,
+          -0.5160158265697442
+        ]
+      ],
+      "sig_vm_avg_reduced_volume": 9.827036538862988,
+      "e_p_avg_reduced_volume": [
+        [
+          0.0002999353572888136,
+          2.191569558232535e-05,
+          -9.08428898944358e-06
+        ],
+        [
+          2.191569558232535e-05,
+          -0.0005511985917774603,
+          9.068261282409072e-07
+        ],
+        [
+          -9.08428898944358e-06,
+          9.068261282409072e-07,
+          0.00025126323448864546
+        ]
+      ],
+      "eps_p_eq_macroscopic": 0.000552594853300303,
+      "eps_p_eq_avg_reduced_material_volume": 0.0041658078239256114,
+      "eps_p_eq_avg_reduced_volume": 0.0007866067894179635,
+      "alpha_avg_reduced_material_volume": 0.005079812477617427,
+      "alpha_avg_reduced_volume": 0.0009591933072175504,
+      "yielded_volume_alpha_gt_tol": 486.7876042520385,
+      "yielded_fraction_reduced_material_volume": 0.413857450936457,
+      "yielded_fraction_reduced_volume": 0.07814644710399919,
+      "criterion": "alpha_avg_material_0.005",
+      "quantity": "alpha_avg_reduced_material_volume",
+      "threshold": 0.005,
+      "value": 0.005079812477617427
+    }
+  },
+  "criteria_reached": [
+    "alpha_avg_material",
+    "alpha_avg_material_0.001",
+    "alpha_avg_material_0.005",
+    "yielded_fraction_material"
+  ],
+  "criteria_missed": [
+    "eps_p_eq_macroscopic",
+    "alpha_avg_material_0.01"
+  ],
+  "final_yield_state": null,
+  "stop_reason": "total_time_reached",
+  "time_step": 0.0001,
+  "total_time": 0.1,
+  "boundary_shell_voxel_thicknesses": {
+    "x_min": 0,
+    "x_max": 0,
+    "y_min": 9,
+    "y_max": 9,
+    "z_min": 0,
+    "z_max": 0
+  },
+  "boundary_shell_physical_widths": {
+    "x_min": 0.0,
+    "x_max": 0.0,
+    "y_min": 0.6011999992475118,
+    "y_max": 0.6011999992475118,
+    "z_min": 0.0,
+    "z_max": 0.0
+  },
+  "boundary_shell_volume_path": "/work/scratch/as12vapa/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge/yield_surface_runs/JM-25-71_les_r4_drucky/leS-r4-drucky-sigy075/ys_druck_y/subvolume_x0_y0/volume_boundary_shell_aniso.npy",
+  "reduced_volume_box": 6229.1712840663085,
+  "reduced_volume_material": 1176.2204670969645,
+  "total_volume_box": 6638.43893701229,
+  "cross_section_area_perp_to_loading_axis": 340.3350291875795,
+  "loading_axis": "y",
+  "dirichlet_faces": [
+    "y_min",
+    "y_max"
+  ],
+  "homogenization_excludes_boundary_shell": true,
+  "config_path": "/work/scratch/as12vapa/pygalmesh/data/scripts/017-Yield-Surface-Batch-leS-nohinge/yield_surface_runs/JM-25-71_les_r4_drucky/leS-r4-drucky-sigy075/ys_druck_y/subvolume_x0_y0/config.json",
+  "restart_count": 0,
+  "resume_info": null,
+  "time_steps_computed": 110,
+  "field_output": {
+    "enabled": true,
+    "fields": [
+      "u",
+      "sigma",
+      "sig_vm",
+      "alpha"
+    ],
+    "min_minutes_between_writes": 120.0,
+    "every_n_steps": 0,
+    "strain_scale_interval": 0.01,
+    "write_first_step": true,
+    "write_on_yield_event": true,
+    "snapshots_written": 14,
+    "max_write_seconds": 13.654236271002446
+  },
+  "walltime": {
+    "stop_before_deadline": true,
+    "deadline_source": "env:YIELD_WALLTIME_DEADLINE_EPOCH",
+    "deadline_epoch": 1792602621.0,
+    "safety_margin_minutes": 15.0,
+    "reserve_factor": 2.0,
+    "elapsed_minutes": 582.0893440683683
+  }
+}
