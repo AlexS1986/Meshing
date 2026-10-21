@@ -749,3 +749,13 @@ Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_
 - sigy100h2000 (55505395) nach 1:02 h bei 0,438 % (21 Schritte, Newton max. 6, keine dt-Halbierung, kein Traceback/MUMPS):
   sig_yy 6,55 MPa gegen ideal sigy100 5,48 und Versuch (MTS korr.) 5,83 bei gleicher Stauchung -> liegt schon ueber dem Versuch
   (Versuch hat flacheren Anstieg/Belastungsmodul 1760); Gesamtbild erst mit der vollen Kurve bewerten.
+
+**Nachmittag — Block 7: Antwort Julian (A01) eingearbeitet.** (Text vom Nutzer im Chat weitergereicht, mit zwei Kurvenbildern σ_y 75/180.)
+- GeoDict, RB „Mixed" = glatte starre Platten + freie Seiten (Luftschicht), small strain mit Updated Lagrange, ideal plastisch, E 70 GPa, ν 0,33,
+  Voxel 66,8 µm, 290×292×263, ρ 0,214 (voll aufgeloest 0,2015). Neu hoeher aufgeloest bis 1,5 %: σ_y 75 → Rp0,2 5,05, σ(1 %) 5,26, σ(1,5 %) 5,256.
+  Schaetzt σ_y,eff 160–170 MPa; will σ_y 100 + lineare Verfestigung mit unseren Parametern nachrechnen.
+- Vergleich (1D-FEM y auf ρ 0,214 hochgerechnet, ×1,245): Rp0,2 5,07 gegen 5,05 (**Faktor 1,00**); σ(1 %) 5,86 / 5,26; σ(1,5 %) 6,15 / 5,26;
+  E 4860 / ≈ 4400. FFT-Rp0,2 auf KUBC-Dichte / KUBC = 0,565 (FEM 0,56).
+- **Korrektur:** strukturelle Verfestigung im 1D-FEM (+21 % Rp→1,5 %) kommt grossteils von den haftenden Platten (FFT glatt: +4 %).
+  Interpretation §4(d) als ueberholt markiert, neuer §7. Empfehlung: Gleitplatten-Variante im FEM (Entscheidung Nutzer).
+- Antwortentwurf mit Verfestigungsparametern: Publikationsordner `emails/entwurf_antwort_julian_verfestigung_20261021.txt`.

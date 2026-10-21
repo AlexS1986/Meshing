@@ -109,6 +109,7 @@ KUBC: m = 0,93.
 - Strukturelle Verfestigung Rp0,2 → σ(2,5 %): 1D-Modell +27–29 %, KUBC nur ≈ +5 %, Versuch Rp0,2 → σ_max +45 %.
   Gut die Hälfte der scheinbaren Verfestigung im Versuch erklärt schon die freie Randbedingung (allmähliche
   Ausbreitung der Plastizität von den schwachen Randzonen), den Rest die Materialverfestigung.
+  **[Überholt 21.10. nachmittags, siehe §7.2: die +27–29 % im 1D-FEM kommen großteils von den haftenden Platten; FFT mit glatten Platten +4 %.]**
   (Die Kennwerte sind nicht exakt gleich definiert: σ_max des Versuchs bei 3,1 % gegen Modell-Endwert bei 2,5 %.)
 
 **(e) Was das Modell grundsätzlich nicht abbildet** (im Paper als Grenzen nennen):
@@ -156,3 +157,43 @@ Modells angeben (KUBC 0,177, 1D 0,189, Voxel 0,194–0,202); Dehnung = technisch
   2. **1D-Lauf mit gleitenden Platten** (nur u_axial vorgeben), um den Haftungseinfluss zu beziffern. Kleine
      Codeänderung in `get_bcs`, nur nach Freigabe.
 - Keine weiteren Netzvarianten hier, dafür läuft 018.
+
+## 7. Nachtrag 21.10.2026 nachmittags — Antwort Julian (A01, GeoDict) und Folgerungen
+
+**Sein Modell:** GeoDict, RB „Mixed": in Lastrichtung symmetrisch (Stirnflächen eben und schubfrei = starre, **ideal glatte**
+Platten), quer periodisch mit dünner Luftschicht (Seiten effektiv frei), makroskopisch Querspannung 0, verschiebungsgesteuert.
+Small-strain mit Updated Lagrange, ideal plastisch von Mises, E 70 GPa, **ν 0,33**. Voxel 66,8 µm, 290 × 292 × 263
+(= unser r4-Gitter), **ρ_rel 0,214** (Probenvolumen ohne Luft; voll aufgelöst 0,2015). Neu, höher aufgelöst, bis 1,5 %.
+Die frühere 4,5 MPa stammte aus der niedrigen Auflösung.
+
+**Vergleich bei σ_y = 75** (1D-FEM y, ρ 0,1888, auf ρ 0,214 hochgerechnet mit ρ^1,75 = ×1,245):
+
+| | 1D-FEM roh | 1D-FEM ×1,245 | FFT Julian | FFT / 1D korr. |
+|---|---|---|---|---|
+| Rp0,2 | 4,07 | 5,07 | 5,05 | **1,00** |
+| σ(1 %) | 4,70 | 5,86 | 5,26 | 0,90 |
+| σ(1,5 %) | 4,94 | 6,15 | 5,26 | 0,86 |
+| E (Anfang) | 3944 | 4860 (ρ^1,66) | ≈ 4400 (Bild: 2,2 MPa bei 0,05 %) | 0,91 |
+
+σ_y = 180 (Bild, abgelesen): FFT σ(1 %) ≈ 12,2, Maximum ≈ 12,4 bei ≈ 1,7 %, danach Entfestigung auf ≈ 10,7 bei 10 %.
+1D-FEM y ×1,245: σ(1 %) 12,7, σ(2 %) 13,8, Rp0,2 11,1 (x: 12,3).
+
+**Folgerungen:**
+1. **Fließbeginn stimmt zwischen FEM und FFT exakt überein** (Rp0,2 nach Dichtekorrektur 5,07 gegen 5,05). Auf KUBC-Dichte 0,177
+   umgerechnet ist FFT-Rp0,2 / KUBC σ̄_y^⊥ = 0,565, das 1D-FEM liefert 0,56 (n 1,75). Der Randbedingungsfaktor KUBC → frei ist damit
+   von zwei unabhängigen Lösern bestätigt.
+2. **Korrektur zu §4(d):** Nach dem Fließbeginn steigt das 1D-FEM weiter an (Rp0,2 → σ(1,5 %) +21 %), die FFT kaum (+4 %).
+   Unterschied: **haftende Platten** im FEM gegen **ideal glatte** bei Julian (dazu bei ihm geometrische Nichtlinearität, die
+   Knicken zulässt). Die strukturelle „Verfestigung" des 1D-FEM ist also zum großen Teil ein Effekt der Plattenhaftung. Die
+   Aussage in §4(d), die freie Randbedingung erkläre „gut die Hälfte" der Versuchsverfestigung, ist **nicht haltbar**. Die
+   Verfestigung im Versuch (Rp0,2 → σ_max +45 %) muss größtenteils vom Material kommen (bzw. von Plattenreibung im Versuch).
+   Das stärkt die Variante „σ_y,0 ≈ 100 + Materialverfestigung".
+3. **σ_y,eff gegen Versuch:** Julian schätzt 160–170 MPa (ideal plastisch). Die FEM-Rückrechnung aus Rp0,2 (136–153) ist von der
+   Plattenhaftung kaum betroffen. Die aus σ(1 %)/σ_max (150–177) ist durch die Haftung nach unten verzerrt; mit glatten Platten
+   käme mehr heraus. Dichte: Versuch ≈ 0,20 liegt zwischen FFT (0,214) und FEM (0,189). Konsens: **σ_y,eff ≈ 150–170 MPa**.
+4. **E:** FFT ≈ 4400 bei ρ 0,214; FEM auf diese Dichte hochgerechnet ≈ 4860–5070. FEM ist steifer: haftende Platten und
+   ν 0,35 statt 0,33 gehen in diese Richtung. Beide liegen weit über dem Versuch (1760).
+5. **Konsequenz für den Verfestigungslauf h2000:** Er hat ebenfalls haftende Platten, ist also mit Julians Lauf (glatte Platten)
+   nur bis kurz nach dem Fließbeginn direkt vergleichbar. Für einen sauberen Vergleich (und für das Paper) sollte das FEM eine
+   Variante mit **gleitenden Platten** bekommen (Dirichlet nur auf u_axial im Plattenband, Querverschiebung frei;
+   Starrkörpermoden quer mit je einem Fixpunkt sperren). Codeänderung in `get_bcs` — nur nach Freigabe.

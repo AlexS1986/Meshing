@@ -188,6 +188,10 @@ Einstieg Ergebnisse: `compression_jobs/ergebnisse/` — `kennwerte_druck_71.md/.
   Versuchs-E 1760 statt ≈ 3900 +5…+11 %. E_10_40 liegt 3–7 % unter E₀ (Plastizität im Fenster).
 - σ̄_1D ∝ σ_y^m mit m = 0,88–0,90 (KUBC 0,93). 1D/KUBC: Rp0,2 0,62–0,68, σ(1 %) 0,70–0,78 (roh); x/y = 1,10 bei gleicher Dichte.
 - Rückgerechnetes σ_y,eff (ideal plastisch) für Versuch 71: 136–153 (Rp0,2), 150–168 (σ 1 % ↔ Plateau), 159–177 MPa (σ_max).
+- **Abgleich A01-FFT (Julian, GeoDict, 21.10.):** glatte Platten (symmetrische RB), Seiten frei (Luftschicht), ν 0,33, ρ 0,214, gleiches
+  Voxelgitter. Rp0,2 nach Dichtekorrektur (ρ^1,75) **identisch** (FEM 5,07 / FFT 5,05 bei σ_y 75). Nach dem Fließbeginn steigt das FEM
+  weiter (+21 % bis 1,5 %), die FFT nicht (+4 %) → die strukturelle Verfestigung des 1D-FEM ist großteils **Plattenhaftung**.
+  Vergleiche nach dem Fließbeginn nur mit gleicher Plattenbedingung; Gleitplatten-Variante fehlt noch (Codeänderung `get_bcs`).
 - Interpretation in Kürze: KUBC → Versuch ist hauptsächlich Randbedingung (Faktor 1,4–1,8); 1D-FEM und A01-FFT stimmen auf ±10 %;
   der Rest zum Versuch ist fehlende Materialverfestigung (σ_y,0 ≈ 100 + Verfestigung ≈ σ_y,eff 150–180). KUBC-Fläche nicht neu rechnen.
 
