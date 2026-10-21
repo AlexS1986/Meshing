@@ -197,3 +197,12 @@ Die frühere 4,5 MPa stammte aus der niedrigen Auflösung.
    nur bis kurz nach dem Fließbeginn direkt vergleichbar. Für einen sauberen Vergleich (und für das Paper) sollte das FEM eine
    Variante mit **gleitenden Platten** bekommen (Dirichlet nur auf u_axial im Plattenband, Querverschiebung frei;
    Starrkörpermoden quer mit je einem Fixpunkt sperren). Codeänderung in `get_bcs` — nur nach Freigabe.
+
+**Nachtrag 21.10. (Nutzer) — welche Plattenbedingung ist näher am Versuch?** Einschätzung Nutzer: Im Versuch ist die Gleitung eher behindert.
+Begründung: ungeschmierte Stahlplatten (Schmierung bei Sven noch bestätigen), angeschnittene Zellwände drücken sich in die Platte,
+die Querdehnung des Schaums ist ohnehin klein (ν_p ≈ 0,26–0,30), sodass schon mäßige Reibung (μ ≈ 0,3–0,5) zum Haften reicht.
+→ **Arbeitsannahme: haftende Platten (FEM) liegen näher am Versuch, glatte Platten (FFT) sind die untere Grenze.**
+Folgen: (a) Rp0,2 hängt nicht an der Plattenbedingung (FEM = FFT), die Rückrechnung σ_y,eff aus Rp0,2 bleibt gültig.
+(b) Eine Verfestigung H wird am FEM mit haftenden Platten gegen den Versuch kalibriert; die FFT mit glatten Platten braucht dafür ein höheres H.
+(c) Die Gleitplatten-Variante ist nicht mehr nötig für die Kalibrierung, nur noch als Klammer. Besser: Julian rechnet zusätzlich haftende Stirnflächen
+(Frage im Antwortentwurf). Prüfbar am Versuch: Tonnenform in den DIC-Bildern (Querdehnung an den Platten gegen Probenmitte).

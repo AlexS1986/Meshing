@@ -759,3 +759,5 @@ Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_
 - **Korrektur:** strukturelle Verfestigung im 1D-FEM (+21 % Rp→1,5 %) kommt grossteils von den haftenden Platten (FFT glatt: +4 %).
   Interpretation §4(d) als ueberholt markiert, neuer §7. Empfehlung: Gleitplatten-Variante im FEM (Entscheidung Nutzer).
 - Antwortentwurf mit Verfestigungsparametern: Publikationsordner `emails/entwurf_antwort_julian_verfestigung_20261021.txt`.
+- Nutzer: Gleitung im Versuch eher behindert → Arbeitsannahme haftende Platten (FEM) naeher am Versuch, glatte Platten (FFT) = untere Grenze;
+  Gleitplatten-Variante im FEM nicht gebaut. Antwortentwurf an Julian umformuliert (Frage, ob GeoDict haftende Stirnflaechen rechnen kann).

@@ -192,6 +192,8 @@ Einstieg Ergebnisse: `compression_jobs/ergebnisse/` — `kennwerte_druck_71.md/.
   Voxelgitter. Rp0,2 nach Dichtekorrektur (ρ^1,75) **identisch** (FEM 5,07 / FFT 5,05 bei σ_y 75). Nach dem Fließbeginn steigt das FEM
   weiter (+21 % bis 1,5 %), die FFT nicht (+4 %) → die strukturelle Verfestigung des 1D-FEM ist großteils **Plattenhaftung**.
   Vergleiche nach dem Fließbeginn nur mit gleicher Plattenbedingung; Gleitplatten-Variante fehlt noch (Codeänderung `get_bcs`).
+  Arbeitsannahme (Nutzer 21.10.): im Versuch ist die Gleitung eher behindert → haftende Platten (FEM) näher am Versuch, glatte (FFT) = untere Grenze;
+  H gegen den Versuch am FEM mit haftenden Platten kalibrieren.
 - Interpretation in Kürze: KUBC → Versuch ist hauptsächlich Randbedingung (Faktor 1,4–1,8); 1D-FEM und A01-FFT stimmen auf ±10 %;
   der Rest zum Versuch ist fehlende Materialverfestigung (σ_y,0 ≈ 100 + Verfestigung ≈ σ_y,eff 150–180). KUBC-Fläche nicht neu rechnen.
 
