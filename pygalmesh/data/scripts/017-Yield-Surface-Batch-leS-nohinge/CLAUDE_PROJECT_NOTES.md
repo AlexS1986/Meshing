@@ -737,3 +737,9 @@ cmp: Job-Config, Job-Skript, Submit-Skript, Template aktuell. Dry-Run ok (Netz v
 Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_drucky/leS-r4-drucky-sigy100h2000/ys_druck_y/`, live `_averages.txt`.
 - Nutzer: Julian (A01, FFT) rechnet mit grossen Deformationen und spaeter mit Kontakt -> Stegknicken moeglich, Kleindehnungsmodell nicht;
   FFT leicht unter 1D-FEM ist erwartbar. Interpretation und Mail-Entwurf entsprechend angepasst.
+
+**10:19 — Block 6: Status, Erstkontrolle Verfestigungslauf.** Mail an Julian vom Nutzer verschickt (Entwurf im Publikationsordner `emails/`).
+- 55505395 (sigy100h2000) laeuft seit ~09:44 auf mpsd0008. Erstkontrolle ok: `sig_y: 100.0, hard: 2000.0`, dirichlet_faces ['y_min','y_max'],
+  Querschnitt 340,34, reduced_volume_material 1176,22 (wie y-Netz), kein MUMPS-Fehler/Traceback, `.err` nur Apptainer-Warnung,
+  Newton max. 6 nach 12 Schritten. Stand 0,21 %: sig_yy 5,20 MPa (ideal sigy100 bei 0,20 %: 4,72).
+- x/75 bei 0,875 %, x/100 bei 1,775 % (Glieder 1, Walltime-Stopp ~15:25).
