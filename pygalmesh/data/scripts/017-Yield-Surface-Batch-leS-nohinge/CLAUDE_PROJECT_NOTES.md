@@ -761,3 +761,5 @@ Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_
 - Antwortentwurf mit Verfestigungsparametern: Publikationsordner `emails/entwurf_antwort_julian_verfestigung_20261021.txt`.
 - Nutzer: Gleitung im Versuch eher behindert → Arbeitsannahme haftende Platten (FEM) naeher am Versuch, glatte Platten (FFT) = untere Grenze;
   Gleitplatten-Variante im FEM nicht gebaut. Antwortentwurf an Julian umformuliert (Frage, ob GeoDict haftende Stirnflaechen rechnen kann).
+- Nutzer hat Julian selbst geantwortet (H = 2000 genannt; Bitte, die Querkontraktion an den Stirnflaechen zu sperren = haftend wie im FEM).
+  Antwortentwurf im Publikationsordner damit ueberholt. Erwartet: FFT mit haftenden Stirnflaechen → Kurvenvergleich nach dem Fliessbeginn.
