@@ -9,7 +9,10 @@ EXP = os.path.expanduser("~/Work/Hypo/Hypo/Publications/03_Folgepaper_Homogenisi
 RUNS = [("y, σ_y 75", "drucky_sigy075/elastoplastic_std_y_averages.txt.csv", "C0", "-"),
         ("y, σ_y 100", "drucky_sigy100/elastoplastic_std_y_averages.txt.csv", "C1", "-"),
         ("y, σ_y 180", "drucky_sigy180/elastoplastic_std_y_averages.txt.csv", "C2", "-"),
-        ("x, σ_y 180", "druckx_sigy180/yield_averages_std_x.json.csv", "C2", "--")]
+        ("x, σ_y 180", "druckx_sigy180/yield_averages_std_x.json.csv", "C2", "--"),
+        ("x, σ_y 75 (Glied 1)", "druckx_sigy075/glied1_restart_meta_elastoplastic_std_x.json.csv", "C0", "--"),
+        ("x, σ_y 100 (Glied 1)", "druckx_sigy100/glied1_restart_meta_elastoplastic_std_x.json.csv", "C1", "--"),
+        ("y, σ_y 100 + H 2000", "drucky_sigy100h2000/elastoplastic_std_y_averages.txt.csv", "C3", "-")]
 KUBC = {75: 6.40, 100: 8.41, 180: 14.5}
 fig, ax = plt.subplots(figsize=(7, 4.5))
 if os.path.exists(EXP):
@@ -22,7 +25,7 @@ for lab, f, c, ls in RUNS:
         ax.plot(100 * d["eps_axial"], d["sigma_volume_avg_MPa"], color=c, ls=ls, label=f"1D-FEM {lab}")
 for s, v in KUBC.items():
     ax.axhline(v, color="0.5", lw=0.7, ls=":"); ax.text(5.9, v + 0.15, f"KUBC σ̄⊥ ({s})", ha="right", fontsize=7, color="0.4")
-ax.axhline(4.5, color="C0", lw=0.7, ls=":"); ax.text(5.9, 4.65, "A01-FFT Plateau (75)", ha="right", fontsize=7, color="C0")
+ax.axhline(5.26, color="C0", lw=0.7, ls=":"); ax.text(5.9, 5.40, "A01-FFT σ(1 %) (75, glatte Platten, ρ 0,214)", ha="right", fontsize=7, color="C0")
 ax.set_xlim(0, 6); ax.set_ylim(0, 16); ax.set_xlabel("Stauchung [%]"); ax.set_ylabel("Nennspannung [MPa]")
 ax.grid(alpha=.3); ax.legend(fontsize=7, loc="lower right"); fig.tight_layout()
 fig.savefig("druck_71_vs_versuch.png", dpi=160); print("druck_71_vs_versuch.png")

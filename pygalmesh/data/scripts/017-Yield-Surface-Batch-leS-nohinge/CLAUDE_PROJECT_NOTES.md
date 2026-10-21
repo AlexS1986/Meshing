@@ -763,3 +763,17 @@ Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_
   Gleitplatten-Variante im FEM nicht gebaut. Antwortentwurf an Julian umformuliert (Frage, ob GeoDict haftende Stirnflaechen rechnen kann).
 - Nutzer hat Julian selbst geantwortet (H = 2000 genannt; Bitte, die Querkontraktion an den Stirnflaechen zu sperren = haftend wie im FEM).
   Antwortentwurf im Publikationsordner damit ueberholt. Erwartet: FFT mit haftenden Stirnflaechen → Kurvenvergleich nach dem Fliessbeginn.
+
+**15:43 — Block 8: Check Walltime-Stopp x/75, x/100; Verfestigungslauf fertig.** Nichts abgebrochen, nichts eingereicht.
+- 55498714 (x/75) FAILED 3:0 nach 23:29 h = kontrollierter Walltime-Stopp bei t 0,04375 (1,09 %); 55498720 (x/100) 3:0 nach 23:32 h bei t 0,09 (2,26 %).
+  Glieder 2 laufen: 55498715 seit 15:09:48 (mpsd0008), 55498721 seit 15:12:28 (mpsd0010); Glieder 3 (716/722) PENDING.
+- Erstkontrolle Glieder 2 ok: dirichlet_faces ['x_min','x_max'], A 342,68, reduced_volume_material 1203,64, sig_y 75/100 hard 0, Newton 6–8,
+  kein Traceback/MUMPS/NaN, `.err` nur Apptainer-Warnung. Neues Template -> `_averages.txt` ab Restart. **Kein Restart-Sprung** (σ Ende Glied 1 = Start Glied 2).
+- Kein `yield_averages_std_x.json` am Walltime-Stopp; die Historie steht in `restart_meta_elastoplastic_std_x.json` (`averaged_history`, 171/182 Eintraege)
+  -> nach `ergebnisse/druckx_sigy0{75,100}/glied1_restart_meta_*.json` geholt; evaluate_compression_run.py liest sie direkt.
+  x/75 (bis 1,09 %): E 3997, Rp0,2 4,52, σ1% 5,21; x/100 (bis 2,26 %): E 3956, Rp0,2 5,86, σ1% 6,72, σ2% 7,27. **x/y = 1,11** bei allen σ_y.
+- **sigy100h2000 (55505395) COMPLETED 0:0 nach 5:17 h** (bis 2,49 %; Glied 2 CANCELLED, Glied 3 9 s = harmlos). Gegen Versuch:
+  0,5 % 6,82/6,32 · 1 % 8,49/8,70 · 1,5 % 9,80/9,90 · 2 % 10,97/10,61 · 2,48 % 12,02/11,02 MPa -> **0,5–2 % auf ±5 % getroffen**, danach zu steil
+  (lineare Verfestigung ohne Saettigung, 219 MPa Steigung; Versuch flacht zum Max. 11,2 bei 3,1 % ab). Rp0,2 (E0) 6,16, mit E 1760: 7,26 (Versuch 7,7).
+  E_10_40 = 2551 ist Artefakt (Fenster reicht in den Fliessbereich). Vorbehalte: y (x +11 %), Dichte 0,189 vs ~0,20, haftende Platten.
+- Ergebnisse: `kennwerte_druck_71.md/.csv` ergaenzt, `druck_71_vs_versuch.png` mit x/75, x/100, h2000 und neuer FFT-Linie (5,26).

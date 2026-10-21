@@ -180,6 +180,10 @@ Einstieg Ergebnisse: `compression_jobs/ergebnisse/` — `kennwerte_druck_71.md/.
   (alte Template-Kopie, Start 20.10. 15:40) brauchen Walltime-Restart.
 - Ketten: Ist Glied 1 ok, werden Glieder 2 (afternotok) von Slurm CANCELLED; dadurch startet Glied 3, erkennt den fertigen Lauf, kopiert
   Ergebnisse erneut und endet nach < 15 s mit Exit 0. Harmlos, nichts tun.
+- Am Walltime-Stopp (Exit 3) wird **kein** `yield_averages_*.json` geschrieben; die bisherige Historie steht in `restart_meta_elastoplastic_std_<a>.json`
+  (`averaged_history`) und ist direkt mit `evaluate_compression_run.py` auswertbar. Restart x/75, x/100 ohne Sprung.
+- Verfestigende Läufe: `E_10_40` aus evaluate_compression_run.py ist unbrauchbar (Fenster 10–40 % σ_max reicht in den Fließbereich) → E0 (erster Schritt) nehmen.
+- σ_y 100 + H 2000 (y, haftend) trifft den Versuch 71 zwischen 0,5 und 2 % auf ±5 %, steigt danach zu steil (lineare Verfestigung ohne Sättigung).
 - Letzte Historienzeile liegt bei 2,475–2,498 % (letzter Schritt schießt über total_time 0,1); `sigma_at_2.5pct` = nan → σ_end mit ε_end angeben.
 - Newton max. 7–9 (Grenze 12); dt-Halbierungen 0–14 je Lauf; `.err` enthält nur die harmlose Apptainer-chdir-Warnung.
 
