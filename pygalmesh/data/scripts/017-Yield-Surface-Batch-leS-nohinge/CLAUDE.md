@@ -157,3 +157,42 @@ Details, Optionen und Diagnose: `LES_PIPELINE.md`.
   DICOM-Config und sind auf deren Voxelgröße abgestimmt; für 33,4 µm prüfen.
 - **`02c`** läuft als reiner Report (`cleanup.enabled = false`). Falls die
   Oberfläche doch Probleme macht, wäre hier der Hebel für eine Voxel-Bereinigung.
+
+---
+
+## 7. Learnings 1D-Druckversuch JM-25-71 (21.10.2026, für alle Agenten)
+
+Einstieg Ergebnisse: `compression_jobs/ergebnisse/` — `kennwerte_druck_71.md/.csv`, `INTERPRETATION_Diskrepanz_druck_71_20261021.md`,
+`druck_71_vs_versuch.png` (Skript `plot_druck_vs_versuch.py`). Protokoll: `CLAUDE_PROJECT_NOTES.md` 20./21.10.2026.
+
+**Modell/Randbedingung**
+- Nur zwei Plattenbänder ⊥ Lastachse (Schalendicke > 0 nur dort), Seitenflächen frei. Dirichlet u = ε·x auf dem ganzen Plattenband,
+  ε = diag(nur Lastachse) → Querverschiebung der Platten = 0 = **haftende Platten**. Gleitende Platten gibt es (noch) nicht.
+- Nennspannung = Volumenmittel `sigma_avg_reduced_volume[a][a]`, normiert auf das Quadervolumen inkl. Poren (= F/A).
+  Die Reaktionskraft in `*_graphs.txt` ist die Eigenspannung der zwangsverschobenen Platte — **nie verwenden** (auch nicht in 017-Produktionsläufen).
+- Querspannungen im Volumenmittel 0,09–0,14 der Axialspannung kommen ausschließlich aus der Plattenhaftung (Satz von der mittleren
+  Spannung: Seiten und Poren lastfrei). Kriterium ≤ 0,05 ist mit diesem Modell nicht erreichbar — kein Laufehler.
+- Dichten: x-Netz 0,1891 (reduced_volume_material 1203,6 mm³, A 342,68 mm²), y-Netz 0,1888 (1176,2 mm³, A 340,34 mm², L 19,506 mm).
+  KUBC-Produktionsnetz 0,1768. Beim Vergleich immer nennen.
+
+**Läufe/Numerik**
+- Mit neuem Template laufen alle y-Läufe in **einem** 24-h-Glied durch (6,8–9,7 h, ≈ 105 Schritte); x/180 ebenso (10,2 h). x/75 und x/100
+  (alte Template-Kopie, Start 20.10. 15:40) brauchen Walltime-Restart.
+- Ketten: Ist Glied 1 ok, werden Glieder 2 (afternotok) von Slurm CANCELLED; dadurch startet Glied 3, erkennt den fertigen Lauf, kopiert
+  Ergebnisse erneut und endet nach < 15 s mit Exit 0. Harmlos, nichts tun.
+- Letzte Historienzeile liegt bei 2,475–2,498 % (letzter Schritt schießt über total_time 0,1); `sigma_at_2.5pct` = nan → σ_end mit ε_end angeben.
+- Newton max. 7–9 (Grenze 12); dt-Halbierungen 0–14 je Lauf; `.err` enthält nur die harmlose Apptainer-chdir-Warnung.
+
+**Auswertung**
+- Rp0,2-Vorschrift = Versuchsauswertung (E Regression 10–40 % σ_max, 0,2-%-Parallele). Rp0,2 ist robust gegen E: E₀ statt E_10_40 −0,5 %,
+  Versuchs-E 1760 statt ≈ 3900 +5…+11 %. E_10_40 liegt 3–7 % unter E₀ (Plastizität im Fenster).
+- σ̄_1D ∝ σ_y^m mit m = 0,88–0,90 (KUBC 0,93). 1D/KUBC: Rp0,2 0,62–0,68, σ(1 %) 0,70–0,78 (roh); x/y = 1,10 bei gleicher Dichte.
+- Rückgerechnetes σ_y,eff (ideal plastisch) für Versuch 71: 136–153 (Rp0,2), 150–168 (σ 1 % ↔ Plateau), 159–177 MPa (σ_max).
+- Interpretation in Kürze: KUBC → Versuch ist hauptsächlich Randbedingung (Faktor 1,4–1,8); 1D-FEM und A01-FFT stimmen auf ±10 %;
+  der Rest zum Versuch ist fehlende Materialverfestigung (σ_y,0 ≈ 100 + Verfestigung ≈ σ_y,eff 150–180). KUBC-Fläche nicht neu rechnen.
+
+**Werkzeug/Transfer**
+- Cluster nur per `ssh -o BatchMode=yes lcluster13.hrz.tu-darmstadt.de 'bash -lc "…"'`; im Doppelquote-Block `\$HPC_SCRATCH`, `\$USER` escapen.
+  ControlMaster steht in `~/.ssh/config`. Banner/PQ-Warnung am Anfang jeder Ausgabe ignorieren.
+- `scp` auf dem Mac (SFTP-Modus) expandiert `{a,b}` im Remote-Pfad nicht → Dateien einzeln holen.
+- Repo-`.gitignore` ignoriert `*.csv`/`*.png` → Ergebnisdateien in `compression_jobs/ergebnisse/` mit `git add -f` aufnehmen (klein halten, keine H5/XDMF).

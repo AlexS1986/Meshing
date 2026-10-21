@@ -13,6 +13,7 @@ Kurven: `druck_71_y.png`; Rohdaten und CSV je Lauf in `druck<a>_sigy<XXX>/`; Tab
 | x / 100 | 55498720 | laeuft (1,64 % um 09:00) | | | | | | | |
 | x / 180 | 55498717 | 4027 | 9,88 (0,45 %) | 10,12 | 11,28 | 11,60 | 12,23 | 12,53 (2,48 %) | 0,123 |
 
+Rp0,2-Vorschrift wie Versuchsauswertung; mit E0 statt E_10_40 -0,5 %, mit Versuchs-E 1760 +5 % (75) bis +11 % (180).
 sigma bei genau 2,5 % liegt nicht vor (letzter Schritt 2,475-2,498 %); Steigung zuletzt 30-60 MPa -> Unterschied zu sig_end < 0,01 MPa.
 Alle Kurven monoton steigend (ideal plastisches Grundmaterial, Verfestigung nur strukturell).
 
@@ -45,3 +46,5 @@ ist das Volumenmittel der Querspannung = Moment der Schubtraktionen an den Platt
 Konsequenz: der Versuch ist "1D mit haftenden Platten" (wie ein Versuch ohne Schmierung), nicht einachsig im strengen Sinn.
 Der axiale Kennwert ist dadurch eher etwas ueberschaetzt (Querdruck ~ 10-14 % der Axialspannung in der Platten-Naehe).
 Offener Punkt: Plattenmodell mit Gleitlagerung (nur u_a vorgegeben) als Gegenprobe — nur nach Entscheidung des Nutzers.
+
+Interpretation und Empfehlungen: `INTERPRETATION_Diskrepanz_druck_71_20261021.md`; Ueberlagerung mit dem Versuch: `druck_71_vs_versuch.png`.

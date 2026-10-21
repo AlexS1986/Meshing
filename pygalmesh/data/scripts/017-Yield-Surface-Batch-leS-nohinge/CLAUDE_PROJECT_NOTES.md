@@ -701,3 +701,14 @@ Aenderungen (Sicherungen `*.vor_druck_20261020`, volle Schale = Verhalten wie bi
 - Kleinigkeit: Legende im Plot zeigt den Elternordnernamen ("ergebnisse") statt des Laufs (Label aus dem Pfad) — kosmetisch, nicht geaendert.
 - Offen: x/75 und x/100 (Glieder 1 bis ~15:25, Historie dann im JSON; Glieder 2 55498715/55498721 setzen fort).
 - `.gitignore` der Repo-Wurzel ignoriert `*.csv`/`*.png` -> Ergebnis-CSVs und `druck_71_y.png` in `compression_jobs/ergebnisse/` mit `git add -f` aufgenommen.
+
+**10:40 — Block 3: Klärung Randbedingung, Rp0,2-Vorschrift, Interpretation, Learnings.** Nichts abgebrochen, nichts eingereicht.
+- Nutzerfragen beantwortet in `compression_jobs/ergebnisse/INTERPRETATION_Diskrepanz_druck_71_20261021.md`:
+  (1) „Behinderung der Querdehnung" = Haftung an den beiden Platten ⊥ Last (u_quer = 0 auf dem Plattenband); parallel zur Last keine Platten
+  (geprueft: Config thicknesses x/z = 0, Log dirichlet_faces nur y). (2) Rp0,2 wie Versuch (E 10–40 % σ_max, 0,2-%-Parallele); robust gegen E
+  (E₀: −0,5 %, Versuchs-E 1760: +5…+11 %). (3) Interpretation: KUBC→1D Randbedingung (Faktor 1,4–1,8), 1D-FEM ≈ A01-FFT (±10 %),
+  Versuch braucht σ_y,eff 136–177 MPa (ideal plastisch) = σ_y,0 ~100 + Verfestigung; σ̄_1D ∝ σ_y^0,88–0,90. KUBC-Fläche nicht neu rechnen;
+  Vorschlag (Entscheidung Nutzer): 1D-Lauf mit Verfestigung H (σ_y 100) und ggf. Gleitplatten-Lauf.
+- Neu: `ergebnisse/plot_druck_vs_versuch.py` → `druck_71_vs_versuch.png` (Versuch 71 MTS-korrigiert gegen 1D-Kurven, KUBC-/FFT-Linien).
+- Learnings fuer andere Agenten: `CLAUDE.md` Abschnitt 7; Kurzfassung im Publikationsordner `decisions_log.md` Nachtrag 21.10. (34).
+- Check x/75, x/100 fuer 15:43 eingeplant (Session-Cron, Nutzer-Freigabe).
