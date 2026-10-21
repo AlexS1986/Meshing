@@ -743,3 +743,9 @@ Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_
   Querschnitt 340,34, reduced_volume_material 1176,22 (wie y-Netz), kein MUMPS-Fehler/Traceback, `.err` nur Apptainer-Warnung,
   Newton max. 6 nach 12 Schritten. Stand 0,21 %: sig_yy 5,20 MPa (ideal sigy100 bei 0,20 %: 4,72).
 - x/75 bei 0,875 %, x/100 bei 1,775 % (Glieder 1, Walltime-Stopp ~15:25).
+
+**10:46 — Status.** Alles laeuft, keine Fehler.
+- x/75 (55498714) 0,894 %, x/100 (55498720) 1,825 % nach 19:06 h; Glieder 2/3 PENDING (Dependency), Walltime-Stopp ~15:25.
+- sigy100h2000 (55505395) nach 1:02 h bei 0,438 % (21 Schritte, Newton max. 6, keine dt-Halbierung, kein Traceback/MUMPS):
+  sig_yy 6,55 MPa gegen ideal sigy100 5,48 und Versuch (MTS korr.) 5,83 bei gleicher Stauchung -> liegt schon ueber dem Versuch
+  (Versuch hat flacheren Anstieg/Belastungsmodul 1760); Gesamtbild erst mit der vollen Kurve bewerten.
