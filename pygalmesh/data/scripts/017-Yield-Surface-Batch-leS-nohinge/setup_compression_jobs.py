@@ -22,6 +22,8 @@ Erzeugt im Projektordner:
 Aufruf (Mac oder Login-Node, im Projektordner):
   python3 setup_compression_jobs.py --dataset JM-25-71 --sig-y 75 180
   python3 setup_compression_jobs.py --dataset JM-25-71 --sig-y 75 100 180 --target-strain 0.025 --chain 3
+  Variante mit linearer isotroper Verfestigung (sigma = sig_y + H*alpha), eigenes Lauf-/Jobverzeichnis, gleiches Netz:
+  python3 setup_compression_jobs.py --dataset JM-25-71 --axis y --sig-y 100 --hard 2000 --variant h2000
 """
 import argparse
 import json
@@ -54,8 +56,15 @@ def main():
     ap.add_argument("--job-time", default="1440")
     ap.add_argument("--exclude-nodes", default="",
                     help="SBATCH --exclude, z.B. mpsd0138,mpsd0319 (leer = keiner)")
+    ap.add_argument("--hard", type=float, default=None,
+                    help="lineare isotrope Verfestigung H [MPa] (sigma = sig_y + H*alpha); Default: Wert der Basis-Config (0)")
+    ap.add_argument("--variant", default="",
+                    help="Namenszusatz fuer Label/Jobordner/Submit-Skript, z.B. h2000 (Pflicht mit --hard, damit nichts ueberschrieben wird)")
     ap.add_argument("--project-dir", default=None)
     a = ap.parse_args()
+    if a.hard is not None and not a.variant:
+        ap.error("--hard braucht --variant (sonst wuerden Configs/Jobordner der Laeufe ohne Verfestigung ueberschrieben)")
+    vtag = f"-{a.variant}" if a.variant else ""
 
     project_dir = Path(a.project_dir).resolve() if a.project_dir else Path(__file__).resolve().parent
     tag = f"druck{a.axis}"
@@ -99,7 +108,7 @@ def main():
     ]
 
     for sig in a.sig_y:
-        sig_tag = f"{int(round(sig)):03d}"
+        sig_tag = f"{int(round(sig)):03d}" + (a.variant if a.variant else "")
         cfg = json.loads(json.dumps(base).replace(old_id, new_id))
         cfg["dataset"]["id"] = new_id
         cfg["binning"]["label"] = f"leS-r{a.reduce}-{tag}-sigy{sig_tag}"
@@ -119,6 +128,8 @@ def main():
                            "ueberspringen Flaechen mit Dicke 0).")
         ys = cfg["yield_surface"]
         ys["material_sets"]["std"]["sig_y"] = float(sig)
+        if a.hard is not None:
+            ys["material_sets"]["std"]["hard"] = float(a.hard)
         ys["materials"] = ["std"]
         ys["loading_directions"] = [a.axis]
         eps = [0.0, 0.0, 0.0]
@@ -142,7 +153,9 @@ def main():
             "change": (f"1D-Druckversuch {a.axis}: Schale nur {a.axis}-Platten, haftende Platten (u = eps.x), "
                        f"Seitenflaechen frei, sig_y = {sig:g}, total_time = {total_time:g} "
                        f"(|eps| = {a.target_strain:g}), Kriterien nicht blockierend, "
-                       f"Snapshots alle {a.snapshot_strain_interval:g} Dehnung (setup_compression_jobs.py)"),
+                       f"Snapshots alle {a.snapshot_strain_interval:g} Dehnung"
+                       + (f", Verfestigung H = {a.hard:g} MPa (Variante {a.variant})" if a.hard is not None else "")
+                       + " (setup_compression_jobs.py)"),
         })
         cfg_name = f"config-{a.dataset}-r{a.reduce}-{tag}-sigy{sig_tag}.json"
         (project_dir / cfg_name).write_text(json.dumps(cfg, indent=2) + "\n")
@@ -186,7 +199,7 @@ def main():
         print(f"{combo}: {cfg_name}, {rel}/  (total_time {total_time:g} -> |eps| {a.target_strain:g})")
 
     submit += ['echo "Status: squeue -u $USER   Logs: $P/compression_jobs/*/*/"']
-    sp = jobs_root / f"submit_compression_{tag}_CLUSTER.sh"
+    sp = jobs_root / f"submit_compression_{tag}{vtag}_CLUSTER.sh"
     sp.write_text("\n".join(submit) + "\n")
     sp.chmod(0o755)
     print(f"Netz-Config der Vorbereitung: {mesh_cfg_name} (dataset.id {new_id})")

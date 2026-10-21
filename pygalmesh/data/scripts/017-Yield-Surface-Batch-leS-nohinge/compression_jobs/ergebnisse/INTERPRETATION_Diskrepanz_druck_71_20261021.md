@@ -1,6 +1,6 @@
 # Interpretation: KUBC ↔ 1D-FEM ↔ A01-FFT ↔ Versuch (JM-25-71)
 
-Stand 21.10.2026, ~10:30. Grundlage: 1D-Druckläufe y/75, y/100, y/180, x/180 (fertig). x/75 und x/100 laufen noch
+Stand 21.10.2026, 09:19. Grundlage: 1D-Druckläufe y/75, y/100, y/180, x/180 (fertig). x/75 und x/100 laufen noch
 (Ergebnis ab 21.10. ~15:40). Zahlen: `kennwerte_druck_71.md/.csv`; Bild: `druck_71_vs_versuch.png` (Skript `plot_druck_vs_versuch.py`).
 
 ## 1. Randbedingung des 1D-Modells (Klarstellung)

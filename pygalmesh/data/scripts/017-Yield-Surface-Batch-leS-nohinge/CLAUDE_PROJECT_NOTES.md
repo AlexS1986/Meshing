@@ -680,7 +680,7 @@ Aenderungen (Sicherungen `*.vor_druck_20261020`, volle Schale = Verhalten wie bi
   Vermutung: haftende Platten (u = eps.x auf dem Plattenband, Querdehnung an den Platten behindert) -> Volumenmittel enthaelt
   Querdruck aus den plattennahen Schichten. Bei der Auswertung pruefen (Verlauf ueber eps, nicht nur Endwert).
 
-**09:35 — Block 2: Auswertung (Aufgabe 3) y/75, y/100, y/180, x/180.** Nichts abgebrochen, nichts eingereicht.
+**09:03 — Block 2: Auswertung (Aufgabe 3) y/75, y/100, y/180, x/180.** Nichts abgebrochen, nichts eingereicht.
 - Per scp nach `compression_jobs/ergebnisse/druck<a>_sigy<XXX>/` geholt: `_averages.txt` (y), `yield_averages_*.json`, `yield_run_*.json`, `*_log.txt`
   (zusammen ~0,8 MB). Hinweis: scp auf dem Mac (SFTP-Modus) expandiert `{a,b}` im Remote-Pfad nicht -> Dateien einzeln holen.
 - Lokal ausgewertet (`python3 evaluate_compression_run.py --axis y … --plot ergebnisse/druck_71_y.png`; x/180 aus dem JSON).
@@ -702,7 +702,7 @@ Aenderungen (Sicherungen `*.vor_druck_20261020`, volle Schale = Verhalten wie bi
 - Offen: x/75 und x/100 (Glieder 1 bis ~15:25, Historie dann im JSON; Glieder 2 55498715/55498721 setzen fort).
 - `.gitignore` der Repo-Wurzel ignoriert `*.csv`/`*.png` -> Ergebnis-CSVs und `druck_71_y.png` in `compression_jobs/ergebnisse/` mit `git add -f` aufgenommen.
 
-**10:40 — Block 3: Klärung Randbedingung, Rp0,2-Vorschrift, Interpretation, Learnings.** Nichts abgebrochen, nichts eingereicht.
+**09:19 — Block 3: Klärung Randbedingung, Rp0,2-Vorschrift, Interpretation, Learnings.** Nichts abgebrochen, nichts eingereicht.
 - Nutzerfragen beantwortet in `compression_jobs/ergebnisse/INTERPRETATION_Diskrepanz_druck_71_20261021.md`:
   (1) „Behinderung der Querdehnung" = Haftung an den beiden Platten ⊥ Last (u_quer = 0 auf dem Plattenband); parallel zur Last keine Platten
   (geprueft: Config thicknesses x/z = 0, Log dirichlet_faces nur y). (2) Rp0,2 wie Versuch (E 10–40 % σ_max, 0,2-%-Parallele); robust gegen E
@@ -712,3 +712,21 @@ Aenderungen (Sicherungen `*.vor_druck_20261020`, volle Schale = Verhalten wie bi
 - Neu: `ergebnisse/plot_druck_vs_versuch.py` → `druck_71_vs_versuch.png` (Versuch 71 MTS-korrigiert gegen 1D-Kurven, KUBC-/FFT-Linien).
 - Learnings fuer andere Agenten: `CLAUDE.md` Abschnitt 7; Kurzfassung im Publikationsordner `decisions_log.md` Nachtrag 21.10. (34).
 - Check x/75, x/100 fuer 15:43 eingeplant (Session-Cron, Nutzer-Freigabe).
+- (Korrektur: Blockzeiten 2/3 urspruenglich falsch als 09:35/10:40 notiert, richtig 09:03/09:19 = Commitzeiten.)
+
+**09:40 — Block 4: 1D-Lauf mit Verfestigung VORBEREITET (nicht eingereicht), Mail-Entwurf an Julian.**
+- `setup_compression_jobs.py` um `--hard H` (lineare isotrope Verfestigung, sigma = sig_y + H*alpha, alpha = plastische Vergleichsdehnung)
+  und `--variant <tag>` erweitert (Pflicht mit --hard; haengt den Tag an Label/Jobordner/Config/Submit-Skript, damit nichts ueberschrieben wird).
+  Sicherung `setup_compression_jobs.py.vor_hard_20261021` (nicht im Repo).
+- Erzeugt: `python3 setup_compression_jobs.py --dataset JM-25-71 --axis y --sig-y 100 --hard 2000 --variant h2000` ->
+  `config-JM-25-71-r4-drucky-sigy100h2000.json`, `compression_jobs/JM-25-71_drucky_sigy100h2000/ys_druck_y/` (Job JM-25-71_s100h2000-drucky),
+  `compression_jobs/submit_compression_drucky-h2000_CLUSTER.sh` (Netz y vorhanden -> kein Prep; Kette 3 Glieder, p0023647).
+  Diff zur Config sigy100: nur binning.label, history, material_sets.std.hard 0 -> 2000. Laufordner `yield_surface_runs/.../leS-r4-drucky-sigy100h2000/`.
+- Wahl H = 2000 MPa: AlSi10Mg Guss (DIN EN 1706, EN AC-43000 Kokille F, Mindestwerte Rp0,2 90 / Rm 180 MPa, A 2,5 %; typische Werte hoeher)
+  -> von sig_y,0 = 100 auf ~ 200 MPa ueber ~ 5 % plastische Vergleichsdehnung. Werte vor Verwendung im Paper belegen.
+  Erwartung (grob): alpha_avg_material am Ende von y/100 ideal 0,0086 -> mittlere Zusatzspannung nur ~ +17 MPa, lokal mehr; der Lauf wird
+  das Versuchsmaximum 11,2 vermutlich NICHT erreichen (ideal braucht sig_y,eff ~ 177). Er zeigt, ob gusstypische Verfestigung die Kurvenform
+  (runder Uebergang) erklaert und wie viel vom Abstand sie traegt. Weitere H-Werte: gleicher Aufruf mit anderem --hard/--variant.
+- Einreichen (nur nach Freigabe): Mac push -> Cluster `git pull` + `SKIP_GENERATE=1 …/batch_create_folders_CLUSTER.sh` ->
+  `DRY_RUN=1 $S017/compression_jobs/submit_compression_drucky-h2000_CLUSTER.sh`, dann ohne DRY_RUN.
+- Mail-Entwurf an Julian (A01): Publikationsordner `emails/entwurf_mail_julian_druckversuch_1D_20261021.txt` (Versand durch Nutzer).

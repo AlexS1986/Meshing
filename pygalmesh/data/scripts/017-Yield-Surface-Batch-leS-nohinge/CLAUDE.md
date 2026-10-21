@@ -195,4 +195,6 @@ Einstieg Ergebnisse: `compression_jobs/ergebnisse/` — `kennwerte_druck_71.md/.
 - Cluster nur per `ssh -o BatchMode=yes lcluster13.hrz.tu-darmstadt.de 'bash -lc "…"'`; im Doppelquote-Block `\$HPC_SCRATCH`, `\$USER` escapen.
   ControlMaster steht in `~/.ssh/config`. Banner/PQ-Warnung am Anfang jeder Ausgabe ignorieren.
 - `scp` auf dem Mac (SFTP-Modus) expandiert `{a,b}` im Remote-Pfad nicht → Dateien einzeln holen.
+- Varianten mit Verfestigung: `setup_compression_jobs.py … --hard H --variant h<H>` (eigene Ordner/Configs, gleiches Netz). Vorbereitet:
+  `JM-25-71_drucky_sigy100h2000` (sig_y 100, H 2000), Submit `compression_jobs/submit_compression_drucky-h2000_CLUSTER.sh` — Einreichen nur nach Freigabe.
 - Repo-`.gitignore` ignoriert `*.csv`/`*.png` → Ergebnisdateien in `compression_jobs/ergebnisse/` mit `git add -f` aufnehmen (klein halten, keine H5/XDMF).

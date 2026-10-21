@@ -1,6 +1,6 @@
 # Kennwerte 1D-Druckversuch JM-25-71 (Studie 017, r4, freie Seitenflaechen, haftende Platten)
 
-Stand 21.10.2026 ~09:30. Nennspannung = Volumenmittel sigma_aa ueber das reduzierte Volumen (`_averages.txt` bzw. `yield_averages_std_x.json`),
+Stand 21.10.2026 09:03. Nennspannung = Volumenmittel sigma_aa ueber das reduzierte Volumen (`_averages.txt` bzw. `yield_averages_std_x.json`),
 ausgewertet mit `evaluate_compression_run.py` (E = Sekante 10-40 % von sigma_max). Werte in MPa, Dehnung = Plattenstauchung.
 Kurven: `druck_71_y.png`; Rohdaten und CSV je Lauf in `druck<a>_sigy<XXX>/`; Tabelle maschinenlesbar in `kennwerte_druck_71.csv`.
 
