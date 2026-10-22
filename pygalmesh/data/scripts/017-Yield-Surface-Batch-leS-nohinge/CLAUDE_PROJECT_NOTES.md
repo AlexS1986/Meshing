@@ -793,3 +793,5 @@ Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_
   JSON geholt, Kennwerte unveraendert gegenueber Glied 1 bis 2,26 %, σ_end 7,46 MPa bei 2,48 %, quer/axial 0,131. Tabelle/CSV/Plot aktualisiert.
   x/75 (Glied 2 55498715) um 09:25 bei 1,93 %, Walltime-Stopp ~15:10 -> Glied 3 (55498716) noetig fuer den Rest bis 2,5 %.
 - x-Verfestigungslauf: Sync + Dry-Run ok (Netz x vorhanden, kein Prep). Einreichen wartet auf Freigabe.
+- **09:16 x-Verfestigungslauf EINGEREICHT (Freigabe Nutzer, p0023647):** JM-25-71_druckx_sigy100h2000 (σ_y 100, H 2000): Glied 1 55528156,
+  Glied 2 55528157, Glied 3 55528158 (afternotok-Kette). Glied 1 um 09:16 PENDING (None).
