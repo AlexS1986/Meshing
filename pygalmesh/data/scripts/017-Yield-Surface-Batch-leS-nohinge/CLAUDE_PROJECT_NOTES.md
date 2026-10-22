@@ -795,3 +795,6 @@ Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_
 - x-Verfestigungslauf: Sync + Dry-Run ok (Netz x vorhanden, kein Prep). Einreichen wartet auf Freigabe.
 - **09:16 x-Verfestigungslauf EINGEREICHT (Freigabe Nutzer, p0023647):** JM-25-71_druckx_sigy100h2000 (σ_y 100, H 2000): Glied 1 55528156,
   Glied 2 55528157, Glied 3 55528158 (afternotok-Kette). Glied 1 um 09:16 PENDING (None).
+- **09:23 Erstkontrolle 55528156** (laeuft seit ~09:16 auf mpsd0029): `sig_y: 100.0, hard: 2000.0`, dirichlet_faces ['x_min','x_max'], A 342,68,
+  reduced_volume_material 1203,64, kein MUMPS/Traceback, `.err` nur Apptainer-Warnung, Newton max. 6 nach 3 Schritten, E0 = 4165 MPa (wie x/180).
+  Erwartete Laufzeit 5–6 h (y-Pendant 5:17 h).
