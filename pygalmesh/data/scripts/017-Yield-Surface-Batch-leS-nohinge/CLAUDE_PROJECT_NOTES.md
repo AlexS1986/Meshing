@@ -777,3 +777,15 @@ Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_
   (lineare Verfestigung ohne Saettigung, 219 MPa Steigung; Versuch flacht zum Max. 11,2 bei 3,1 % ab). Rp0,2 (E0) 6,16, mit E 1760: 7,26 (Versuch 7,7).
   E_10_40 = 2551 ist Artefakt (Fenster reicht in den Fliessbereich). Vorbehalte: y (x +11 %), Dichte 0,189 vs ~0,20, haftende Platten.
 - Ergebnisse: `kennwerte_druck_71.md/.csv` ergaenzt, `druck_71_vs_versuch.png` mit x/75, x/100, h2000 und neuer FFT-Linie (5,26).
+
+## 22.10.2026 — Druckversuche, Fortsetzung
+**09:20 — DIC-Check Tonnenform, x-Verfestigungslauf vorbereitet.**
+- DIC-Videos JM-25-71 (Hauptdehnung 1, 1 Bild je Schritt) mit ffmpeg ausgewertet, Ablage Publikationsordner
+  `AlSi10MgSchaeumeDruckversucheelasto-plastisch/Auswertung_Claude_20261020/DIC_Tonnenform_Check_20261022.md` (+ 3 Bilder).
+  Ergebnis: bis ~3 % nicht aufloesbar (Farbskala 0–150 mstrain, Kontur ±0,1–0,15 mm); auch bei ~10 % keine messbare Ausbauchung
+  (Querdehnung des Schaums klein, zerdrueckender Schaum) -> wenig Reibung reicht zum Haften (stuetzt „eher haftend"), Querbehinderung im
+  Versuch aber vermutlich schwaecher als im FEM. Quetschband nach dem Maximum an der bewegten Platte. Quantitativ nur mit DIC-Rohdaten (Sven).
+- Vorbereitet (nicht eingereicht): `python3 setup_compression_jobs.py --dataset JM-25-71 --axis x --sig-y 100 --hard 2000 --variant h2000`
+  -> `config-JM-25-71-r4-druckx-sigy100h2000.json`, `compression_jobs/JM-25-71_druckx_sigy100h2000/ys_druck_x/`,
+  `compression_jobs/submit_compression_druckx-h2000_CLUSTER.sh`. Diff zur Config druckx-sigy100: nur label, history, hard 0 -> 2000.
+  Zweck: x ist bei gleichem σ_y 11 % fester als y; zeigt, ob H 2000 in x ueber dem Versuch liegt (Klammer fuer H).
