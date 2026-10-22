@@ -789,3 +789,7 @@ Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_
   -> `config-JM-25-71-r4-druckx-sigy100h2000.json`, `compression_jobs/JM-25-71_druckx_sigy100h2000/ys_druck_x/`,
   `compression_jobs/submit_compression_druckx-h2000_CLUSTER.sh`. Diff zur Config druckx-sigy100: nur label, history, hard 0 -> 2000.
   Zweck: x ist bei gleichem σ_y 11 % fester als y; zeigt, ob H 2000 in x ueber dem Versuch liegt (Klammer fuer H).
+- Nebenbefund: **x/100 fertig** — Glied 2 55498721 COMPLETED 0:0 am 21.10. 18:02 nach 2:50 h (t = 0,1 erreicht, letzte Zeile 2,475 %), Glied 3 55498722 CANCELLED (harmlos).
+  JSON geholt, Kennwerte unveraendert gegenueber Glied 1 bis 2,26 %, σ_end 7,46 MPa bei 2,48 %, quer/axial 0,131. Tabelle/CSV/Plot aktualisiert.
+  x/75 (Glied 2 55498715) um 09:25 bei 1,93 %, Walltime-Stopp ~15:10 -> Glied 3 (55498716) noetig fuer den Rest bis 2,5 %.
+- x-Verfestigungslauf: Sync + Dry-Run ok (Netz x vorhanden, kein Prep). Einreichen wartet auf Freigabe.

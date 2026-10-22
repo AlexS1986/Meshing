@@ -11,7 +11,7 @@ RUNS = [("y, σ_y 75", "drucky_sigy075/elastoplastic_std_y_averages.txt.csv", "C
         ("y, σ_y 180", "drucky_sigy180/elastoplastic_std_y_averages.txt.csv", "C2", "-"),
         ("x, σ_y 180", "druckx_sigy180/yield_averages_std_x.json.csv", "C2", "--"),
         ("x, σ_y 75 (Glied 1)", "druckx_sigy075/glied1_restart_meta_elastoplastic_std_x.json.csv", "C0", "--"),
-        ("x, σ_y 100 (Glied 1)", "druckx_sigy100/glied1_restart_meta_elastoplastic_std_x.json.csv", "C1", "--"),
+        ("x, σ_y 100", "druckx_sigy100/yield_averages_std_x.json.csv", "C1", "--"),
         ("y, σ_y 100 + H 2000", "drucky_sigy100h2000/elastoplastic_std_y_averages.txt.csv", "C3", "-")]
 KUBC = {75: 6.40, 100: 8.41, 180: 14.5}
 fig, ax = plt.subplots(figsize=(7, 4.5))
