@@ -162,7 +162,7 @@ Details, Optionen und Diagnose: `LES_PIPELINE.md`.
 
 ## 7. Learnings 1D-Druckversuch JM-25-71 (21.10.2026, für alle Agenten)
 
-Einstieg Ergebnisse: `compression_jobs/ergebnisse/` — `kennwerte_druck_71.md/.csv`, `INTERPRETATION_Diskrepanz_druck_71_20261021.md`,
+Einstieg Ergebnisse: `compression_jobs/ergebnisse/` — **`BERICHT_druck_71_20261023.md`**, `kennwerte_druck_71.md/.csv`, `INTERPRETATION_Diskrepanz_druck_71_20261021.md`,
 `druck_71_vs_versuch.png` (Skript `plot_druck_vs_versuch.py`). Protokoll: `CLAUDE_PROJECT_NOTES.md` 20./21.10.2026.
 
 **Modell/Randbedingung**
@@ -184,6 +184,8 @@ Einstieg Ergebnisse: `compression_jobs/ergebnisse/` — `kennwerte_druck_71.md/.
   (`averaged_history`) und ist direkt mit `evaluate_compression_run.py` auswertbar. Restart x/75, x/100 ohne Sprung.
 - Verfestigende Läufe: `E_10_40` aus evaluate_compression_run.py ist unbrauchbar (Fenster 10–40 % σ_max reicht in den Fließbereich) → E0 (erster Schritt) nehmen.
 - σ_y 100 + H 2000 (y, haftend) trifft den Versuch 71 zwischen 0,5 und 2 % auf ±5 %, steigt danach zu steil (lineare Verfestigung ohne Sättigung).
+- x mit σ_y 100 + H 2000: 1–2 % auf +3…+8 %, Rp0,2 (E 1760) 7,85 gegen 7,7; x/y mit Verfestigung nur 1,04–1,07. **Alle 9 Läufe fertig (23.10.), ≈ 3940 Kernstunden.**
+  Abschlussbericht: `compression_jobs/ergebnisse/BERICHT_druck_71_20261023.md` (inkl. Empfehlung, was für eine Anfangsfließfläche noch fehlt).
 - Letzte Historienzeile liegt bei 2,475–2,498 % (letzter Schritt schießt über total_time 0,1); `sigma_at_2.5pct` = nan → σ_end mit ε_end angeben.
 - Newton max. 7–9 (Grenze 12); dt-Halbierungen 0–14 je Lauf; `.err` enthält nur die harmlose Apptainer-chdir-Warnung.
 

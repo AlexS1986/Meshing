@@ -808,3 +808,8 @@ Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_
   x/y mit H 2000 nur 1,04–1,07. -> σ_y 100 + H 2000 trifft den Versuch in beiden Richtungen zwischen 1 und 2 % auf +3…+8 %, ab 2 % zu steil.
 - Ergebnisse `ergebnisse/druckx_sigy075/`, `ergebnisse/druckx_sigy100h2000/` (JSONs, CSV), Tabelle/CSV/Plot aktualisiert.
 - Offen laut Handoff: Aufgabe 5 Abschlussbericht (Kennwerte x/y × 75/100/180 + H 2000, Verhaeltnisse 1D/KUBC, x/y, Kernstunden, offene Punkte).
+- **Abschlussbericht (Aufgabe 5):** `compression_jobs/ergebnisse/BERICHT_druck_71_20261023.md` — Kennwerte aller 8 Laeufe + Versuch, 1D/KUBC roh/korrigiert
+  (Rp0,2 0,62–0,71 / 0,55–0,63; σ1% 0,70–0,81 / 0,63–0,72), x/y 1,10–1,11 (mit H 1,04–1,07), m 0,88–0,90, FFT-Abgleich, Kernstunden ≈ 3940
+  (x ideal 2843, y ideal 764, H 323, Prep 5), offene Punkte. Empfehlung fuer die Anfangsfliessflaeche (A02): (1) 1D in z an 71 (Richtungsabhaengigkeit
+  des Randbedingungsfaktors), optional biaxial frei; (2) 1D fuer 83 und 88 mit σ_y 100 + H 2000 gegen deren Versuche (Uebertragbarkeit);
+  Grundsatzentscheidung Materialeigenschaft vs. Probenantwort. Nichts davon eingereicht.
