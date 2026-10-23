@@ -86,3 +86,28 @@ Interpretation und Empfehlungen: `INTERPRETATION_Diskrepanz_druck_71_20261021.md
 
   Rp0,2 x: 6,63 (E0 4165) bzw. **7,85 mit Versuchs-E 1760 (Versuch 7,7)**; y: 6,16 / 7,26. x/y mit Verfestigung nur 1,04–1,07
   (ideal plastisch 1,11). Beide Richtungen klammern den Versuch zwischen 1 und 2 %; ab ~2 % zu steil (lineare Verfestigung ohne Saettigung).
+
+## Nachtrag 23.10.2026 21:15 — Validierung an drei Proben (σ_y 100 + H 2000, y, haftende Platten)
+
+Läufe: JM-25-83 55576775 (6:46 h), JM-25-88 55576779 (5:06 h), beide Exit 0 bis 2,49 %, `.err` sauber; 384 Kernstunden inkl. Netzvorbereitung.
+Bild `validierung_3proben.png`, Zahlen `validierung_3proben.csv` (Skript `plot_validierung_3proben.py`).
+
+| Probe (ρ 1D-Netz) | σ(0,5 %) | σ(1 %) | σ(1,5 %) | σ(2 %) | σ(2,48 %) | Rp0,2 (E Versuch) |
+|---|---|---|---|---|---|---|
+| 71 y (0,189) | 6,82 / 6,32 | 8,49 / 8,70 | 9,80 / 9,90 | 10,97 / 10,61 | 12,02 / 11,02 | 7,26 / 7,74 |
+| 83 y (0,179) | 7,65 / 7,46 | 9,31 / 10,65 | 10,61 / 12,42 | 11,79 / 13,58 | 12,87 / 14,36 | 7,63 / 8,65 |
+| 88 y (0,206) | 9,69 / 8,12 | 11,69 / 11,35 | 13,28 / 13,00 | 14,73 / 14,05 | 16,05 / 14,72 | 10,00 / 10,24 |
+
+(Modell / Versuch in MPa.)
+
+Modell/Versuch zwischen 1 und 2 %:
+- **roh:** 71 0,98–1,03 · **83 0,85–0,87** · 88 1,02–1,05.
+- **Mit Korrektur des Vernetzungsverlusts** (Netz gegen Voxel im Auswertequader: 71 −4,3 %, 83 −5,7 %, 88 −0,2 %, `mesh_volume_r4.json`; ρ^1,75): 71 1,06–1,12 · 83 0,95–0,97 · 88 1,02–1,05. Rp0,2 dann 1,01 / 0,98 / 0,98.
+
+Die Korrektur ist eine Abschätzung: Die Verluste stammen von den KUBC-Netzen, das 1D-Netz enthält zusätzlich die Randlagen.
+
+Lesart:
+- Ein Parametersatz (σ_y,0 100 MPa, H 2000 MPa) trifft alle drei Proben im Bereich 1–2 % auf etwa ±5–12 % (roh −15 bis +5 %).
+- Der größte Ausreißer, 83, erklärt sich zu einem guten Teil durch den größeren Materialverlust beim Vernetzen. Den Rest kann die unbekannte Lastrichtung x/y erklären (71: 4–7 %).
+- Das Versuchsmaximum (71 bei 3,1 %, 83 bei 4,7 %, 88 bei ≈ 4 %) bildet das Modell weiterhin nicht ab: keine Sättigung, kein Knicken.
+- Am Anfang bis ≈ 0,5 % liegt das Modell über dem Versuch, weil der Versuchs-E (Belastungsmodul) niedriger ist.

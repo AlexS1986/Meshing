@@ -836,3 +836,8 @@ Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_
   Laeufe 55576775 (mpsd0135) und 55576779 (mpsd0116) RUNNING, sig_y 100 / hard 2000, dirichlet_faces ['y_min','y_max'], kein MUMPS/Traceback,
   `.err` sauber, Newton max. 6. Stand 14:51: 83 bei 0,09 % (7 Schritte), 88 bei 0,21 % (12 Schritte).
   Hinweis: 83 hat im 1D-Netz ρ 0,179 (71: 0,189), obwohl beide im KUBC-Netz 0,1768 hatten — Randlagen unterschiedlich dicht.
+- **21:15 — 83/88 fertig und ausgewertet.** 55576775 (83) COMPLETED 0:0 21:09 nach 6:46 h, 55576779 (88) COMPLETED 19:22 nach 5:06 h; Glieder 2 CANCELLED,
+  Glieder 3 Sekunden (harmlos); `.err` sauber; 384 Kernstunden (inkl. Prep). Modell/Versuch 1–2 % roh: 71 0,98–1,03, **83 0,85–0,87**, 88 1,02–1,05;
+  mit Vernetzungsverlust-Korrektur (ρ^1,75; 71 −4,3 %, 83 −5,7 %, 88 −0,2 %) 1,06–1,12 / 0,95–0,97 / 1,02–1,05; Rp0,2 korr. 1,01 / 0,98 / 0,98.
+  Neu: `ergebnisse/plot_validierung_3proben.py` → `validierung_3proben.png/.csv`; Daten `ergebnisse/JM-25-8{3,8}_drucky_sigy100h2000/`.
+  Nachtrag in `kennwerte_druck_71.md` und `BERICHT_druck_71_20261023.md`. Keine weiteren Laeufe eingereicht.

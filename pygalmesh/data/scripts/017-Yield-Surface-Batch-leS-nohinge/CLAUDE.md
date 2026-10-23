@@ -186,6 +186,9 @@ Einstieg Ergebnisse: `compression_jobs/ergebnisse/` — **`BERICHT_druck_71_2026
 - σ_y 100 + H 2000 (y, haftend) trifft den Versuch 71 zwischen 0,5 und 2 % auf ±5 %, steigt danach zu steil (lineare Verfestigung ohne Sättigung).
 - x mit σ_y 100 + H 2000: 1–2 % auf +3…+8 %, Rp0,2 (E 1760) 7,85 gegen 7,7; x/y mit Verfestigung nur 1,04–1,07. **Alle 9 Läufe fertig (23.10.), ≈ 3940 Kernstunden.**
   Abschlussbericht: `compression_jobs/ergebnisse/BERICHT_druck_71_20261023.md` (inkl. Empfehlung, was für eine Anfangsfließfläche noch fehlt).
+- **Validierung 83/88 (23.10.):** gleicher Parametersatz σ_y 100 + H 2000 (y, haftend): Modell/Versuch 1–2 % roh 71 0,98–1,03, 83 0,85–0,87, 88 1,02–1,05;
+  mit Vernetzungsverlust-Korrektur (ρ^1,75) 1,06–1,12 / 0,95–0,97 / 1,02–1,05. Bild `ergebnisse/validierung_3proben.png`. 1D-Netz-Dichten 0,189 / 0,179 / 0,206.
+  Submit-Skripte anderer Datensätze heißen `submit_compression_<ds>_<achse>[-<variante>]_CLUSTER.sh`.
 - Letzte Historienzeile liegt bei 2,475–2,498 % (letzter Schritt schießt über total_time 0,1); `sigma_at_2.5pct` = nan → σ_end mit ε_end angeben.
 - Newton max. 7–9 (Grenze 12); dt-Halbierungen 0–14 je Lauf; `.err` enthält nur die harmlose Apptainer-chdir-Warnung.
 
