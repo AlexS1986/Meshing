@@ -813,3 +813,15 @@ Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_
   (x ideal 2843, y ideal 764, H 323, Prep 5), offene Punkte. Empfehlung fuer die Anfangsfliessflaeche (A02): (1) 1D in z an 71 (Richtungsabhaengigkeit
   des Randbedingungsfaktors), optional biaxial frei; (2) 1D fuer 83 und 88 mit σ_y 100 + H 2000 gegen deren Versuche (Uebertragbarkeit);
   Grundsatzentscheidung Materialeigenschaft vs. Probenantwort. Nichts davon eingereicht.
+
+**23.10. ~14:30 — Validierung an JM-25-83 und JM-25-88 (Freigabe Nutzer: „wenn wichtig, bitte machen").**
+- Nutzer: Fliessflaeche = Materialeigenschaft im Bauteilinneren; KUBC als obere Schranke ist argumentierbar, keine untere Schranke rechnen;
+  moeglichst wenige weitere Simulationen. Entscheidung: nur die probenuebergreifende Pruefung (83, 88) rechnen, kein z- oder Biaxial-Lauf.
+- Basis-Configs `config-JM-25-8{3,8}-r4-sigy075.json` aus `projects/a02/auswertung_017/daten/` kopiert (md5 = Scratch-Produktion);
+  **nicht committet**, weil `$HOME/meshing` auf dem Cluster gleichnamige ungetrackte Dateien hat (git pull wuerde abbrechen).
+- `setup_compression_jobs.py`: (a) Prep-Config-Name enthaelt jetzt die Variante (vorher Verweis auf nicht existierende `…-sigy100.json`);
+  (b) Submit-Skript traegt den Datensatz im Namen, ausser JM-25-71 (vorher ueberschrieben sich Skripte verschiedener Datensaetze).
+- Erzeugt: `python3 setup_compression_jobs.py --dataset JM-25-8{3,8} --axis y --sig-y 100 --hard 2000 --variant h2000` -> eigene Netze
+  `JM-25-8{3,8}_les_r4_drucky` (Platten y 9 Voxel, x/z frei), Jobs `compression_jobs/JM-25-8{3,8}_drucky_sigy100h2000/`,
+  Submit `compression_jobs/submit_compression_JM-25-8{3,8}_drucky-h2000_CLUSTER.sh` (Prep + Kette). Lastachse y wie 71-Referenz
+  (Versuch: Last ⊥ z entlang einer 20-mm-Kante, x oder y unbekannt; bei 71 mit H 2000 x/y 1,04–1,07).

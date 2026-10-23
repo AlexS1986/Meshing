@@ -94,7 +94,7 @@ def main():
         "",
     ]
     # --- Netzvorbereitung (einmal je Datensatz/Achse) -------------------------
-    mesh_cfg_name = f"config-{a.dataset}-r{a.reduce}-{tag}-sigy{int(a.sig_y[0]):03d}.json"
+    mesh_cfg_name = f"config-{a.dataset}-r{a.reduce}-{tag}-sigy{int(round(a.sig_y[0])):03d}{a.variant}.json"  # erste erzeugte Config (mit Variante)
     subvol = base["02b_build_subvolume_arrays"]["subvolume_output_folder"].replace(old_id, new_id)
     submit += [
         f"# 1) Netz mit Schale nur in {a.axis} ({new_id}); uebersprungen, wenn dlfx_mesh.xdmf schon da ist",
@@ -199,7 +199,9 @@ def main():
         print(f"{combo}: {cfg_name}, {rel}/  (total_time {total_time:g} -> |eps| {a.target_strain:g})")
 
     submit += ['echo "Status: squeue -u $USER   Logs: $P/compression_jobs/*/*/"']
-    sp = jobs_root / f"submit_compression_{tag}{vtag}_CLUSTER.sh"
+    # Datensatz im Namen, sobald es nicht JM-25-71 ist (dessen Skripte wurden 20./21.10. ohne Datensatz benannt und eingereicht)
+    ds_tag = "" if a.dataset == "JM-25-71" else f"{a.dataset}_"
+    sp = jobs_root / f"submit_compression_{ds_tag}{tag}{vtag}_CLUSTER.sh"
     sp.write_text("\n".join(submit) + "\n")
     sp.chmod(0o755)
     print(f"Netz-Config der Vorbereitung: {mesh_cfg_name} (dataset.id {new_id})")
