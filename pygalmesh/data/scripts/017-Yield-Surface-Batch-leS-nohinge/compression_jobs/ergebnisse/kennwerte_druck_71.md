@@ -9,7 +9,7 @@ Kurven: `druck_71_y.png`; Rohdaten und CSV je Lauf in `druck<a>_sigy<XXX>/`; Tab
 | y / 75  | 55499944 | 3679 | 4,07 (0,31 %) | 4,34 | 4,70 | 4,83 | 5,11 | 5,26 (2,48 %) | 0,141 |
 | y / 100 | 55499950 | 3892 | 5,26 (0,34 %) | 5,58 | 6,07 | 6,23 | 6,59 | 6,77 (2,50 %) | 0,135 |
 | y / 180 | 55499947 | 3806 | 8,92 (0,43 %) | 9,18 | 10,20 | 10,49 | 11,09 | 11,38 (2,49 %) | 0,124 |
-| x / 75  | 55498714 (Glied 1, Stopp 1,09 %) | 3997 | 4,52 (0,31 %) | 4,81 | 5,21 | – | – | 5,31 (1,09 %) | 0,123 |
+| x / 75  | 55498714–716 (3 Glieder, fertig 22.10. 19:55) | 3997 | 4,52 (0,31 %) | 4,81 | 5,21 | 5,35 | 5,65 | 5,81 (2,49 %) | 0,135 |
 | x / 100 | 55498720 + 55498721 (fertig 21.10. 18:02) | 3956 | 5,86 (0,35 %) | 6,18 | 6,72 | 6,89 | 7,27 | 7,46 (2,48 %) | 0,131 |
 | x / 180 | 55498717 | 4027 | 9,88 (0,45 %) | 10,12 | 11,28 | 11,60 | 12,23 | 12,53 (2,48 %) | 0,123 |
 
@@ -70,3 +70,19 @@ Interpretation und Empfehlungen: `INTERPRETATION_Diskrepanz_druck_71_20261021.md
   Zwischen 0,5 und 2 % liegt der Lauf auf ±5 % am Versuch; danach steigt er weiter (Steigung 219 MPa, lineare Verfestigung ohne
   Saettigung), der Versuch flacht zum Maximum ab. Vorbehalte: y-Richtung (x waere ~11 % hoeher), Modelldichte 0,189 gegen Versuch ~0,20
   (+~10 %), Anfangsbereich durch E-Unterschied verschoben.
+
+## Nachtrag 23.10.2026 — alle Laeufe fertig; x / sigma_y 100 + H 2000
+
+- x/75 fertig (Glied 3 55498716, 22.10. 19:55, Exit 0), monoton, keine Restart-Spruenge.
+- **x / sigma_y 100 + H 2000 (55528156, fertig 22.10. 14:05 nach 4:49 h):**
+
+| Stauchung | y + H 2000 | x + H 2000 | Versuch | x / Versuch |
+|---|---|---|---|---|
+| 0,5 % | 6,82 | 7,29 | 6,32 | 1,15 |
+| 1,0 % | 8,49 | 8,96 | 8,70 | 1,03 |
+| 1,5 % | 9,80 | 10,28 | 9,90 | 1,04 |
+| 2,0 % | 10,97 | 11,46 | 10,61 | 1,08 |
+| 2,48 % | 12,02 | 12,53 | 11,02 | 1,14 |
+
+  Rp0,2 x: 6,63 (E0 4165) bzw. **7,85 mit Versuchs-E 1760 (Versuch 7,7)**; y: 6,16 / 7,26. x/y mit Verfestigung nur 1,04–1,07
+  (ideal plastisch 1,11). Beide Richtungen klammern den Versuch zwischen 1 und 2 %; ab ~2 % zu steil (lineare Verfestigung ohne Saettigung).

@@ -798,3 +798,13 @@ Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_
 - **09:23 Erstkontrolle 55528156** (laeuft seit ~09:16 auf mpsd0029): `sig_y: 100.0, hard: 2000.0`, dirichlet_faces ['x_min','x_max'], A 342,68,
   reduced_volume_material 1203,64, kein MUMPS/Traceback, `.err` nur Apptainer-Warnung, Newton max. 6 nach 3 Schritten, E0 = 4165 MPa (wie x/180).
   Erwartete Laufzeit 5–6 h (y-Pendant 5:17 h).
+
+## 23.10.2026 — alle 1D-Druckläufe fertig
+**13:37 — Status/Auswertung.** Keine Jobs mehr in der Queue. (Session-Check 22.10. 15:33 hat nicht gefeuert — Session war geschlossen.)
+- x/75: Glied 2 55498715 Exit 3 am 22.10. 14:40 (bei 2,22 %), Glied 3 55498716 COMPLETED 0:0 am 22.10. 19:55 nach 5:15 h (bis 2,49 %);
+  `.err` sauber, Newton max. 9, Kurve monoton. Endwerte: Rp0,2 4,52, σ1% 5,21, σ2% 5,65, σ_end 5,81 MPa; quer/axial 0,135.
+- x/σ_y100+H2000: 55528156 COMPLETED 0:0 am 22.10. 14:05 nach 4:49 h; Glied 2 CANCELLED, Glied 3 7 s (harmlos).
+  Gegen Versuch: 1 % 8,96/8,70, 1,5 % 10,28/9,90, 2 % 11,46/10,61, 2,48 % 12,53/11,02; Rp0,2 (E 1760) 7,85 gegen 7,7.
+  x/y mit H 2000 nur 1,04–1,07. -> σ_y 100 + H 2000 trifft den Versuch in beiden Richtungen zwischen 1 und 2 % auf +3…+8 %, ab 2 % zu steil.
+- Ergebnisse `ergebnisse/druckx_sigy075/`, `ergebnisse/druckx_sigy100h2000/` (JSONs, CSV), Tabelle/CSV/Plot aktualisiert.
+- Offen laut Handoff: Aufgabe 5 Abschlussbericht (Kennwerte x/y × 75/100/180 + H 2000, Verhaeltnisse 1D/KUBC, x/y, Kernstunden, offene Punkte).
