@@ -826,3 +826,13 @@ Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_
   Submit `compression_jobs/submit_compression_JM-25-8{3,8}_drucky-h2000_CLUSTER.sh` (Prep + Kette). Lastachse y wie 71-Referenz
   (Versuch: Last ⊥ z entlang einer 20-mm-Kante, x oder y unbekannt; bei 71 mit H 2000 x/y 1,04–1,07).
 - **14:04 eingereicht (p0023647):** JM-25-83: Prep 55576774, Kette 55576775–777; JM-25-88: Prep 55576778, Kette 55576779–781 (afterok:Prep, afternotok).
+- **14:51 Erstkontrolle 83/88 — ok.** Preps COMPLETED (83: 19 min, 88: 12 min), `anchor_faces: y_min,y_max`, je 1 Komponente nach Filtern.
+  | | 83 | 88 |
+  |---|---|---|
+  | Netz | 5 032 068 Tets / 1 593 148 Knoten | 3 360 555 Tets / 968 995 Knoten |
+  | Querschnitt A (Probe: Pruefflaeche) | 345,16 mm² (361,0) | 292,89 mm² (300,35) |
+  | reduced_volume_material / box | 1144,93 / 6386,10 mm³ → **ρ_rel 0,1793** | 1114,04 / 5419,43 mm³ → **ρ_rel 0,2056** |
+  | E0 (erster Schritt) | 4227 MPa | 5358 MPa |
+  Laeufe 55576775 (mpsd0135) und 55576779 (mpsd0116) RUNNING, sig_y 100 / hard 2000, dirichlet_faces ['y_min','y_max'], kein MUMPS/Traceback,
+  `.err` sauber, Newton max. 6. Stand 14:51: 83 bei 0,09 % (7 Schritte), 88 bei 0,21 % (12 Schritte).
+  Hinweis: 83 hat im 1D-Netz ρ 0,179 (71: 0,189), obwohl beide im KUBC-Netz 0,1768 hatten — Randlagen unterschiedlich dicht.
