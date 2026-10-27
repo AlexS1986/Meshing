@@ -855,3 +855,6 @@ Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_
   `setup_H0_tests_CLUSTER.sh` (vorher teils nur ueber den Jobskript-Header). Druck-Skripte hatten schon p0023647. Regel in `CLAUDE.md` Abschnitt „Konto".
 - Cluster: Slurm-DefaultAccount von as12vapa = project02338 (nicht geaendert); keine Umgebungsvariablen JOB_ACCOUNT/SBATCH_ACCOUNT gesetzt.
 - Nicht angefasst: Ordner 015 (hat ebenfalls special00008-Defaults) und bereits erzeugte Jobskripte auf dem Scratch.
+- Nachtrag (Nutzer-Freigabe): Ordner **015** genauso umgestellt — config.sh JOB_ACCOUNT p0023647, Prep-Header `#SBATCH -A p0023647`,
+  setup_yield_surface_jobs.py/.sh `--job-account` p0023647, explizites `-A` in batch_submit, submit_les_pipeline, restart_dead_points,
+  resubmit_yield_surface_timeouts; Abschnitt „Konto" in 015/CLAUDE.md. Nur geaenderte Dateien committet, nichts eingereicht.

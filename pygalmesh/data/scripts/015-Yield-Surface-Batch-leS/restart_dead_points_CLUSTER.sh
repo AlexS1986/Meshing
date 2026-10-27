@@ -23,6 +23,7 @@
 #   ALPHA_THRESHOLD=<float> (Default 0.001)   TAG=r4
 # ---------------------------------------------------------------------------
 set -uo pipefail
+ACC="${JOB_ACCOUNT:-p0023647}"  # Konto immer explizit, nie l0003507 (Nutzerregel 27.10.2026)
 
 WORK="${YS_WORKDIR:-$HPC_SCRATCH/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS}"
 DRY_RUN="${DRY_RUN:-1}"
@@ -98,13 +99,13 @@ while IFS=$'\t' read -r combo sample job_script run_dir jsons res_dirs amax stra
   log_args=(--error="$sample_dir/%x.err.%j" --output="$sample_dir/%x.out.%j")
   exp="ALL"; [[ -n "$RESUME_DT" ]] && exp="ALL,YIELD_RESUME_DT=$RESUME_DT"
   # Das LUA-job_submit-Plugin schreibt "[I] ..." auf stdout -> nur die ID nehmen
-  prev="$(sbatch --parsable --export="$exp" "${log_args[@]}" "$job_script" | grep -o '^[0-9]\+' | tail -n 1)"
+  prev="$(sbatch -A "$ACC" --parsable --export="$exp" "${log_args[@]}" "$job_script" | grep -o '^[0-9]\+' | tail -n 1)"
   if [[ -z "$prev" ]]; then
     echo "[FEHLER ] $combo/${sample:0:6} - sbatch lieferte keine Job-ID" >&2; n_fail=$((n_fail + 1)); continue
   fi
   chain=("$prev")
   for ((i = 2; i <= MAX_CHAIN; i++)); do
-    prev="$(sbatch --parsable --dependency="afternotok:$prev" --kill-on-invalid-dep=yes --export="$exp" "${log_args[@]}" "$job_script" | grep -o '^[0-9]\+' | tail -n 1)"
+    prev="$(sbatch -A "$ACC" --parsable --dependency="afternotok:$prev" --kill-on-invalid-dep=yes --export="$exp" "${log_args[@]}" "$job_script" | grep -o '^[0-9]\+' | tail -n 1)"
     [[ -n "$prev" ]] || break
     chain+=("$prev")
   done

@@ -44,6 +44,13 @@ unaufgelöstes `$HPC_SCRATCH`; die Cluster-Skripte rechnen das per
 
 ---
 
+## Konto (Nutzerregel 27.10.2026)
+
+- **Auf `l0003507` wird NIE gerechnet.** Einziges Rechenkonto ist **`p0023647`** (auch nicht `special00008`, nicht der Slurm-Default `project02338`).
+- Kein implizites Konto: jedes `sbatch` bekommt `-A` (`ACC="${JOB_ACCOUNT:-p0023647}"`), jedes Jobskript `#SBATCH -A p0023647`,
+  Generatoren `--job-account` Default `p0023647`, `config.sh` `JOB_ACCOUNT` Default `p0023647`. Umgestellt am 27.10.2026 (vorher special00008).
+- Ausführlich: `../017-Yield-Surface-Batch-leS-nohinge/CLAUDE.md` Abschnitt „Konto".
+
 ## 2. Konventionen
 
 1. **Vor dem Bauen lesen:** `FILES.md`, `LES_PIPELINE.md`, `CLAUDE_PROJECT_NOTES.md`.

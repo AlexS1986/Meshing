@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #SBATCH -J prep-ys-mesh
-#SBATCH -A special00008
-# Account: batch_submit_CLUSTER.sh ueberschreibt ihn mit JOB_ACCOUNT aus config.sh
+#SBATCH -A p0023647
+# Account: p0023647 (27.10.2026: nie l0003507); batch_submit_CLUSTER.sh setzt ihn zusaetzlich per -A aus config.sh
 # (CLI schlaegt Header). p0023647 ist seit 12/2025 ohne Kontingent.
 #SBATCH -t 120
 #SBATCH -p deflt

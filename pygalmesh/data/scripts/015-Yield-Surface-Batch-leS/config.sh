@@ -169,7 +169,8 @@ ONLY_SIG_Y="${ONLY_SIG_Y:-}"
 # x T h). Bulk: p0025962 = aktuelle Phase des HyPo-Projekts (01.12.2025-
 # 30.11.2026); sobald die SLURM-Assoziation eingetragen ist (Ralf/JARDS,
 # Anfrage 02.09.2026), hier JOB_ACCOUNT=p0025962 setzen.
-JOB_ACCOUNT="${JOB_ACCOUNT:-special00008}"
+# 27.10.2026 (Nutzerregel): auf l0003507 wird NIE gerechnet; einziges Rechenkonto ist p0023647 (vorher Default special00008).
+JOB_ACCOUNT="${JOB_ACCOUNT:-p0023647}"
 
 # Obergrenze fuer gleichzeitig eingereichte Jobs (l0003507: MaxSubmit = 1000,
 # MaxJobs = 200; p0023647 hatte MaxJobs = 400). batch_submit_CLUSTER.sh prueft das vorher.

@@ -30,6 +30,7 @@ if [[ -z "${HPC_SCRATCH:-}" ]]; then
 fi
 
 SCRIPT_DIR="$HPC_SCRATCH/pygalmesh/data/scripts/015-Yield-Surface-Batch-leS"
+ACC="${JOB_ACCOUNT:-p0023647}"  # Konto immer explizit, nie l0003507 (Nutzerregel 27.10.2026)
 CONFIG="${1:-${PREPARE_MESH_CONFIG:-config-A01-les.json}}"
 POINTS="${2:-${YIELD_SURFACE_POINTS:-192}}"
 YS_DIR="${YIELD_SURFACE_JOBS_DIR:-$SCRIPT_DIR/yield_surface_jobs/n$(printf '%03d' "$POINTS")}"
@@ -79,10 +80,10 @@ elif [[ "${SKIP_PREPARE:-0}" == "1" ]]; then
   echo "Netzvorbereitung wird übersprungen (SKIP_PREPARE=1), keine Abhängigkeit."
 else
   if [[ "${DRY_RUN:-0}" == "1" ]]; then
-    echo "[dry-run] sbatch --parsable $SCRIPT_DIR/job_prepare_mesh_CLUSTER.sh $CONFIG"
+    echo "[dry-run] sbatch -A $ACC --parsable $SCRIPT_DIR/job_prepare_mesh_CLUSTER.sh $CONFIG"
     PREP_JOB_ID="000000"
   else
-    prep_output="$(sbatch --parsable "$SCRIPT_DIR/job_prepare_mesh_CLUSTER.sh" "$CONFIG")"
+    prep_output="$(sbatch -A "$ACC" --parsable "$SCRIPT_DIR/job_prepare_mesh_CLUSTER.sh" "$CONFIG")"
     PREP_JOB_ID="$(extract_job_id "$prep_output")"
     if [[ -z "$PREP_JOB_ID" ]]; then
       echo "Konnte die Job-ID der Netzvorbereitung nicht aus der sbatch-Ausgabe lesen:" >&2
@@ -98,9 +99,9 @@ submitted=0
 for job in "${POINT_JOBS[@]}"; do
   job_dir="$(dirname "$job")"
   if [[ "${DRY_RUN:-0}" == "1" ]]; then
-    echo "[dry-run] sbatch ${DEPENDENCY_ARGS[*]-} --error=$job_dir/%x.err.%j --output=$job_dir/%x.out.%j $job"
+    echo "[dry-run] sbatch -A $ACC ${DEPENDENCY_ARGS[*]-} --error=$job_dir/%x.err.%j --output=$job_dir/%x.out.%j $job"
   else
-    sbatch "${DEPENDENCY_ARGS[@]}" \
+    sbatch -A "$ACC" "${DEPENDENCY_ARGS[@]}" \
       --error="$job_dir/%x.err.%j" \
       --output="$job_dir/%x.out.%j" \
       "$job" > /dev/null
