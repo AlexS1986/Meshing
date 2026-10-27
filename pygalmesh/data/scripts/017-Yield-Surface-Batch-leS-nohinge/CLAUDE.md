@@ -73,6 +73,17 @@ Fallen: (a) `index.lock` auf dem Mac → `pgrep -fl git`, dann `rm .git/index.lo
 ungetrackte Dateien überschrieben würden → beiseitelegen (`mv … $HOME/cfg_bak_<datum>/`), dann erneut ziehen;
 (c) `rsync --update` kopiert nur neuere Dateien — eine auf dem Scratch von Hand geänderte Datei wird nicht überschrieben.
 
+## Konto (Nutzerregel 27.10.2026)
+
+- **Auf `l0003507` wird NIE gerechnet.** Einziges Rechenkonto ist **`p0023647`** (auch nicht `special00008`, nicht der Slurm-Default).
+- Kein implizites Konto: jedes `sbatch` bekommt `-A` (Skripte: `ACC="${JOB_ACCOUNT:-p0023647}"`, `sbatch -A "$ACC" …`), jedes Jobskript
+  `#SBATCH -A p0023647`, Generatoren `--job-account` Default `p0023647`, `config.sh` `JOB_ACCOUNT` Default `p0023647`.
+- Der Slurm-Default-Account von `as12vapa` ist `project02338` (sacctmgr, 27.10.2026); Assoziationen: l0003507, p0023647, project02338,
+  project02668, special00008. Ohne `-A` landet ein Job also auf project02338 → immer explizit angeben.
+- Vor jedem Einreichen im Dry-Run bzw. danach mit `squeue -o "%.10i %.26j %.9a"` das Konto prüfen.
+- Historie: Alle l0003507-Jobs dieses Ordners wurden am 08.09.2026 eingereicht (419 Jobs, ≈ 47,7 k Kernstunden; Ursache: damaliger
+  `JOB_ACCOUNT`-Default in `config.sh`). Seit 09.09.2026 keine Jobs mehr auf l0003507. Details `CLAUDE_PROJECT_NOTES.md` 09.09. und 27.10.
+
 ## 2. Konventionen
 
 1. **Vor dem Bauen lesen:** `FILES.md`, `LES_PIPELINE.md`, `CLAUDE_PROJECT_NOTES.md`.

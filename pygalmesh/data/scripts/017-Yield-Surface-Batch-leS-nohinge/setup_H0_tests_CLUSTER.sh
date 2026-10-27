@@ -20,6 +20,7 @@
 #   HARDENING=0             JOB_TIME=1440
 # ---------------------------------------------------------------------------
 set -euo pipefail
+ACC="${JOB_ACCOUNT:-p0023647}"  # Konto immer explizit, nie l0003507 (Nutzerregel 27.10.2026)
 WORK="${YS_WORKDIR:-$HPC_SCRATCH/pygalmesh/data/scripts/$(basename "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")}"
 DRY_RUN="${DRY_RUN:-1}"
 DATASETS="${DATASETS:-JM-25-77 JM-25-71 JM-25-83 JM-25-88}"
@@ -75,9 +76,9 @@ PY
     chmod 755 "$jobdst"
     grep -q "yield_surface_jobs_H0" "$jobdst" || { echo "[FEHLER] Config-Pfad im Jobskript nicht ersetzt: $jobdst" >&2; exit 1; }
     if [[ "$DRY_RUN" == "1" ]]; then
-      echo "  [dry-run] sbatch $jobdst   (-J $jn)"
+      echo "  [dry-run] sbatch -A $ACC $jobdst   (-J $jn)"
     else
-      out=$(sbatch "$jobdst" 2>&1); jid=$(echo "$out" | grep -o "Submitted batch job [0-9]*" | grep -o "[0-9]*$")
+      out=$(sbatch -A "$ACC" "$jobdst" 2>&1); jid=$(echo "$out" | grep -o "Submitted batch job [0-9]*" | grep -o "[0-9]*$")
       echo "  eingereicht: $jn -> Job ${jid:-?}"; n_sub=$((n_sub+1))
     fi
   done

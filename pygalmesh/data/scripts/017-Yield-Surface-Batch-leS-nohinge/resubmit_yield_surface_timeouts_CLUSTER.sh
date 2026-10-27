@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+ACC="${JOB_ACCOUNT:-p0023647}"  # Konto immer explizit, nie l0003507 (Nutzerregel 27.10.2026)
 
 # ---------------------------------------------------------------------------
 # Studie 015 (Batch): reicht Fliessflaechen-Punktjobs, die am SLURM-Zeitlimit
@@ -149,11 +150,11 @@ PYCFG
   # auf stdout, --parsable liefert daher mehrere Zeilen. Nur die numerische
   # Job-ID uebernehmen, sonst ist die afternotok-Dependency ungueltig
   # ("Job dependency problem") und die Kette bricht nach dem ersten Glied ab.
-  prev="$(sbatch --parsable "${log_args[@]}" "$job_script" | grep -o '^[0-9]\+' | tail -n 1)"
+  prev="$(sbatch -A "$ACC" --parsable "${log_args[@]}" "$job_script" | grep -o '^[0-9]\+' | tail -n 1)"
   [[ -n "$prev" ]] || { echo "[FEHLER ] $combo_tag/$sample_id - sbatch lieferte keine Job-ID" >&2; continue; }
   chain_ids=("$prev")
   for ((i = 2; i <= MAX_CHAIN; i++)); do
-    prev="$(sbatch --parsable --dependency="afternotok:$prev" --kill-on-invalid-dep=yes "${log_args[@]}" "$job_script" | grep -o '^[0-9]\+' | tail -n 1)"
+    prev="$(sbatch -A "$ACC" --parsable --dependency="afternotok:$prev" --kill-on-invalid-dep=yes "${log_args[@]}" "$job_script" | grep -o '^[0-9]\+' | tail -n 1)"
     [[ -n "$prev" ]] || { echo "[FEHLER ] $combo_tag/$sample_id - Kettenglied $i nicht eingereicht" >&2; break; }
     chain_ids+=("$prev")
   done

@@ -841,3 +841,17 @@ Glied 1 PENDING (None) um 09:44. Laufordner `yield_surface_runs/JM-25-71_les_r4_
   mit Vernetzungsverlust-Korrektur (ρ^1,75; 71 −4,3 %, 83 −5,7 %, 88 −0,2 %) 1,06–1,12 / 0,95–0,97 / 1,02–1,05; Rp0,2 korr. 1,01 / 0,98 / 0,98.
   Neu: `ergebnisse/plot_validierung_3proben.py` → `validierung_3proben.png/.csv`; Daten `ergebnisse/JM-25-8{3,8}_drucky_sigy100h2000/`.
   Nachtrag in `kennwerte_druck_71.md` und `BERICHT_druck_71_20261023.md`. Keine weiteren Laeufe eingereicht.
+
+## 27.10.2026 — Rechenkonto: nie l0003507 (Nutzerregel)
+- Pruefung `grep -rn l0003507` (sh/py/json/md): nur Kommentare und Notizen; aktive Defaults standen auf **special00008** (Commit 3e87120, 09.09.),
+  nicht auf p0023647 — entgegen dem Kommentar in config.sh.
+- sacct (`-A l0003507 -u as12vapa`, ab 01.06.2026): **421 Jobs, alle 017-Jobs am 08.09.2026 eingereicht** (419 Jobs, 47 713 Kernstunden;
+  4 Preps, die H0-Tests, die ersten Punkt-Jobs aller Kombinationen bis ys095), dazu 2 kleine Jobs vom 01.09. ausserhalb dieses Ordners (5 h).
+  Letzter l0003507-Job endete 09.09. 13:49. Ursache: damaliger `JOB_ACCOUNT`-Default in config.sh (siehe 09.09.). Seit 09.09. nichts mehr auf l0003507;
+  alle Druckjobs 20.–23.10. liefen auf p0023647 (squeue/sacct mit Account-Spalte geprueft).
+- Umstellung (Mac, nicht eingereicht): `config.sh` JOB_ACCOUNT-Default p0023647; `job_prepare_mesh_CLUSTER.sh`/`run_prepare_mesh_CLUSTER.sh`
+  `#SBATCH -A p0023647`; `setup_yield_surface_jobs.py`/`.sh` `--job-account` p0023647; explizites `-A` in allen sbatch-Aufrufen von
+  `batch_submit_CLUSTER.sh`, `submit_les_pipeline_CLUSTER.sh`, `restart_dead_points_CLUSTER.sh`, `resubmit_yield_surface_timeouts_CLUSTER.sh`,
+  `setup_H0_tests_CLUSTER.sh` (vorher teils nur ueber den Jobskript-Header). Druck-Skripte hatten schon p0023647. Regel in `CLAUDE.md` Abschnitt „Konto".
+- Cluster: Slurm-DefaultAccount von as12vapa = project02338 (nicht geaendert); keine Umgebungsvariablen JOB_ACCOUNT/SBATCH_ACCOUNT gesetzt.
+- Nicht angefasst: Ordner 015 (hat ebenfalls special00008-Defaults) und bereits erzeugte Jobskripte auf dem Scratch.

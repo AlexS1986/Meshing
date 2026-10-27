@@ -125,7 +125,7 @@ for ds in "${DATASETS[@]}"; do
 
   prep_args=(--parsable --time="${PREP_JOB_TIME:-120}")
   [[ -n "${PREP_JOB_PARTITION:-}" ]] && prep_args+=(-p "$PREP_JOB_PARTITION")
-  [[ -n "${JOB_ACCOUNT:-}" ]] && prep_args+=(-A "$JOB_ACCOUNT")
+  prep_args+=(-A "${JOB_ACCOUNT:-p0023647}")  # Konto immer explizit, nie l0003507 (Nutzerregel 27.10.2026)
   prep_args+=(-J "prep-$ds")
   if [[ "${DRY_RUN:-0}" == "1" ]]; then
     echo "[dry-run] sbatch ${prep_args[*]} $SCRIPT_DIR/job_prepare_mesh_CLUSTER.sh $cfg"
@@ -157,9 +157,9 @@ for i in "${!COMBO_ID[@]}"; do
   for job in "${point_jobs[@]}"; do
     job_dir="$(dirname "$job")"
     if [[ "${DRY_RUN:-0}" == "1" ]]; then
-      echo "  [dry-run] sbatch ${dep_args[*]-} --error=$job_dir/%x.err.%j --output=$job_dir/%x.out.%j $job"
+      echo "  [dry-run] sbatch -A ${JOB_ACCOUNT:-p0023647} ${dep_args[*]-} --error=$job_dir/%x.err.%j --output=$job_dir/%x.out.%j $job"
     else
-      sbatch ${dep_args[@]+"${dep_args[@]}"} \
+      sbatch -A "${JOB_ACCOUNT:-p0023647}" ${dep_args[@]+"${dep_args[@]}"} \
         --error="$job_dir/%x.err.%j" \
         --output="$job_dir/%x.out.%j" \
         "$job" > /dev/null
